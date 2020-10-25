@@ -1,0 +1,8 @@
+{
+  "profiles": {
+    "ClientApp.Win": {
+      "commandName": "Project",
+      "nativeDebugging": false
+    }
+  }
+}

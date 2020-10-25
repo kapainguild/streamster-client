@@ -1,0 +1,42 @@
+﻿<Window x:Class="ClientApp.Win.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:local="clr-namespace:ClientApp.Win"
+        xmlns:support="clr-namespace:Streamster.ClientApp.Win.Support"
+        mc:Ignorable="d"
+        Width="640" Height="550"
+        MinWidth="343" MinHeight="194"
+        DataContext="{x:Static local:App.Root}"
+        WindowStyle="SingleBorderWindow"
+        ResizeMode="NoResize"
+        WindowStartupLocation="CenterScreen"
+        support:ResizableWindowBehavior.Resizable="{Binding Resizable.Value}"
+        Closing="OnWindowClosing"
+        Title="{Binding AppData.ClientTitle}" 
+        xmlns:materialDesign="http://materialdesigninxaml.net/winfx/xaml/themes"
+        TextElement.Foreground="{DynamicResource MaterialDesignBody}"
+        Background="Black"
+        TextElement.FontWeight="Medium"
+        TextElement.FontSize="14"
+        FontFamily="{materialDesign:MaterialDesignFont}"
+        support:GoodByeFocus.Remove="True">
+    <WindowChrome.WindowChrome>
+        <WindowChrome  UseAeroCaptionButtons="True" GlassFrameThickness="1" ResizeBorderThickness="8" CaptionHeight="30"/>
+    </WindowChrome.WindowChrome>
+    
+    <Window.Resources>
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <ResourceDictionary Source="Views/RootView.xaml"/>
+            </ResourceDictionary.MergedDictionaries>
+        </ResourceDictionary>
+    </Window.Resources>
+    <Window.CommandBindings>
+        <CommandBinding Command="{x:Static SystemCommands.CloseWindowCommand}" CanExecute="OnSysCommandCanExecute" Executed="OnSysCommandCloseWindow" />
+        <CommandBinding Command="{x:Static SystemCommands.MaximizeWindowCommand}" CanExecute="OnSysCommandCanExecute" Executed="OnSysCommandMaximizeWindow" />
+        <CommandBinding Command="{x:Static SystemCommands.MinimizeWindowCommand}" CanExecute="OnSysCommandCanExecute" Executed="OnSysCommandMinimizeWindow" />
+    </Window.CommandBindings>
+    <ContentControl Focusable="False" Content="{Binding}"/>
+</Window>

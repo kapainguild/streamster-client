@@ -1,0 +1,35 @@
+﻿using System;
+using System.Collections.Generic;
+using System.Text;
+
+namespace Streamster.ClientData
+{
+    public class ClientConstants
+    {
+        public static int AuthorizationServerPort = 6000;
+        public static int LoadBalancerServerPort = 6001;
+        public static string LoadBalancerFilesFolder = "/Files";
+        public static string LoadBalancerFiles_Versions = "versions";
+        public static string LoadBalancerFiles_Targets = "targets";
+
+#if DEBUG
+        public static string[] LoadBalancerServers = new[] { "localhost" };
+#else
+        public static string[] LoadBalancerServers = new[] { "fi1.streamster.io", "de2.streamster.io", "mo1.streamster.io" };
+#endif
+        public static string TargetHintTemplate = "https://streamster.io/{0}";
+
+        public static string AnonymousGrandType = "ano";
+        public static string WinClientId = "win";
+        public static string UwpClientId = "uwp";
+        public static string ConnectionServerApi = "csrv";
+
+
+        public static string DeviceIdClaim = "iid";
+        public static string MaxBitrateClaim = "mbr";
+        public static string MaxChannelsClaim = "mch";
+        public static string VersionClaim = "ver";
+        public static string AppUpdatePathClaim = "aup";
+        public static string DebugClaim = "deb";
+    }
+}

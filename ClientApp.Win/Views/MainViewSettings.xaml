@@ -1,0 +1,185 @@
+﻿<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                    xmlns:models="clr-namespace:Streamster.ClientCore.Models;assembly=Streamster.ClientCore"
+                    xmlns:materialDesign="http://materialdesigninxaml.net/winfx/xaml/themes" xmlns:support="clr-namespace:Streamster.ClientApp.Win.Support">
+
+    <Style x:Key="GroupTitle" TargetType="TextBlock">
+        <Setter Property="Margin" Value="10,12,10,8"/>
+        <Setter Property="FontSize" Value="16"/>
+        <Setter Property="FontWeight" Value="Normal"/>
+    </Style>
+
+    <Style x:Key="MaterialDesignHeaderedContentControl" TargetType="{x:Type HeaderedContentControl}">
+        <Setter Property="Height" Value="55"/>
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="{x:Type HeaderedContentControl}">
+                    <StackPanel Margin="10,5,8,5" VerticalAlignment="Center">
+                        <ContentPresenter ContentSource="Header" />
+                        <ContentPresenter Margin="1,3,0,0" TextElement.FontSize="10" TextElement.Foreground="Gray" >
+                            <ContentPresenter.Resources>
+                                <Style TargetType="TextBlock" >
+                                    <Setter Property="TextBlock.TextWrapping" Value="Wrap"/>
+                                </Style>
+                            </ContentPresenter.Resources>
+                        </ContentPresenter>
+                    </StackPanel>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <support:InverseBooleanConverter x:Key="InverseBooleanConverter"/>
+
+    <Style x:Key="GroupBorderStyle" TargetType="{x:Type Border}">
+        <Setter Property="Margin" Value="9,0,4,0"/>
+        <Setter Property="Background" Value="#424242"/>
+        <Setter Property="BorderBrush" Value="#2B2B2B"/>
+        <Setter Property="BorderThickness" Value="1"/>
+        <Setter Property="CornerRadius" Value="4"/>
+    </Style>
+
+
+    <DataTemplate DataType="{x:Type models:MainSettingsModel}">
+        <ScrollViewer HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Visible" 
+                                  materialDesign:ScrollViewerAssist.IsAutoHideEnabled="True">
+
+            <StackPanel>
+                <TextBlock Style="{StaticResource GroupTitle}" Text="General"/>
+
+                <Border Style="{StaticResource GroupBorderStyle}">
+                    <StackPanel Orientation="Vertical">
+                        <DockPanel>
+                            <ToggleButton Margin="0,0,8,0" DockPanel.Dock="Right" VerticalAlignment="Center" Style="{StaticResource MaterialDesignSwitchToggleButton}"
+                                          IsChecked="{Binding AutoLogon.Value}"/>
+                            <HeaderedContentControl Header="Auto logon" 
+                                                Content="Skip login dialog when starting application. The toggle works for registered users if 'Save password' is on"
+                                                Style="{StaticResource MaterialDesignHeaderedContentControl}"/>
+
+                        </DockPanel>
+                        <Border Background="{DynamicResource MaterialDesignDivider}" Height="1" SnapsToDevicePixels="True" />
+                        <DockPanel>
+                            <ComboBox Margin="0,0,8,0" DockPanel.Dock="Right" VerticalAlignment="Top" BorderThickness="0"
+                                      ItemsSource="{Binding TopMostModes}" SelectedItem="{Binding CurrentTopMostMode.Value}" DisplayMemberPath="DisplayName">
+                            </ComboBox>
+                            <HeaderedContentControl Header="Top most window" 
+                                                Content="Determines when the application's window will fly on top of all other windows"
+                                                Style="{StaticResource MaterialDesignHeaderedContentControl}"/>
+
+                        </DockPanel>
+                    </StackPanel>
+                </Border>
+
+                <TextBlock Style="{StaticResource GroupTitle}" Text="Inputs"/>
+
+                <Border Style="{StaticResource GroupBorderStyle}">
+                    <StackPanel Orientation="Vertical">
+                        <DockPanel>
+                            <ToggleButton Margin="0,0,8,0" DockPanel.Dock="Right" VerticalAlignment="Center" Style="{StaticResource MaterialDesignSwitchToggleButton}"
+                                          IsChecked="{Binding EnableCameraStatusCheck.Value}"/>
+                            <HeaderedContentControl Header="Enable camera status check" 
+                                                Content="Enhanced camera status check during selection of camera. May be switched off if there are issues with camera selection"
+                                                Style="{StaticResource MaterialDesignHeaderedContentControl}"/>
+
+                        </DockPanel>
+                        <DockPanel>
+                            <ToggleButton x:Name="enableVideoPreview" ToolTipService.ShowOnDisabled="True"  Margin="0,0,8,0" DockPanel.Dock="Right" VerticalAlignment="Center" Style="{StaticResource MaterialDesignSwitchToggleButton}"
+                                          IsChecked="{Binding EnableVideoPreview.Value}"/>
+                            <HeaderedContentControl Header="Enable camera preview on selection" 
+                                                Content="Display video preview while selecting video source"
+                                                Style="{StaticResource MaterialDesignHeaderedContentControl}"/>
+
+                        </DockPanel>
+                    </StackPanel>
+                </Border>
+
+                <TextBlock Style="{StaticResource GroupTitle}" Text="Streaming"/>
+
+                <Border Style="{StaticResource GroupBorderStyle}">
+                    <StackPanel Orientation="Vertical">
+                        <DockPanel>
+                            <ComboBox Margin="0,0,8,0" DockPanel.Dock="Right" VerticalAlignment="Top" BorderThickness="0"
+                                      ItemsSource="{Binding StreamingToCloudBehaviors}" SelectedItem="{Binding CurrentStreamingToCloudBehavior.Value}" DisplayMemberPath="DisplayName">
+                            </ComboBox>
+                            <HeaderedContentControl Header="Start stream to cloud when" 
+                                                Content="Determines when streaming to the cloud will be started"
+                                                Style="{StaticResource MaterialDesignHeaderedContentControl}"/>
+
+                        </DockPanel>
+                    </StackPanel>
+                </Border>
+
+                <TextBlock Style="{StaticResource GroupTitle}" Text="Encoding"/>
+
+                <Border Style="{StaticResource GroupBorderStyle}">
+                    <StackPanel Orientation="Vertical">
+                        <DockPanel >
+                            <ComboBox Margin="0,0,8,0" DockPanel.Dock="Right" VerticalAlignment="Top" BorderThickness="0"
+                                      x:Name="encoderType" ToolTipService.ShowOnDisabled="True" 
+                                      ItemsSource="{Binding EncoderTypes}" SelectedItem="{Binding CurrentEncoderType.Value}" DisplayMemberPath="DisplayName">
+                            </ComboBox>
+                            <HeaderedContentControl Header="Encoder type" 
+                                                Content="When Auto is set, the app will find best option based on your hardware"
+                                                Style="{StaticResource MaterialDesignHeaderedContentControl}"/>
+
+                        </DockPanel>
+                        <Border Background="{DynamicResource MaterialDesignDivider}" Height="1" SnapsToDevicePixels="True" />
+                        <DockPanel>
+                            <ComboBox Margin="0,0,8,0" DockPanel.Dock="Right" VerticalAlignment="Top" BorderThickness="0"
+                                       x:Name="encoderQuality" ToolTipService.ShowOnDisabled="True" 
+                                      ItemsSource="{Binding EncoderQualities}" SelectedItem="{Binding CurrentEncoderQuality.Value}" DisplayMemberPath="DisplayName">
+                            </ComboBox>
+                            <HeaderedContentControl Header="Performance vs. Quality" 
+                                                Content="You may want to select 'speed' if your CPU or encoder are often overloaded"
+                                                Style="{StaticResource MaterialDesignHeaderedContentControl}"/>
+
+                        </DockPanel>
+                    </StackPanel>
+                </Border>
+
+                <TextBlock Style="{StaticResource GroupTitle}" Text="Recording"/>
+
+                <Border Style="{StaticResource GroupBorderStyle}">
+                    <StackPanel Orientation="Vertical">
+                        <DockPanel>
+                            <TextBox Margin="0,1,8,0" Width="200" DockPanel.Dock="Right" VerticalAlignment="Top" BorderThickness="0" MaxLength="1024">
+                                <TextBox.Text>
+                                    <Binding Path="CoreData.ThisDevice.DeviceSettings.RecordingsPath" UpdateSourceTrigger="PropertyChanged">
+                                        <Binding.ValidationRules>
+                                            <support:PathExistsValidationRule ValidatesOnTargetUpdated="True" />
+                                        </Binding.ValidationRules>
+                                    </Binding>
+                                </TextBox.Text>
+                            </TextBox>
+                            <HeaderedContentControl Header="Path for recordings" 
+                                                Content="Path where recordings will be stored"
+                                                Style="{StaticResource MaterialDesignHeaderedContentControl}"/>
+
+                        </DockPanel>
+                    </StackPanel>
+                </Border>
+
+
+            </StackPanel>
+
+
+
+        </ScrollViewer>
+
+        <DataTemplate.Triggers>
+            <DataTrigger Binding="{Binding MainStreamerModel.ChangeStreamParamsDisabled.Value}" Value="True">
+                <Setter TargetName="encoderQuality" Property="IsEnabled" Value="False"/>
+                <Setter TargetName="encoderQuality" Property="ToolTip" Value="Encoder quality cannot be changed during Restreaming or Recording"/>
+                <Setter TargetName="encoderType" Property="IsEnabled" Value="False"/>
+                <Setter TargetName="encoderType" Property="ToolTip" Value="Encoder type cannot be changed during Restreaming or Recording"/>
+            </DataTrigger>
+
+            <DataTrigger Binding="{Binding EnableCameraStatusCheck.Value}" Value="False">
+                <Setter TargetName="enableVideoPreview" Property="IsEnabled" Value="False"/>
+                <Setter TargetName="enableVideoPreview" Property="ToolTip" Value="Video preview can be changed only if camera status check is enabled"/>
+            </DataTrigger>
+        </DataTemplate.Triggers>
+        
+    </DataTemplate>
+
+</ResourceDictionary>

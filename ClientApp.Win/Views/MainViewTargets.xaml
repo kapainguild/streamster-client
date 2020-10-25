@@ -1,0 +1,605 @@
+﻿<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                    xmlns:models="clr-namespace:Streamster.ClientCore.Models;assembly=Streamster.ClientCore"
+                    xmlns:support="clr-namespace:Streamster.ClientApp.Win.Support"
+                    xmlns:materialDesign="http://materialdesigninxaml.net/winfx/xaml/themes">
+    <ResourceDictionary.MergedDictionaries>
+        <ResourceDictionary Source="Common.xaml"/>
+        <ResourceDictionary Source="pack://application:,,,/MaterialDesignThemes.Wpf;component/Themes/MaterialDesignTheme.Flipper.xaml" />
+        <ResourceDictionary Source="MainViewTargets.Styles.xaml"/>
+    </ResourceDictionary.MergedDictionaries>
+
+
+    <DataTemplate DataType="{x:Type models:TargetModel}">
+            <Button Style="{StaticResource EmptyButton}" x:Name="root"
+                    Command="{Binding OnSelected, Converter={StaticResource DelayedCloseDialogCommandConverter}}">
+            <Border Margin="8, 5" Height="122" Width="102" Background="{DynamicResource MaterialDesignDarkBackground}" BorderThickness="1" BorderBrush="#151515">
+                <Border.ToolTip>
+                        <TextBlock Text="{Binding Tooltip}" MaxWidth="350" TextWrapping="Wrap"/>
+                    </Border.ToolTip>
+                    <materialDesign:Ripple HorizontalAlignment="Stretch" VerticalAlignment="Stretch"
+                                           HorizontalContentAlignment="Stretch" VerticalContentAlignment="Stretch"
+                                           Feedback="AliceBlue">
+                    <Grid>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="100"/>
+                            <RowDefinition Height="20"/>
+                        </Grid.RowDefinitions>
+                        <Grid  RenderTransformOrigin="0.5,0.5">
+                            <Grid.RenderTransform>
+                                <ScaleTransform x:Name="imageScale" ScaleX="1" ScaleY="1"/>
+                            </Grid.RenderTransform>
+                            <materialDesign:PackIcon x:Name="custom" Height="80" Width="80" Kind="Cogs"
+                                                 HorizontalAlignment="Center"
+                                                 Visibility="Collapsed"/>
+                            <Image x:Name="logo" Source="{Binding Logo.Value, Converter={StaticResource ImageConverter}}"/>
+                        </Grid>
+
+                        <Border x:Name="mouseOver" Background="{DynamicResource PrimaryHueMidBrush}" Opacity="0"/>
+
+                        <Border Grid.Row="1" HorizontalAlignment="Stretch" VerticalAlignment="Stretch" Background="#404040">
+                            <TextBlock VerticalAlignment="Center" HorizontalAlignment="Center" Text="{Binding Source.Name}"/>
+                        </Border>
+                    </Grid>
+
+                </materialDesign:Ripple>
+                </Border>
+            </Button>
+        <DataTemplate.Triggers>
+            <DataTrigger Binding="{Binding Source.Id}" Value="{x:Null}">
+                <Setter TargetName="custom" Property="Visibility" Value="Visible"/>
+                <Setter TargetName="logo" Property="Visibility" Value="Collapsed"/>
+            </DataTrigger>
+            <Trigger SourceName="root" Property="IsMouseOver" Value="True">
+                <Trigger.EnterActions>
+                    <BeginStoryboard>
+                        <Storyboard>
+                            <DoubleAnimation Duration="0:0:0.15" Storyboard.TargetName="mouseOver" 
+                                            Storyboard.TargetProperty="Opacity" 
+                                            To="0.2" />
+
+                            <DoubleAnimation Duration="0:0:0.15" Storyboard.TargetName="imageScale" 
+                                            Storyboard.TargetProperty="ScaleX" To="1.1" />
+                            <DoubleAnimation Duration="0:0:0.15" Storyboard.TargetName="imageScale" 
+                                            Storyboard.TargetProperty="ScaleY" To="1.1" />
+                        </Storyboard>
+                    </BeginStoryboard>
+                </Trigger.EnterActions>
+                <Trigger.ExitActions>
+                    <BeginStoryboard>
+                        <Storyboard>
+                            <DoubleAnimation Duration="0:0:0.75" Storyboard.TargetName="mouseOver" 
+                                            Storyboard.TargetProperty="Opacity" To="0" />
+
+                            <DoubleAnimation Duration="0:0:0.15" Storyboard.TargetName="imageScale" 
+                                            Storyboard.TargetProperty="ScaleX" To="1.0" />
+                            
+                            <DoubleAnimation Duration="0:0:0.15" Storyboard.TargetName="imageScale" 
+                                            Storyboard.TargetProperty="ScaleY" To="1.0" />
+                        </Storyboard>
+                    </BeginStoryboard>
+                </Trigger.ExitActions>
+            </Trigger>
+        </DataTemplate.Triggers>
+    </DataTemplate>
+
+    <DataTemplate DataType="{x:Type models:TargetFilterModel}">
+        <TextBlock Text="{Binding Name}"/>
+    </DataTemplate>
+
+    <DataTemplate x:Key="TargetsDialogContent" DataType="{x:Type models:MainTargetsModel}">
+        <Border MaxWidth="950" RenderOptions.BitmapScalingMode="LowQuality">
+            <Grid>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="*"/>
+                    <RowDefinition Height="Auto"/>
+                </Grid.RowDefinitions>
+                <Border Grid.Row="0">
+                    <DockPanel>
+                        <Button DockPanel.Dock="Right" IsCancel="True" Command="{x:Static materialDesign:DialogHost.CloseDialogCommand}"
+                                Style="{StaticResource MaterialDesignIconForegroundButton}">
+                            <materialDesign:PackIcon Kind="Close" />
+                        </Button>
+                        <ListBox ItemsSource="{Binding Filters}" Style="{StaticResource MaterialDesignFilterChipListBox}" Margin="15,5">
+                            <ListBox.ItemContainerStyle>
+                                <Style TargetType="ListBoxItem" BasedOn="{StaticResource MaterialDesignFilterChipListBoxItem}">
+                                    <Setter Property="IsSelected" Value="{Binding IsSelected.Value}"/>
+                                </Style>
+                            </ListBox.ItemContainerStyle>
+                        </ListBox>
+                    </DockPanel>
+                    
+                </Border>
+                <Border Grid.Row="1" Background="{DynamicResource MaterialDesignToolBarBackground}">
+                    <ScrollViewer HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto">
+                        <ItemsControl Margin="10" ItemsSource="{Binding Targets}" HorizontalContentAlignment="Center">
+                            <ItemsControl.ItemsPanel>
+                                <ItemsPanelTemplate>
+                                    <WrapPanel Orientation="Horizontal" HorizontalAlignment="Center" />
+                                </ItemsPanelTemplate>
+                            </ItemsControl.ItemsPanel>
+                        </ItemsControl>
+                    </ScrollViewer>
+                </Border>
+                <Border Grid.Row="2" Height="5">
+                </Border>
+            </Grid>
+        </Border>
+    </DataTemplate>
+
+    <DataTemplate x:Key="ChannelModelTemplate" DataType="{x:Type models:ChannelModel}">
+        <materialDesign:Flipper x:Name="root" Width="{Binding (support:ResponsiveHost.Calculation).Values.ChannelWidth, ElementName=root}" 
+                                Margin="5,0" Style="{StaticResource MaterialDesignCardFlipper}" VerticalAlignment="Center">
+            <materialDesign:Flipper.FrontContent>
+                <Grid Height="120" Background="#404040" x:Name="frontContent">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto"/>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="Auto"/>
+                    </Grid.ColumnDefinitions>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="*"/>
+                        <RowDefinition Height="Auto"/>
+                    </Grid.RowDefinitions>
+
+                    <Border Grid.RowSpan="2" Margin="5" CornerRadius="3" Background="#505050">
+                        <Viewbox  Stretch="Uniform" >
+                            <Grid>
+                                <materialDesign:PackIcon x:Name="custom" Height="80" Width="80" Kind="Cogs"
+                                                 HorizontalAlignment="Center"
+                                                 Visibility="Collapsed"/>
+
+                                <Image x:Name="logo" Stretch="Uniform" Source="{Binding Logo.Value, Converter={StaticResource ImageConverter}}"/>
+                            </Grid>
+                        </Viewbox>
+                    </Border>
+
+                    <TextBlock x:Name="nameText" Grid.Column="1" Grid.ColumnSpan="2" Grid.Row="0" 
+                               Text="{Binding Name.Value}"
+                               Foreground="#CCCCCC"
+                               Margin="5,3,10,3" 
+                               TextTrimming="CharacterEllipsis"
+                               Opacity="0.5"/>
+
+                    <StackPanel Margin="3,3,0,0" Grid.Column="1" Grid.Row="1" Orientation="Horizontal" x:Name="buttons" Opacity="0.2" VerticalAlignment="Top" HorizontalAlignment="Left">
+                        <Button x:Name="gotoWeb" Style="{StaticResource MaterialDesignIconButton}" 
+                                Command="{Binding GoToWebUrl, Converter={StaticResource CommandConverter}}"
+                                ToolTip="Open web URL in a web browser. The URL can be configured in the channel settings"
+                                Width="36" Height="36">
+                            <materialDesign:PackIcon Kind="Web" Width="24" Height="24" Foreground="White"/>
+                        </Button>
+                        <Button x:Name="gotoHelp" Style="{StaticResource MaterialDesignIconButton}" 
+                                Command="{Binding GoToHelp, Converter={StaticResource CommandConverter}}"
+                                ToolTip="Tutorial on how to set up the channel to the platform"
+                                Width="36" Height="36">
+                            <materialDesign:PackIcon Kind="HelpRhombusOutline" Width="24" Height="24" Foreground="White"/>
+                        </Button>
+                        <Button x:Name="options" Style="{StaticResource MaterialDesignIconButton}" 
+                                ToolTip="Change your channel settings. You can also remove the channel here"
+                                Command="{x:Static materialDesign:Flipper.FlipCommand}"
+                                Width="36" Height="36"
+                                Visibility="Collapsed">
+                            <materialDesign:PackIcon Kind="Tools" Width="24" Height="24" Foreground="White"/>
+                        </Button>
+                    </StackPanel>
+
+                    <Grid Grid.Column="2" Grid.Row="1" Margin="6,3,6,0" VerticalAlignment="Top" Width="36" Height="36">
+                        <Button x:Name="start" Style="{StaticResource MaterialDesignIconButton}" 
+                                Command="{Binding Start, Converter={StaticResource CommandConverter}}"
+                                VerticalAlignment="Center"
+                                ToolTip="Start restreaming to the platform"
+                            Background="#206137"
+                            Visibility="Collapsed"
+                            Width="30" Height="30">
+                            <materialDesign:PackIcon Kind="PlayCircleOutline" Margin="-3" Width="36" Height="36" Foreground="White"/>
+                        </Button>
+
+                        <Button x:Name="stop" Style="{StaticResource MaterialDesignIconButton}" Command="{Binding Stop, Converter={StaticResource CommandConverter}}"
+                                Background="#612037"
+                                VerticalAlignment="Center"
+                                ToolTip="Stop restreaming"
+                                Width="30" Height="30">
+                            <materialDesign:PackIcon Kind="StopCircleOutline" Margin="-3" Width="36" Height="36" Foreground="White"/>
+                        </Button>
+
+                        <ProgressBar x:Name="inProgress" VerticalAlignment="Center"
+                                     ToolTip="We are connecting the stream to the platform"
+                                     Width="32" Height="32" Style="{StaticResource MaterialDesignCircularProgressBar}" Value="0" IsIndeterminate="True" Visibility="Collapsed" />
+                    </Grid>
+
+                    <TextBlock x:Name="bitrate" Text="{Binding Bitrate.Value}" Grid.Column="1" Grid.ColumnSpan="2" Grid.Row="1" Margin="6,3" VerticalAlignment="Bottom" HorizontalAlignment="Right"
+                               ToolTip="Bitrate to the platform"/>
+
+
+                    <Grid Grid.Row="2" Grid.ColumnSpan="3">
+                        <Grid x:Name="keyAndRtmp" Visibility="Collapsed" Margin="0,-10,3,0" >
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition x:Name="keyAndRtmp1" Width="5"/>
+                                <ColumnDefinition x:Name="keyAndRtmp2" Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            <TextBox x:Name="key" 
+                                 Text="{Binding Source.Key, UpdateSourceTrigger=PropertyChanged}" 
+                                 Style="{StaticResource ChannelTextBoxStyle}"
+                                     ToolTip="Key provided by streaming platform. You can click on tutorial button for instructions on how to get the key"
+                                     support:Behaviors.TextBoxHasPasteButton="True"
+                                     support:Behaviors.TextBoxIsFlatty="True">
+                                <materialDesign:HintAssist.Hint>
+                                    <TextBlock Text="Key"/>
+                                </materialDesign:HintAssist.Hint>
+                            </TextBox>
+
+                            <TextBox x:Name="frontRtmpUrl" Grid.Column="2"
+                                 Text="{Binding RtmpUrl.Value, UpdateSourceTrigger=PropertyChanged}" 
+                                 Style="{StaticResource ChannelTextBoxStyle}"
+                                     support:Behaviors.TextBoxHasPasteButton="True"
+                                     ToolTip="Rtmp Url provided by streaming platform. You can click on tutorial button for instructions on how to get the url"
+                                     support:Behaviors.TextBoxIsFlatty="True">
+                                <materialDesign:HintAssist.Hint>
+                                    <TextBlock Text="RTMP url"/>
+                                </materialDesign:HintAssist.Hint>
+                            </TextBox>
+                        </Grid>
+
+                        <Border Grid.ColumnSpan="3" x:Name="stateBorder">
+                            <DockPanel>
+                                <TextBlock x:Name="timer" DockPanel.Dock="Right" Margin="0,3,6,3" HorizontalAlignment="Right" Text="{Binding TimerState.Value}"/>
+                                <TextBlock x:Name="state" Margin="5,3" HorizontalAlignment="Left" Text="{Binding TextState.Value}"/>
+                            </DockPanel>
+                        </Border>
+
+                        <Border x:Name="startError" Background="#303030" Grid.ColumnSpan="3">
+                            <TextBlock Margin="5,0" VerticalAlignment="Center" HorizontalAlignment="Center" TextAlignment="Center" Foreground="Yellow" Text="{Binding StartError.Value}" TextWrapping="Wrap"/>
+                        </Border>
+                    </Grid>
+                </Grid>
+            </materialDesign:Flipper.FrontContent>
+            <materialDesign:Flipper.BackContent>
+                <DockPanel>
+                    <materialDesign:ColorZone Mode="PrimaryDark" Padding="4,2" DockPanel.Dock="Top">
+                        <DockPanel>
+                            <Button DockPanel.Dock="Left" Style="{StaticResource MaterialDesignIconButton}" Command="{x:Static materialDesign:Flipper.FlipCommand}"
+                                    Width="32" Height="32" Padding="0"
+                                    ToolTip="Close settings"
+                                    HorizontalAlignment="Left" Foreground="White">
+                                <materialDesign:PackIcon Width="32" Height="32" Kind="ArrowLeftCircleOutline" HorizontalAlignment="Right" />
+                            </Button>
+                            <TextBlock Margin="8,0,0,0" DockPanel.Dock="Left" Foreground="White" VerticalAlignment="Center" Text="Edit "/>
+                            <TextBlock Margin="0,0,8,0" Foreground="White" VerticalAlignment="Center" Text="{Binding Name.Value}" TextTrimming="CharacterEllipsis"/>
+                        </DockPanel>
+                    </materialDesign:ColorZone>
+                    <StackPanel Margin="5,0" x:Name="optionsPanel" IsEnabled="False">
+                        <TextBox Text="{Binding Name.Value, UpdateSourceTrigger=PropertyChanged}" 
+                                 Style="{StaticResource ChannelTextBoxStyle}">
+                            <materialDesign:HintAssist.Hint>
+                                <HeaderedContentControl Style="{StaticResource ChannelTextBoxHintStyle}"
+                                                        Header="Name">
+                                    <materialDesign:PackIcon Kind="RenameBox" />
+                                </HeaderedContentControl>
+                            </materialDesign:HintAssist.Hint>
+                        </TextBox>
+
+                        <TextBox x:Name="rtmpUrl" Text="{Binding RtmpUrl.Value, UpdateSourceTrigger=PropertyChanged}" 
+                                 Style="{StaticResource ChannelTextBoxStyle}"
+                                 support:Behaviors.TextBoxHasPasteButton="True"
+                                 ToolTip="Rtmp Url provided by streaming platform. You can click on tutorial button for instructions on how to get the url">
+                            <materialDesign:HintAssist.Hint>
+                                <HeaderedContentControl Style="{StaticResource ChannelTextBoxHintStyle}"
+                                                        Header="RTMP url">
+                                    <materialDesign:PackIcon Kind="Wifi" />
+                                </HeaderedContentControl>
+                            </materialDesign:HintAssist.Hint>
+                        </TextBox>
+                        
+
+                        <TextBox Text="{Binding WebUrl.Value, UpdateSourceTrigger=PropertyChanged}" 
+                                 Style="{StaticResource ChannelTextBoxStyle}"
+                                 ToolTip="Configure web url for quick access in web browser. You can put here url to your account page or login page on the platform"
+                                 support:Behaviors.TextBoxHasPasteButton="True">
+                            <materialDesign:HintAssist.Hint>
+                                <HeaderedContentControl Style="{StaticResource ChannelTextBoxHintStyle}"
+                                                        Header="Web url">
+                                    <materialDesign:PackIcon Kind="Web" />
+                                </HeaderedContentControl>
+                            </materialDesign:HintAssist.Hint>
+                        </TextBox>
+
+                        <Button Margin="5,5,5,10" Style="{StaticResource MaterialDesignOutlinedButton}"
+                                Command="{Binding Delete, Converter={StaticResource CommandConverter}}"
+                                Foreground="White" HorizontalAlignment="Center"
+                                ToolTip="Remove the channel">
+                            <StackPanel Orientation="Horizontal">
+                                <materialDesign:PackIcon Width="20" Height="20" Kind="Trash"/>
+                                <TextBlock Margin="5,0,0,0" VerticalAlignment="Center" Text="Delete"/>
+                            </StackPanel>
+                        </Button>
+                    </StackPanel>
+                </DockPanel>
+            </materialDesign:Flipper.BackContent>
+        </materialDesign:Flipper>
+        <DataTemplate.Triggers>
+            <DataTrigger Binding="{Binding StartError.Value.Length}"  Value="0">
+                <Setter TargetName="startError" Property="Visibility" Value="Collapsed"/>
+            </DataTrigger>
+            <DataTrigger Binding="{Binding HasRtmpUrlInOptions}"  Value="False">
+                <Setter TargetName="rtmpUrl" Property="Visibility" Value="Collapsed"/>
+            </DataTrigger>
+
+            <DataTrigger Binding="{Binding HasRtmpUrlInFront}"  Value="False">
+                <Setter TargetName="frontRtmpUrl" Property="Visibility" Value="Collapsed"/>
+                <Setter TargetName="keyAndRtmp1" Property="Width" Value="0"/>
+                <Setter TargetName="keyAndRtmp2" Property="Width" Value="0"/>
+            </DataTrigger>
+
+            <DataTrigger Binding="{Binding Target.Id}" Value="{x:Null}">
+                <Setter TargetName="custom" Property="Visibility" Value="Visible"/>
+                <Setter TargetName="logo" Property="Visibility" Value="Collapsed"/>
+                <Setter TargetName="gotoHelp" Property="Visibility" Value="Collapsed"/>
+            </DataTrigger>
+
+            <DataTrigger Binding="{Binding WebUrl.Value}" Value="{x:Null}">
+                <Setter TargetName="gotoWeb" Property="Visibility" Value="Collapsed"/>
+            </DataTrigger>
+            <DataTrigger Binding="{Binding WebUrl.Value.Length}" Value="0">
+                <Setter TargetName="gotoWeb" Property="Visibility" Value="Collapsed"/>
+            </DataTrigger>
+
+            <DataTrigger Binding="{Binding Source.Key}" Value="{x:Null}">
+                <Setter TargetName="key" Property="Foreground" Value="#FF4444"/>
+                <Setter TargetName="key" Property="BorderBrush" Value="#FF4444"/>
+            </DataTrigger>
+            <DataTrigger Binding="{Binding Source.Key.Length}" Value="0">
+                <Setter TargetName="key" Property="Foreground" Value="#FF4444"/>
+                <Setter TargetName="key" Property="BorderBrush" Value="#FF4444"/>
+            </DataTrigger>
+
+            <DataTrigger Binding="{Binding RtmpUrl.Value}" Value="{x:Null}">
+                <Setter TargetName="rtmpUrl" Property="Foreground" Value="#FF4444"/>
+                <Setter TargetName="rtmpUrl" Property="BorderBrush" Value="#FF4444"/>
+                <Setter TargetName="frontRtmpUrl" Property="Foreground" Value="#FF4444"/>
+                <Setter TargetName="frontRtmpUrl" Property="BorderBrush" Value="#FF4444"/>
+            </DataTrigger>
+            <DataTrigger Binding="{Binding RtmpUrl.Value.Length}" Value="0">
+                <Setter TargetName="rtmpUrl" Property="Foreground" Value="#FF4444"/>
+                <Setter TargetName="rtmpUrl" Property="BorderBrush" Value="#FF4444"/>
+                <Setter TargetName="frontRtmpUrl" Property="Foreground" Value="#FF4444"/>
+                <Setter TargetName="frontRtmpUrl" Property="BorderBrush" Value="#FF4444"/>
+            </DataTrigger>
+
+            <DataTrigger Binding="{Binding State.Value}" Value="Idle">
+                <Setter TargetName="start" Property="Visibility" Value="Visible"/>
+                <Setter TargetName="stop" Property="Visibility" Value="Collapsed"/>
+                <Setter TargetName="bitrate" Property="Visibility" Value="Collapsed"/>
+                <Setter TargetName="keyAndRtmp" Property="Visibility" Value="Visible"/>
+                <Setter TargetName="options" Property="Visibility" Value="Visible"/>
+                <Setter TargetName="state" Property="Visibility" Value="Collapsed"/>
+                <Setter TargetName="optionsPanel" Property="IsEnabled" Value="True"/>
+                <Setter TargetName="frontContent" Property="Background" Value="#303030"/>
+                <Setter TargetName="timer" Property="Margin" Value="0,-8,6,0"/>
+                <Setter TargetName="timer" Property="Foreground" Value="#0960c0"/>
+                
+            </DataTrigger>
+            <DataTrigger Binding="{Binding State.Value}" Value="InProgress">
+                <Setter TargetName="inProgress" Property="Visibility" Value="Visible"/>
+                <Setter TargetName="stop" Property="Visibility" Value="Collapsed"/>
+            </DataTrigger>
+
+            <DataTrigger Binding="{Binding State.Value}" Value="RunningConnectError">
+                <Setter TargetName="stateBorder" Property="Background" Value="Red"/>
+            </DataTrigger>
+
+            <DataTrigger Binding="{Binding State.Value}" Value="RunningInitError">
+                <Setter TargetName="stateBorder" Property="Background" Value="Red"/>
+            </DataTrigger>
+
+            <DataTrigger Binding="{Binding State.Value}" Value="RunningOk">
+                <Setter TargetName="stateBorder" Property="Background" Value="DarkGreen"/>
+            </DataTrigger>
+
+            <DataTrigger Binding="{Binding State.Value}" Value="WaitingForStreamToCloud">
+            </DataTrigger>
+
+
+            <DataTrigger Binding="{Binding IsMouseOver, ElementName=root}" Value="True">
+                <DataTrigger.EnterActions>
+                    <BeginStoryboard>
+                        <Storyboard>
+                            <DoubleAnimation Storyboard.TargetName="buttons" Storyboard.TargetProperty="Opacity" 
+                                             BeginTime="0:0:0.3" Duration="0:0:0.2" To="1.0"/>
+                            <DoubleAnimation Storyboard.TargetName="nameText" Storyboard.TargetProperty="Opacity" 
+                                             BeginTime="0:0:0.3" Duration="0:0:0.2" To="1.0"/>
+                            
+                        </Storyboard>
+                    </BeginStoryboard>
+                </DataTrigger.EnterActions>
+
+                <DataTrigger.ExitActions>
+                    <BeginStoryboard>
+                        <Storyboard>
+                            <DoubleAnimation Storyboard.TargetName="buttons" Storyboard.TargetProperty="Opacity" 
+                                             BeginTime="0:0:1" Duration="0:0:0.2" To="0.2"/>
+                            <DoubleAnimation Storyboard.TargetName="nameText" Storyboard.TargetProperty="Opacity" 
+                                             BeginTime="0:0:1" Duration="0:0:0.2" To="0.5"/>
+                        </Storyboard>
+                    </BeginStoryboard>
+                </DataTrigger.ExitActions>
+            </DataTrigger>
+
+
+        </DataTemplate.Triggers>
+    </DataTemplate>
+
+    <DataTemplate x:Key="ChannelModelTemplateSmall" DataType="{x:Type models:ChannelModel}">
+        <Border x:Name="root" Height="{Binding (support:ResponsiveHost.Calculation).Values.ChannelWidth, ElementName=root}" 
+                Width="{Binding (support:ResponsiveHost.Calculation).Values.ChannelWidth, ElementName=root}" Margin="5" Background="#404040" CornerRadius="4" BorderBrush="#101010" BorderThickness="1">
+            <Grid>
+                <Viewbox Stretch="Uniform" Margin="4" VerticalAlignment="Top">
+                    <Grid>
+                        <materialDesign:PackIcon x:Name="custom" Height="80" Width="80" Kind="Cogs"
+                                                 HorizontalAlignment="Center"
+                                                 Visibility="Collapsed"/>
+
+                        <Image x:Name="logo" Stretch="Uniform" Source="{Binding Logo.Value, Converter={StaticResource ImageConverter}}"/>
+                    </Grid>
+                </Viewbox>
+
+                <Grid x:Name="startStop" VerticalAlignment="Center" HorizontalAlignment="Center" Width="36" Height="36" Opacity="0">
+                    <Button x:Name="start" Style="{StaticResource MaterialDesignIconButton}" 
+                                Command="{Binding Start, Converter={StaticResource CommandConverter}}"
+                                VerticalAlignment="Center"
+                            Background="#206137"
+                            ToolTip="Start restreaming to the platform"
+                            Visibility="Collapsed"
+                            Width="30" Height="30">
+                        <materialDesign:PackIcon Kind="PlayCircleOutline" Margin="-3" Width="36" Height="36" Foreground="White"/>
+                    </Button>
+
+                    <Button x:Name="stop" Style="{StaticResource MaterialDesignIconButton}" Command="{Binding Stop, Converter={StaticResource CommandConverter}}"
+                                Background="#612037"
+                                VerticalAlignment="Center"
+                                ToolTip="Stop restreaming"
+                                Width="30" Height="30">
+                        <materialDesign:PackIcon Kind="StopCircleOutline" Margin="-3" Width="36" Height="36" Foreground="White"/>
+                    </Button>
+
+                    <ProgressBar x:Name="inProgress" VerticalAlignment="Center"
+                                 ToolTip="We are connecting the stream to the platform"
+                                     Width="32" Height="32" Style="{StaticResource MaterialDesignCircularProgressBar}" Value="0" IsIndeterminate="True" Visibility="Collapsed" />
+
+
+                </Grid>
+                <Border x:Name="stateBorder" BorderThickness="4" CornerRadius="3">
+                </Border>
+
+                <Border x:Name="startError" Background="#303030" >
+                    <TextBlock Margin="5,0" VerticalAlignment="Center" FontSize="10" FontWeight="Normal" HorizontalAlignment="Center" TextAlignment="Center" Foreground="Yellow" Text="{Binding StartError.Value}" TextWrapping="Wrap"/>
+                </Border>
+            </Grid>
+        </Border>
+
+        <DataTemplate.Triggers>
+            <DataTrigger Binding="{Binding StartError.Value.Length}"  Value="0">
+                <Setter TargetName="startError" Property="Visibility" Value="Collapsed"/>
+            </DataTrigger>
+
+            <DataTrigger Binding="{Binding Target.Id}" Value="{x:Null}">
+                <Setter TargetName="custom" Property="Visibility" Value="Visible"/>
+                <Setter TargetName="logo" Property="Visibility" Value="Collapsed"/>
+            </DataTrigger>
+
+            <DataTrigger Binding="{Binding State.Value}" Value="Idle">
+                <Setter TargetName="start" Property="Visibility" Value="Visible"/>
+                <Setter TargetName="stop" Property="Visibility" Value="Collapsed"/>
+                <Setter TargetName="root" Property="Background" Value="#303030"/>
+            </DataTrigger>
+            <DataTrigger Binding="{Binding State.Value}" Value="InProgress">
+                <Setter TargetName="inProgress" Property="Visibility" Value="Visible"/>
+                <Setter TargetName="stop" Property="Visibility" Value="Collapsed"/>
+            </DataTrigger>
+
+            <DataTrigger Binding="{Binding State.Value}" Value="RunningConnectError">
+                <Setter TargetName="stateBorder" Property="BorderBrush" Value="Red"/>
+            </DataTrigger>
+
+            <DataTrigger Binding="{Binding State.Value}" Value="RunningInitError">
+                <Setter TargetName="stateBorder" Property="BorderBrush" Value="Red"/>
+            </DataTrigger>
+
+            <DataTrigger Binding="{Binding State.Value}" Value="RunningOk">
+                <Setter TargetName="stateBorder" Property="BorderBrush" Value="Green"/>
+            </DataTrigger>
+
+
+            <DataTrigger Binding="{Binding IsMouseOver, ElementName=root}" Value="True">
+                <DataTrigger.EnterActions>
+                    <BeginStoryboard>
+                        <Storyboard>
+                            <DoubleAnimation Storyboard.TargetName="startStop" Storyboard.TargetProperty="Opacity" 
+                                             BeginTime="0:0:0.0" Duration="0:0:0.2" To="1.0"/>
+                        </Storyboard>
+                    </BeginStoryboard>
+                </DataTrigger.EnterActions>
+
+                <DataTrigger.ExitActions>
+                    <BeginStoryboard>
+                        <Storyboard>
+                            <DoubleAnimation Storyboard.TargetName="startStop" Storyboard.TargetProperty="Opacity" 
+                                             BeginTime="0:0:0.0" Duration="0:0:0.2" To="0"/>
+                        </Storyboard>
+                    </BeginStoryboard>
+                </DataTrigger.ExitActions>
+            </DataTrigger>
+        </DataTemplate.Triggers>
+    </DataTemplate>
+
+
+    <DataTemplate x:Key="ChannelDataTemplate">
+        <ContentPresenter Content="{Binding Local}" ContentTemplate="{StaticResource ChannelModelTemplate}"/>
+    </DataTemplate>
+
+    <DataTemplate x:Key="ChannelDataTemplateSmall">
+        <ContentPresenter Content="{Binding Local}" ContentTemplate="{StaticResource ChannelModelTemplateSmall}"/>
+    </DataTemplate>
+
+    <DataTemplate x:Key="MainViewTargets" DataType="{x:Type models:MainTargetsModel}">
+        <Grid x:Name="root" Margin="0,0,0,0">
+            <!-- no channels-->
+            <StackPanel x:Name="nochannels" HorizontalAlignment="Center" VerticalAlignment="Center" Visibility="Collapsed">
+                <TextBlock TextWrapping="Wrap" Text="You have no configured channels yet" Opacity="0.5"/>
+                <Button Margin="0,10,0,0" Height="46" Command="{x:Static materialDesign:DialogHost.OpenDialogCommand}"
+                        materialDesign:ButtonAssist.CornerRadius="23" HorizontalAlignment="Center">
+                    <StackPanel Orientation="Horizontal">
+                        <materialDesign:PackIcon Margin="-5,0,0,2" Kind="Plus" Height="30" Width="30"/>
+                        <TextBlock Text="Add channel" Margin="5,0,3,2" VerticalAlignment="Center"/>
+                    </StackPanel>
+                    <Button.CommandParameter>
+                        <ContentControl Content="{Binding}" ContentTemplate="{StaticResource TargetsDialogContent}"/>
+                    </Button.CommandParameter>
+                </Button>
+            </StackPanel>
+
+            <!-- few channels-->
+            <Grid x:Name="fewchannels">
+                <DockPanel HorizontalAlignment="Center" VerticalAlignment="Top">
+                
+                <Button x:Name="addbutton" DockPanel.Dock="Right" Margin="10" Command="{x:Static materialDesign:DialogHost.OpenDialogCommand}"
+                         VerticalAlignment="Center" Style="{StaticResource MaterialDesignFloatingActionButton}"
+                        ToolTip="Add channel">
+                        <materialDesign:PackIcon Kind="Plus" Width="32" Height="32"/>
+                    <Button.CommandParameter>
+                        <ContentControl Content="{Binding}" ContentTemplate="{StaticResource TargetsDialogContent}"/>
+                    </Button.CommandParameter>
+                </Button>
+
+                    <ScrollViewer HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto" 
+                                  materialDesign:ScrollViewerAssist.IsAutoHideEnabled="True">
+                        <ItemsControl x:Name="channelItems" Margin="10" ItemsSource="{Binding CoreData.Root.Channels.Values}" ItemTemplate="{StaticResource ChannelDataTemplate}" >
+                            <ItemsControl.ItemsPanel>
+                                <ItemsPanelTemplate>
+                                    <WrapPanel Orientation="Horizontal"/>
+                                </ItemsPanelTemplate>
+                            </ItemsControl.ItemsPanel>
+                        </ItemsControl>
+                    </ScrollViewer>
+                </DockPanel>
+            </Grid>
+        </Grid>
+        <DataTemplate.Triggers>
+            <DataTrigger Binding="{Binding (support:ResponsiveHost.Calculation).Values.HideAddTargetButton, ElementName=root}" Value="True">
+                <Setter TargetName="addbutton" Property="Visibility" Value="Collapsed"/>
+            </DataTrigger>
+
+            <DataTrigger Binding="{Binding (support:ResponsiveHost.Calculation).Values.ChannelTemplate, ElementName=root}" Value="1">
+                <Setter TargetName="channelItems" Property="ItemTemplate" Value="{StaticResource ChannelDataTemplateSmall}"/>
+            </DataTrigger>
+
+            <DataTrigger Binding="{Binding CoreData.Root.Channels.Values.Count}" Value="0">
+                <Setter TargetName="nochannels" Property="Visibility" Value="Visible"/>
+                <Setter TargetName="fewchannels" Property="Visibility" Value="Collapsed"/>
+            </DataTrigger>
+        </DataTemplate.Triggers>
+    </DataTemplate>
+    
+</ResourceDictionary>

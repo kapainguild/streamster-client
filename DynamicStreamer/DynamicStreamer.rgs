@@ -1,0 +1,16 @@
+HKCR
+{
+	NoRemove CLSID
+	{
+		ForceRemove {E070BC4F-392A-43AA-9E89-039B68859242} = s 'DynamicStreamer Class'
+		{
+			ForceRemove Programmable
+			InprocServer32 = s '%MODULE%'
+			{
+				val ThreadingModel = s 'Apartment'
+			}
+			TypeLib = s '{1E437F1F-6EDF-4910-9347-1C5427B0E248}'
+			Version = s '1.0'
+		}
+	}
+}

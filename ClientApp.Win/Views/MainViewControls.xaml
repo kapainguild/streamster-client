@@ -1,0 +1,178 @@
+﻿<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                    xmlns:models="clr-namespace:Streamster.ClientCore.Models;assembly=Streamster.ClientCore"
+                    xmlns:support="clr-namespace:Streamster.ClientApp.Win.Support"
+                    xmlns:materialDesign="http://materialdesigninxaml.net/winfx/xaml/themes">
+    <ResourceDictionary.MergedDictionaries>
+        <ResourceDictionary Source="BitrateSlider.xaml"/>
+    </ResourceDictionary.MergedDictionaries>
+
+    <DataTemplate x:Key="MainViewControls" DataType="{x:Type models:MainStreamerModel}">
+        <Grid Margin="10,10,10,0" x:Name="root" MaxWidth="600" Background="Transparent">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="Auto"/>
+                <ColumnDefinition Width="Auto"/>
+            </Grid.ColumnDefinitions>
+            <Border x:Name="bitratePanel" Margin="0,0,0,0" BorderBrush="#808080" Background="#151515" BorderThickness="0" CornerRadius="8">
+                <DockPanel>
+                    <TextBlock x:Name="bitrate" DockPanel.Dock="Left" Margin="10,0,0,0" Text="Bitrate" FontWeight="Normal" FontSize="12" Foreground="#808080" VerticalAlignment="Center"/>
+                    <Slider  Margin="8,7,30,0" Grid.Column="1" Minimum="{Binding MinBitrate}" Maximum="{Binding MaxBitrate}"
+                                            Value="{Binding CoreData.Settings.Bitrate, Delay=500}"
+                                            x:Name="slider"
+                                            IsSelectionRangeEnabled="True"
+                                            SmallChange="100"
+                                            LargeChange="100"
+                                            SelectionStart="{Binding MinBitrate, Mode=OneWay}" SelectionEnd="{Binding ActualBitrate.Value}"
+                                            Style="{StaticResource BitrateSlider}"
+                                            ToolTip="Move the slider to change bitrate value"/>
+                </DockPanel>
+            </Border>
+
+            <Border x:Name="startStreaming" Margin="10,0,0,0" Grid.Column="1" BorderBrush="#808080" Background="#151515" BorderThickness="0" CornerRadius="8" Visibility="Collapsed">
+                <StackPanel Orientation="Horizontal">
+                    <TextBlock x:Name="streaming" Margin="10,0,7,0" Text="Stream to cloud" FontWeight="Normal" FontSize="12" VerticalAlignment="Center">
+                        <TextBlock.Foreground>
+                            <SolidColorBrush x:Name="streamingBrush" Color="#808080" />
+                        </TextBlock.Foreground>
+                    </TextBlock>
+                    <ToggleButton x:Name="streamingToggle" Width="32" Height="32" Margin="-4" Padding="0" 
+                                  Style="{StaticResource MaterialDesignIconForegroundButton}" IsChecked="{Binding CoreData.Settings.StreamingToCloudStarted}"
+                                  ToolTip="Start streaming to cloud">
+                        <materialDesign:PackIcon x:Name="streamingButton" Kind="Wifi" Height="16" Width="16" Foreground="#20FF40" />
+                    </ToggleButton>
+                </StackPanel>
+            </Border>
+
+            <Border Margin="10,0,0,0" Grid.Column="2" BorderBrush="#808080" Background="#151515" BorderThickness="0" CornerRadius="8">
+                <StackPanel Orientation="Horizontal">
+                    <TextBlock x:Name="recording" Margin="10,0,7,0" Text="Recording" FontWeight="Normal" FontSize="12" VerticalAlignment="Center">
+                        <TextBlock.Foreground>
+                            <SolidColorBrush x:Name="recordingBrush" Color="#808080" />
+                        </TextBlock.Foreground>
+                    </TextBlock>
+                    <ToggleButton x:Name="recordingToggle" Width="32" Height="32" Margin="-4" Padding="0" 
+                                  Style="{StaticResource MaterialDesignIconForegroundButton}" IsChecked="{Binding CoreData.Settings.IsRecordingRequested}"
+                                  ToolTip="Record video to a location configured in Settings">
+                        <materialDesign:PackIcon x:Name="recordingButton" Kind="Record" Height="16" Width="16" Foreground="Red" />
+                    </ToggleButton>
+                </StackPanel>
+            </Border>
+            
+        </Grid>
+
+        <DataTemplate.Triggers>
+            <DataTrigger Binding="{Binding CoreData.Settings.StreamingToCloud}" Value="Manually">
+                <Setter TargetName="startStreaming" Property="Visibility" Value="Visible"/>
+            </DataTrigger>
+
+            <DataTrigger Binding="{Binding CoreData.Settings.StreamingToCloudStarted}" Value="True">
+                <Setter TargetName="streamingButton" Property="Foreground" Value="#AAAAAA"/>
+                <Setter TargetName="streamingButton" Property="Kind" Value="CloseThick"/>
+                <Setter TargetName="streamingToggle" Property="ToolTip" Value="Stop streaming to cloud"/>
+
+                <DataTrigger.EnterActions>
+                    <BeginStoryboard>
+                        <Storyboard>
+                            <ColorAnimationUsingKeyFrames Storyboard.TargetName="streamingBrush" Storyboard.TargetProperty="Color"
+                                                          Duration="0:0:2" RepeatBehavior="Forever">
+                                <LinearColorKeyFrame Value="#808080" KeyTime="0:0:0" />
+                                <LinearColorKeyFrame Value="#4080FF" KeyTime="0:0:1" />
+                                <LinearColorKeyFrame Value="#808080" KeyTime="0:0:2" />
+                            </ColorAnimationUsingKeyFrames>
+                        </Storyboard>
+                    </BeginStoryboard>
+                </DataTrigger.EnterActions>
+
+                <DataTrigger.ExitActions>
+                    <BeginStoryboard>
+                        <Storyboard>
+                            <ColorAnimationUsingKeyFrames Storyboard.TargetName="streamingBrush" Storyboard.TargetProperty="Color"
+                                                          Duration="0:0:1">
+                                <LinearColorKeyFrame Value="#808080" KeyTime="0:0:1" />
+                            </ColorAnimationUsingKeyFrames>
+                        </Storyboard>
+                    </BeginStoryboard>
+                </DataTrigger.ExitActions>
+            </DataTrigger>
+
+            <DataTrigger Binding="{Binding CoreData.Settings.IsRecordingRequested}" Value="True">
+                <Setter TargetName="recordingButton" Property="Foreground" Value="#AAAAAA"/>
+                <Setter TargetName="recordingButton" Property="Kind" Value="Stop"/>
+                <Setter TargetName="recordingToggle" Property="ToolTip" Value="Stop recording"/>
+
+                <DataTrigger.EnterActions>
+                    <BeginStoryboard>
+                        <Storyboard>
+                            <ColorAnimationUsingKeyFrames Storyboard.TargetName="recordingBrush" Storyboard.TargetProperty="Color"
+                                                          Duration="0:0:2" RepeatBehavior="Forever">
+                                <LinearColorKeyFrame Value="White" KeyTime="0:0:0" />
+                                <LinearColorKeyFrame Value="Red" KeyTime="0:0:1" />
+                                <LinearColorKeyFrame Value="White" KeyTime="0:0:2" />
+                            </ColorAnimationUsingKeyFrames>
+                        </Storyboard>
+                    </BeginStoryboard>
+                </DataTrigger.EnterActions>
+
+                <DataTrigger.ExitActions>
+                    <BeginStoryboard>
+                        <Storyboard>
+                            <ColorAnimationUsingKeyFrames Storyboard.TargetName="recordingBrush" Storyboard.TargetProperty="Color"
+                                                          Duration="0:0:1">
+                                <LinearColorKeyFrame Value="#808080" KeyTime="0:0:1" />
+                            </ColorAnimationUsingKeyFrames>
+                        </Storyboard>
+                    </BeginStoryboard>
+                </DataTrigger.ExitActions>
+            </DataTrigger>
+
+            <DataTrigger Binding="{Binding ActualBitrateState.Value}" Value="Unknown">
+                <Setter TargetName="slider" Property="IsSelectionRangeEnabled" Value="False"></Setter>
+            </DataTrigger>
+
+            <DataTrigger Binding="{Binding ActualBitrateState.Value}" Value="Ok">
+                <Setter TargetName="slider" Property="Background" Value="Green"></Setter>
+            </DataTrigger>
+            <DataTrigger Binding="{Binding ActualBitrateState.Value}" Value="Warning">
+                <Setter TargetName="slider" Property="Background" Value="Orange"></Setter>
+            </DataTrigger>
+            <DataTrigger Binding="{Binding ActualBitrateState.Value}" Value="Error">
+                <Setter TargetName="slider" Property="Background" Value="Red"></Setter>
+            </DataTrigger>
+
+            <DataTrigger Binding="{Binding (support:ResponsiveHost.Calculation).Values.HideBitrateTitle, ElementName=root}" Value="True">
+                <Setter TargetName="bitrate" Property="Text" Value="BR"/>
+                <Setter TargetName="recording" Property="Text" Value="REC"/>
+                <Setter TargetName="streaming" Property="Text" Value="STR"/>
+            </DataTrigger>
+
+            <DataTrigger Binding="{Binding (support:ResponsiveHost.Calculation).Values.HideBitrate, ElementName=root}" Value="True">
+                <Setter TargetName="root" Property="Visibility" Value="Collapsed"/>
+            </DataTrigger>
+
+            <DataTrigger Binding="{Binding IsMouseOver, ElementName=bitratePanel}" Value="True">
+                <DataTrigger.EnterActions>
+                    <BeginStoryboard>
+                        <Storyboard>
+                            <BooleanAnimationUsingKeyFrames Storyboard.TargetName="slider" Storyboard.TargetProperty="(support:Behaviors.IsActivated)">
+                                <DiscreteBooleanKeyFrame Value="True" KeyTime="0:0:0.10"/>
+                            </BooleanAnimationUsingKeyFrames>
+                        </Storyboard>
+                    </BeginStoryboard>
+                </DataTrigger.EnterActions>
+
+                <DataTrigger.ExitActions>
+                    <BeginStoryboard>
+                        <Storyboard>
+                            <BooleanAnimationUsingKeyFrames Storyboard.TargetName="slider" Storyboard.TargetProperty="(support:Behaviors.IsActivated)">
+                                <DiscreteBooleanKeyFrame Value="False" KeyTime="0:0:5"/>
+                            </BooleanAnimationUsingKeyFrames>
+                        </Storyboard>
+                    </BeginStoryboard>
+                </DataTrigger.ExitActions>
+            </DataTrigger>
+        </DataTemplate.Triggers>
+
+    </DataTemplate>
+    
+</ResourceDictionary>

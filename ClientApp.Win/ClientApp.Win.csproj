@@ -1,0 +1,116 @@
+﻿<Project Sdk="Microsoft.NET.Sdk.WindowsDesktop">
+  
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>netcoreapp3.1</TargetFramework>
+    <UseWPF>true</UseWPF>
+    <AssemblyName>Streamster.ClientApp.Win</AssemblyName>
+    <RootNamespace>Streamster.ClientApp.Win</RootNamespace>
+    <OutDir>$(ProjectDir)..\..\bin\$(Configuration)\Client.Win</OutDir>
+    <AssemblyTitle>Streamster App</AssemblyTitle>
+    <PackageId>Streamster</PackageId>
+    <ApplicationIcon>Assets\Play.ico</ApplicationIcon>
+    <NoWin32Manifest>true</NoWin32Manifest>
+    
+    
+    <NuspecProperties>$(NuspecProperties);configuration=$(Configuration)</NuspecProperties>
+    <NuspecProperties>$(NuspecProperties);version=$(Version)</NuspecProperties>
+    <NuspecProperties>$(NuspecProperties);id=$(PackageId)</NuspecProperties>
+    <NuspecProperties>$(NuspecProperties);author=$(Authors)</NuspecProperties>
+    <NuspecProperties>$(NuspecProperties);title=$(AssemblyTitle)</NuspecProperties>
+    <NuspecProperties>$(NuspecProperties);description=$(Description)</NuspecProperties>
+    <NuspecProperties>$(NuspecProperties);Copyright=$(Copyright)</NuspecProperties>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <None Remove="Assets\*.png" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Resource Include="Assets\*.png" />
+  </ItemGroup>
+
+
+  <ItemGroup>
+	  <None Include="..\Support\vc_redist142\concrt140.dll" Link="concrt140.dll" Visible="False">
+    	  <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      </None>
+	  <None Include="..\Support\vc_redist142\msvcp140.dll" Link="msvcp140.dll" Visible="False">
+		  <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+	  </None>
+	  <None Include="..\Support\vc_redist142\msvcp140_1.dll" Link="msvcp140_1.dll" Visible="False">
+		  <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+	  </None>
+	  <None Include="..\Support\vc_redist142\msvcp140_2.dll" Link="msvcp140_2.dll" Visible="False">
+		  <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+	  </None>
+	  <None Include="..\Support\vc_redist142\msvcp140_codecvt_ids.dll" Link="msvcp140_codecvt_ids.dll" Visible="False">
+		  <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+	  </None>
+	  <None Include="..\Support\vc_redist142\vccorlib140.dll" Link="vccorlib140.dll" Visible="False">
+		  <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+	  </None>
+	  <None Include="..\Support\vc_redist142\vcruntime140.dll" Link="vcruntime140.dll" Visible="False">
+		  <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+	  </None>
+	  <None Include="..\Support\vc_redist142\vcruntime140_1.dll" Link="vcruntime140_1.dll" Visible="False">
+		  <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+	  </None>
+	  
+    <None Include="..\Support\ffmpeg_bin\avcodec-58.dll" Link="avcodec-58.dll" Visible="False">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Include="..\Support\ffmpeg_bin\avdevice-58.dll" Link="avdevice-58.dll" Visible="False">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Include="..\Support\ffmpeg_bin\avfilter-7.dll" Link="avfilter-7.dll" Visible="False">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Include="..\Support\ffmpeg_bin\avformat-58.dll" Link="avformat-58.dll" Visible="False">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Include="..\Support\ffmpeg_bin\avutil-56.dll" Link="avutil-56.dll" Visible="False">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Include="..\Support\ffmpeg_bin\swresample-3.dll" Link="swresample-3.dll" Visible="False">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Include="..\Support\ffmpeg_bin\swscale-5.dll" Link="swscale-5.dll" Visible="False">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Include="..\Support\ffmpeg_bin\postproc-55.dll" Link="postproc-55.dll" Visible="False">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Include="..\DynamicStreamer\bin\x64\$(Configuration)\FFDynamicStreamer.dll" Link="FFDynamicStreamer.dll">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Include="..\DynamicStreamer\bin\x64\$(Configuration)\FFDynamicStreamer.pdb" Link="FFDynamicStreamer.pdb">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Include="..\DynamicStreamer\FFDynamicStreamer.sxs.manifest" Link="FFDynamicStreamer.sxs.manifest" Visible="False">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Autofac" Version="5.2.0" />
+    <PackageReference Include="MaterialDesignColors" Version="1.2.6" />
+    <PackageReference Include="MaterialDesignThemes" Version="3.1.3" />
+    <PackageReference Include="Microsoft.Xaml.Behaviors.Wpf" Version="1.1.19" />
+    <PackageReference Include="OxyPlot.Wpf" Version="2.0.0" />
+    <PackageReference Include="Serilog" Version="2.9.0" />
+    <PackageReference Include="Serilog.Sinks.File" Version="4.1.0" />
+    <PackageReference Include="System.Management" Version="4.7.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\ClientCore\ClientCore.csproj" />
+    <ProjectReference Include="..\Support\DirectShowLib\DirectShowLib.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Update="Streamster.ClientApp.Win.exe.manifest">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+  </ItemGroup>
+</Project>

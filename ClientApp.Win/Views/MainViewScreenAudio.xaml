@@ -1,0 +1,281 @@
+﻿<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                    xmlns:wpf="http://materialdesigninxaml.net/winfx/xaml/themes"
+                    xmlns:models="clr-namespace:Streamster.ClientCore.Models;assembly=Streamster.ClientCore"
+                    xmlns:support="clr-namespace:Streamster.ClientApp.Win.Support" 
+                    xmlns:materialDesign="http://materialdesigninxaml.net/winfx/xaml/themes"
+                    xmlns:controlzEx="clr-namespace:ControlzEx;assembly=MaterialDesignThemes.Wpf">
+    <ResourceDictionary.MergedDictionaries>
+        <ResourceDictionary Source="Common.xaml"/>
+        <ResourceDictionary Source="OnScreenStyles.xaml"/>
+        <ResourceDictionary Source="MainViewFilters.xaml"/>
+    </ResourceDictionary.MergedDictionaries>
+
+    <Style TargetType="{x:Type wpf:PopupBox}" x:Key="OnBlackPopupBox">
+        <Setter Property="Background" Value="#252525"/>
+        <Setter Property="Foreground" Value="#0AAAAA"/>
+        <Setter Property="PlacementMode" Value="TopAndAlignCentres" />
+        <Setter Property="PopupMode" Value="Click" />
+        <Setter Property="StaysOpen" Value="False" />
+        <Setter Property="HorizontalAlignment" Value="Left" />
+        <Setter Property="BorderThickness" Value="0"/>
+        <Setter Property="Cursor" Value="Hand"/>
+
+        <Setter Property="Height" Value="60" />
+        <Setter Property="Width" Value="40" />
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="{x:Type wpf:PopupBox}">
+                    <ControlTemplate.Resources>
+                        <Style TargetType="ToggleButton" x:Key="ToggleButtonStyle">
+                            <Setter Property="Template">
+                                <Setter.Value>
+                                    <ControlTemplate TargetType="ToggleButton">
+                                        <Grid x:Name="RootGrid" Background="{x:Null}">
+                                            <Border Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}" 
+                                                    CornerRadius="0,8,8,0"
+                                                        x:Name="border">
+                                                <ContentPresenter Content="{TemplateBinding Content}" 
+                                                    ContentTemplate="{TemplateBinding ContentTemplate}" 
+                                                    Focusable="False"
+                                                    ContentStringFormat="{TemplateBinding ContentStringFormat}"
+                                                    HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}" 
+                                                    VerticalAlignment="{TemplateBinding VerticalContentAlignment}"
+                                                    Margin="0,0" 
+                                                    SnapsToDevicePixels="{TemplateBinding SnapsToDevicePixels}"/>
+                                            </Border>
+                                        </Grid>
+                                        <ControlTemplate.Triggers>
+                                            <Trigger Property="IsMouseOver" Value="true">
+                                                <Setter Property="Background" TargetName="border" Value="#404040" />
+                                                <Setter Property="Foreground" Value="#FFFFFF" />
+                                            </Trigger>
+                                        </ControlTemplate.Triggers>
+                                    </ControlTemplate>
+                                </Setter.Value>
+                            </Setter>
+                        </Style>
+                        <Storyboard x:Key="Open">
+                            <DoubleAnimation Storyboard.TargetName="PART_PopupContentControl" Storyboard.TargetProperty="Opacity"
+                                             To="1" Duration="0:0:0.1">
+                                <DoubleAnimation.EasingFunction>
+                                    <SineEase EasingMode="EaseInOut" />
+                                </DoubleAnimation.EasingFunction>
+                            </DoubleAnimation>
+                            <DoubleAnimation Storyboard.TargetName="PART_Toggle" Storyboard.TargetProperty="Opacity"
+                                             To="0.4" Duration="0:0:0.1">
+                                <DoubleAnimation.EasingFunction>
+                                    <SineEase EasingMode="EaseInOut" />
+                                </DoubleAnimation.EasingFunction>
+                            </DoubleAnimation>
+                        </Storyboard>
+                        <Storyboard x:Key="Close">
+                            <DoubleAnimation Storyboard.TargetName="PART_PopupContentControl" Storyboard.TargetProperty="Opacity"
+                                             Duration="0:0:0.8">
+                                <DoubleAnimation.EasingFunction>
+                                    <SineEase EasingMode="EaseInOut" />
+                                </DoubleAnimation.EasingFunction>
+                            </DoubleAnimation>
+                            <DoubleAnimation Storyboard.TargetName="PART_Toggle" Storyboard.TargetProperty="Opacity"
+                                             To="1" Duration="0:0:0.1">
+                                <DoubleAnimation.EasingFunction>
+                                    <SineEase EasingMode="EaseInOut" />
+                                </DoubleAnimation.EasingFunction>
+                            </DoubleAnimation>
+                        </Storyboard>
+                    </ControlTemplate.Resources>
+                    <Grid>
+                        <ToggleButton x:Name="PART_Toggle" Style="{StaticResource ToggleButtonStyle}" 
+                                      IsChecked="{Binding RelativeSource={RelativeSource TemplatedParent}, Path=IsPopupOpen, Mode=TwoWay}"                                      
+                                      Cursor="Hand"
+                                      Background="{TemplateBinding Background}"
+                                      BorderBrush="{TemplateBinding BorderBrush}"
+                                      Foreground="{TemplateBinding Foreground}"
+                                      IsTabStop="{TemplateBinding IsTabStop}"
+                                      VerticalAlignment="Stretch"
+                                      HorizontalAlignment="Stretch"
+                                      ToolTip="{TemplateBinding ToolTip}"
+                                      ToolTipService.Placement="{Binding RelativeSource={RelativeSource FindAncestor, AncestorType=wpf:PopupBox}, Path=(ToolTipService.Placement)}"
+                                      Content="{TemplateBinding ToggleContent}" ContentTemplate="{TemplateBinding ToggleContentTemplate}">
+                        </ToggleButton>
+                        <controlzEx:PopupEx x:Name="PART_Popup" 
+                                          IsOpen="False"
+                                          CustomPopupPlacementCallback="{Binding RelativeSource={RelativeSource TemplatedParent}, Path=PopupPlacementMethod}"
+                                          PlacementTarget="{Binding ElementName=PART_Toggle}"
+                                          Placement="Custom"
+                                          PopupAnimation="None"
+                                          AllowsTransparency="True">
+                            <Grid>
+                                <Border Background="White" Opacity="0.002" />
+                                <ContentControl Content="{TemplateBinding PopupContent}" ContentTemplate="{TemplateBinding PopupContentTemplate}"      
+                                                Visibility="{TemplateBinding IsEnabled, Converter={StaticResource BooleanToVisibilityConverter}}"
+                                                Margin="0" Padding="8"
+                                                Opacity="0" x:Name="PART_PopupContentControl">
+                                </ContentControl>
+                            </Grid>
+                        </controlzEx:PopupEx>
+                    </Grid>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsPopupOpen" Value="True">
+                            <Setter TargetName="PART_Toggle" Property="IsEnabled" Value="False" />
+                            <Setter TargetName="PART_Popup" Property="IsOpen" Value="True" />
+                            <Trigger.EnterActions>
+                                <BeginStoryboard Storyboard="{StaticResource Open}" />
+                            </Trigger.EnterActions>
+                            <Trigger.ExitActions>
+                                <BeginStoryboard Storyboard="{StaticResource Close}" />
+                            </Trigger.ExitActions>
+                        </Trigger>
+                        <MultiTrigger>
+                            <MultiTrigger.Conditions>
+                                <Condition Property="PopupMode" Value="MouseOverEager" />
+                                <Condition Property="IsVisible" Value="True" />
+                            </MultiTrigger.Conditions>
+                            <Setter TargetName="PART_Popup" Property="IsOpen" Value="True" />
+                        </MultiTrigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+        <Setter Property="ToggleContent" Value="{StaticResource MaterialDesignMultiFloatingActionPopupBoxIcon}" />
+        <Style.Triggers>
+            <Trigger Property="UnfurlOrientation" Value="Horizontal">
+                <Setter Property="ToolTipService.Placement" Value="Custom" />
+            </Trigger>
+        </Style.Triggers>
+    </Style>
+
+
+    <DataTemplate x:Key="AudioInputInPopup" DataType="{x:Type models:LocalAudioInputModel}">
+        <Border x:Name="root">
+
+            <Button x:Name="button" Margin="0,3" Style="{StaticResource OnScreenPopupBoxButton}" HorizontalContentAlignment="Stretch"
+                    Command="{Binding Select, Converter={StaticResource CommandConverter}}">
+                <DockPanel>
+                    <materialDesign:PackIcon Margin="3,0,0,0" DockPanel.Dock="Left" x:Name="type" Kind="Microphone" Height="24" Width="24"/>
+
+                    <Border Margin="5,0" DockPanel.Dock="Right" x:Name="state" Height="20" Width="20">
+                        <Grid>
+                            <Border x:Name="stateIcon" CornerRadius="20" Background="Red"/>
+                            <materialDesign:PackIcon Margin="-2" x:Name="running" Kind="PlayCircle" Visibility="Collapsed" Width="24" Height="24" Foreground="#1070D0"/>
+                            <ProgressBar x:Name="unknown" Style="{StaticResource MaterialDesignCircularProgressBar}" Value="0" IsIndeterminate="True" Visibility="Collapsed" />
+                        </Grid>
+                    </Border>
+                    <TextBlock Width="55" x:Name="stateText" FontSize="12" VerticalAlignment="Center" TextAlignment="Right" DockPanel.Dock="Right"/>
+                    <TextBlock VerticalAlignment="Center" Margin="5,0,8,0" Text="{Binding Source.Name}"/>
+                </DockPanel>
+            </Button>
+
+        </Border>
+        <DataTemplate.Triggers>
+            <DataTrigger Binding="{Binding State.Value}" Value="RemoteDeviceInactive">
+                <Setter TargetName="root" Property="Visibility" Value="Collapsed"/>
+            </DataTrigger>
+
+            <DataTrigger Binding="{Binding SameOwnerAsVideo.Value}" Value="False">
+                <Setter TargetName="button" Property="Background" Value="{StaticResource OnScreenBackgroundDisabled}"/>
+                <Setter TargetName="button" Property="BorderBrush" Value="{StaticResource OnScreenBorderDisabled}"/>
+            </DataTrigger>
+
+            <DataTrigger Binding="{Binding State.Value}" Value="Unknown">
+                <Setter TargetName="unknown" Property="Visibility" Value="Visible"/>
+                <Setter TargetName="stateIcon" Property="Visibility" Value="Collapsed"/>
+            </DataTrigger>
+
+            <DataTrigger Binding="{Binding State.Value}" Value="Running">
+                <Setter TargetName="running" Property="Visibility" Value="Visible"/>
+                <Setter TargetName="stateIcon" Property="Visibility" Value="Collapsed"/>
+                <Setter TargetName="stateText" Property="Text" Value="Running"/>
+            </DataTrigger>
+
+            <DataTrigger Binding="{Binding State.Value}" Value="RemoteDeviceOffline">
+                <Setter TargetName="stateText" Property="Text" Value="Offline"/>
+                <Setter TargetName="stateIcon" Property="Background" Value="Orange"/>
+                <Setter TargetName="button" Property="Background" Value="{StaticResource OnScreenBackgroundDisabled}"/>
+                <Setter TargetName="button" Property="BorderBrush" Value="{StaticResource OnScreenBorderDisabled}"/>
+            </DataTrigger>
+
+            <DataTrigger Binding="{Binding State.Value}" Value="Ready">
+                <Setter TargetName="stateIcon" Property="Background" Value="Green"/>
+                <Setter TargetName="stateText" Property="Text" Value="Ready"/>
+            </DataTrigger>
+
+            <DataTrigger Binding="{Binding State.Value}" Value="Failed">
+                <Setter TargetName="stateText" Property="Text" Value="Failed"/>
+            </DataTrigger>
+
+            <DataTrigger Binding="{Binding State.Value}" Value="Removed">
+                <Setter TargetName="stateText" Property="Text" Value="Removed"/>
+                <Setter TargetName="stateIcon" Property="Background" Value="DarkGray"/>
+                <Setter TargetName="button" Property="Background" Value="{StaticResource OnScreenBackgroundDisabled}"/>
+                <Setter TargetName="button" Property="BorderBrush" Value="{StaticResource OnScreenBorderDisabled}"/>
+            </DataTrigger>
+
+            <DataTrigger Binding="{Binding State.Value}" Value="ObsIsNotStarted">
+                <Setter TargetName="stateText" Property="Text" Value="Off"/>
+                <Setter TargetName="button" Property="Background" Value="{StaticResource OnScreenBackgroundDisabled}"/>
+                <Setter TargetName="button" Property="BorderBrush" Value="{StaticResource OnScreenBorderDisabled}"/>
+            </DataTrigger>
+
+            <DataTrigger Binding="{Binding Type}" Value="Virtual">
+                <Setter TargetName="type" Property="Kind" Value="AlphaVCircleOutline"/>
+            </DataTrigger>
+
+            <DataTrigger Binding="{Binding Type}" Value="Remote">
+                <Setter TargetName="type" Property="Kind" Value="ContactlessPaymentCircle"/>
+            </DataTrigger>
+        </DataTemplate.Triggers>
+    </DataTemplate>
+
+    <DataTemplate x:Key="AudioInputModelInPopup">
+        <Grid>
+            <ContentPresenter Content="{Binding Local}" ContentTemplate="{StaticResource AudioInputInPopup}"/>
+        </Grid>
+    </DataTemplate>
+
+    <DataTemplate x:Key="AudioControl" DataType="{x:Type models:MainStreamerModel}">
+        <materialDesign:PopupBox Margin="0,5,5,25" x:Name="audios"
+                                                         Style="{StaticResource OnBlackPopupBox}"
+                                                         IsPopupOpen="{Binding CoreData.ThisDevice.PreviewAudio, Mode=TwoWay}"
+                                                         PlacementMode="TopAndAlignRightEdges"
+                                                         HorizontalAlignment="Stretch"
+                                                         HorizontalContentAlignment="Stretch">
+            <materialDesign:PopupBox.ToolTip>
+                <StackPanel Orientation="Horizontal">
+                    <TextBlock Text="Audio source: "/>
+                    <TextBlock x:Name="audioSourceValue" Text="{Binding VideoSource.CurrentAudio.Value}"/>
+                </StackPanel>
+            </materialDesign:PopupBox.ToolTip>
+            <materialDesign:PopupBox.ToggleContent>
+                <materialDesign:PackIcon x:Name="icon" Width="24" Height="24" Kind="MicrophoneOutline"/>
+            </materialDesign:PopupBox.ToggleContent>
+            <Grid Margin="0,5">
+                <ItemsControl x:Name="audioList" ItemsSource="{Binding CoreData.Root.AudioInputs.Values}" ItemTemplate="{StaticResource AudioInputModelInPopup}">
+                </ItemsControl>
+                <Border x:Name="audioEmpty"  MaxWidth="290" Background="{StaticResource OnScreenBackground}" BorderThickness="1" CornerRadius="3" BorderBrush="{StaticResource OnScreenBorder}"
+                                                Visibility="Collapsed">
+                    <TextBlock Margin="20,10" Foreground="{StaticResource OnScreenForegroundPressed}" TextWrapping="Wrap" TextAlignment="Center" Text="No audio sources detected on this computer"/>
+                </Border>
+            </Grid>
+        </materialDesign:PopupBox>
+        <DataTemplate.Triggers>
+            <DataTrigger Binding="{Binding CoreData.Root.AudioInputs.Values.Count}" Value="0">
+                <Setter TargetName="audioList" Property="Visibility" Value="Collapsed"/>
+                <Setter TargetName="audioEmpty" Property="Visibility" Value="Visible"/>
+            </DataTrigger>
+            
+            <DataTrigger Binding="{Binding CoreData.Root.AudioInputs.Values.Count}" Value="0">
+                <Setter TargetName="audioList" Property="Visibility" Value="Collapsed"/>
+                <Setter TargetName="audioEmpty" Property="Visibility" Value="Visible"/>
+                <Setter TargetName="icon" Property="Kind" Value="MicrophoneOff"/>
+                <Setter TargetName="icon" Property="Foreground" Value="Red"/>
+            </DataTrigger>
+
+            <DataTrigger Binding="{Binding CoreData.Root.Settings.SelectedAudio}" Value="{x:Null}">
+                <Setter TargetName="icon" Property="Kind" Value="MicrophoneOff"/>
+                <Setter TargetName="icon" Property="Foreground" Value="Red"/>
+            </DataTrigger>
+        </DataTemplate.Triggers>
+    </DataTemplate>
+    
+</ResourceDictionary>

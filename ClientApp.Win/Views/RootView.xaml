@@ -1,0 +1,21 @@
+﻿<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" 
+                    xmlns:models="clr-namespace:Streamster.ClientCore.Models;assembly=Streamster.ClientCore" xmlns:materialDesign="http://materialdesigninxaml.net/winfx/xaml/themes">
+    <ResourceDictionary.MergedDictionaries>
+        <ResourceDictionary Source="LoginView.xaml"/>
+        <ResourceDictionary Source="MainView.xaml"/>
+        <ResourceDictionary Source="ByeByeView.xaml"/>
+        <ResourceDictionary Source="UpdateView.xaml"/>
+    </ResourceDictionary.MergedDictionaries>
+
+    <DataTemplate DataType="{x:Type models:RootModel}">
+        <Border x:Name="outer">
+            <ContentControl Content="{Binding CurrentPage.Value}" Focusable="False"/>
+        </Border>
+        <DataTemplate.Triggers>
+            <DataTrigger Binding="{Binding WindowStateManager.Model.IsMaximized.Value}" Value="True">
+                <Setter TargetName="outer" Property="Margin" Value="5"/>
+            </DataTrigger>
+        </DataTemplate.Triggers>
+    </DataTemplate>
+</ResourceDictionary>
