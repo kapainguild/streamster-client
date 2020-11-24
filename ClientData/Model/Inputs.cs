@@ -101,6 +101,8 @@ namespace Streamster.ClientData.Model
         MJpeg = 2,
         Unknown = 3,
         H264 = 4,
+        I420 = 5,
+        NV12 = 6
     }
 
 }

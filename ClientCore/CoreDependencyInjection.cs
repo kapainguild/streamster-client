@@ -35,7 +35,9 @@ namespace Streamster.ClientCore
                 .Add<MainIndicatorsModel>()
                 .Add<MainSourcesModel>()
                 .Add<ScreenRendererModel>()
-                .Add<MainAboutModel>();
+                .Add<MainAboutModel>()
+                .Add<MainVpnModel>()
+                .Add<TransientMessageModel>();
         }
     }
 }

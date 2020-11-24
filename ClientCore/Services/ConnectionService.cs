@@ -22,6 +22,7 @@ namespace Streamster.ClientCore.Services
         private readonly IAppEnvironment _environment;
         private readonly IdService _idService;
         private readonly LogService _logService;
+        private readonly string _domain;
 
         public string AccessToken { get; private set; }
 
@@ -31,11 +32,12 @@ namespace Streamster.ClientCore.Services
 
         public string UserName { get; private set; }
 
-        public ConnectionService(IAppEnvironment environment, IdService idService, LogService logService)
+        public ConnectionService(IAppEnvironment environment, IdService idService, LogService logService, IAppResources appResources)
         {
             _environment = environment;
             _idService = idService;
             _logService = logService;
+            _domain = appResources.AppData.Domain;
         }
 
         public async Task<LoadBalancerResponse> StartAsync(NetworkCredential credential)
@@ -93,6 +95,16 @@ namespace Streamster.ClientCore.Services
 
                 Log.Information($"Authenticating at {host}");
 
+
+                var parameters = new Dictionary<string, string>()
+                        {
+                            { ClientConstants.DeviceIdClaim, _idService.GetDeviceId() },
+                            { ClientConstants.VersionClaim, ClientVersionHelper.GetVersion() }
+                        };
+
+                if (_domain != null)
+                    parameters.Add(ClientConstants.DomainClaim, _domain);
+
                 TokenResponse tokenResponse = null;
                 if (credential != null)
                 {
@@ -107,11 +119,7 @@ namespace Streamster.ClientCore.Services
                         Password = credential.Password,
                         Scope = ClientConstants.ConnectionServerApi,
 
-                        Parameters = new Dictionary<string, string>() 
-                        { 
-                            { ClientConstants.DeviceIdClaim, _idService.GetDeviceId() },
-                            { ClientConstants.VersionClaim, ClientVersionHelper.GetVersion() }
-                        }
+                        Parameters = parameters
                     });
                 }
                 else
@@ -124,11 +132,7 @@ namespace Streamster.ClientCore.Services
                         ClientSecret = "xtreamer.id",
                         GrantType = ClientConstants.AnonymousGrandType,
 
-                        Parameters = new Dictionary<string, string>()
-                        {
-                            { ClientConstants.DeviceIdClaim, _idService.GetDeviceId() },
-                            { ClientConstants.VersionClaim, ClientVersionHelper.GetVersion() }
-                        }
+                        Parameters = parameters
                     });
                 }
 

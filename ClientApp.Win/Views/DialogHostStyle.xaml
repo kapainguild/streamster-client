@@ -3,7 +3,7 @@
                     xmlns:wpf="http://materialdesigninxaml.net/winfx/xaml/themes">
 
     <Style x:Key="StreamsterDialogHost" TargetType="{x:Type wpf:DialogHost}">
-        <Setter Property="DialogMargin" Value="35, 65, 35, 35" />
+        <Setter Property="DialogMargin" Value="35, 55, 35, 55" />
         <Setter Property="OverlayBackground" Value="Black"/>
         <Setter Property="HorizontalContentAlignment" Value="Center" />
         <Setter Property="VerticalContentAlignment" Value="Center" />

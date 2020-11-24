@@ -8,7 +8,6 @@ using Streamster.ClientCore.Cross;
 using Streamster.ClientCore.Logging;
 using Streamster.ClientCore.Models;
 using System;
-using System.Linq;
 using System.Threading;
 using System.Windows;
 using System.Windows.Media;
@@ -18,22 +17,32 @@ namespace ClientApp.Win
     /// <summary>
     /// Interaction logic for App.xaml
     /// </summary>
-    public partial class App : Application
+    public static class AppHelper
     {
         private static Mutex s_instanceMutex;
 
-        protected override void OnStartup(StartupEventArgs e)
+        public static void RunApp<T>(Application app)
         {
-            base.OnStartup(e);
+            app.Resources.MergedDictionaries.Add(new BundledTheme
+            {
+                BaseTheme = BaseTheme.Dark,
+                PrimaryColor = PrimaryColor.Indigo,
+                SecondaryColor = SecondaryColor.Blue
+            });
+
+            app.Resources.MergedDictionaries.Add(new ResourceDictionary
+            {
+                Source = new Uri("pack://application:,,,/MaterialDesignThemes.Wpf;component/Themes/MaterialDesignTheme.Defaults.xaml")
+            });
 
             SetTheme();
 
 #if DEBUG
 #else
-            if (!SetSingleStart("Xtreamer.Client"))
+            if (!SetSingleStart("Streamster.Client"))
             {
-                MessageBox.Show("Streamster is already running", "Launch Application Error", MessageBoxButton.OK, MessageBoxImage.Error);
-                Shutdown();
+                MessageBox.Show("The application is already running", "Launch Application Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                app.Shutdown();
                 return;
             }
 #endif
@@ -42,29 +51,32 @@ namespace ClientApp.Win
 
             builder.RegisterModule<DependencyInjection>();
             builder.RegisterModule<CoreDependencyInjection>();
+            builder.Add<IAppResources, T>();
 
-            var container = builder.Build(); 
+            var container = builder.Build();
 
             container.Resolve<LogService>();
-            Root = container.Resolve<RootModel>();
-            Root.ByeByeModel = container.Resolve<ByeByeModel>();
-            Root.NavigateTo(container.Resolve<LoginModel>());
+            var root = container.Resolve<RootModel>();
+            root.ByeByeModel = container.Resolve<ByeByeModel>();
+            root.NavigateTo(container.Resolve<LoginModel>());
 
             var windowStateManager = container.Resolve<IWindowStateManager>();
 
             // consider move this to dispatcher call
             MainWindow mainWindow = new MainWindow();
+            mainWindow.DataContext = root;
+            mainWindow.Root = root;
             ((WindowStateManager)windowStateManager).SetWindow(mainWindow);
             mainWindow.Show();
         }
 
-        private bool SetSingleStart(string v)
+        private static bool SetSingleStart(string v)
         {
             s_instanceMutex = new Mutex(true, v, out var createdNew);
             return createdNew;
         }
 
-        private void SetTheme()
+        private static void SetTheme()
         {
             PaletteHelper paletteHelper = new PaletteHelper();
             ITheme theme = paletteHelper.GetTheme();
@@ -74,7 +86,5 @@ namespace ClientApp.Win
             theme.FlatButtonClick = Color.FromRgb(0x10, 0x70, 0xD0);
             paletteHelper.SetTheme(theme);
         }
-
-        public static RootModel Root { get; private set; }
     }
 }

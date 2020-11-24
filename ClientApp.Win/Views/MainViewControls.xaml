@@ -7,10 +7,50 @@
         <ResourceDictionary Source="BitrateSlider.xaml"/>
     </ResourceDictionary.MergedDictionaries>
 
+    <Style x:Key="ControlToggle" TargetType="{x:Type ToggleButton}">
+        <Setter Property="Foreground" Value="#808080"/>
+        <Setter Property="Background" Value="#151515"/>
+        <Setter Property="Padding" Value="5,0,5,0"/>
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="{x:Type ToggleButton}">
+                    <Border x:Name="root" BorderBrush="{TemplateBinding Background}" Background="{TemplateBinding Background}" BorderThickness="1" CornerRadius="8">
+                        <ContentPresenter x:Name="contentPresenter" 
+                                          ContentTemplate="{TemplateBinding ContentTemplate}" 
+                                          Content="{TemplateBinding Content}" 
+                                          HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}" 
+                                          Margin="{TemplateBinding Padding}" 
+                                          VerticalAlignment="{TemplateBinding VerticalContentAlignment}" />
+                    </Border>
+
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsMouseOver" Value="true">
+                            <Setter Property="Background" Value="#303030" />
+                            <Setter TargetName="root" Property="BorderBrush" Value="#808080" />
+                        </Trigger>
+                        
+                        <Trigger Property="IsChecked" Value="true">
+                            <Setter Property="Foreground" Value="White" />
+                            <Setter TargetName="root" Property="BorderBrush" Value="White" />
+                            <Setter Property="Background" Value="{DynamicResource PrimaryHueMidBrush}" />
+                        </Trigger>
+                        
+
+                        <Trigger Property="IsEnabled" Value="false">
+                            <Setter Property="Opacity" Value="0.23"/>
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+        
+    </Style>
+
     <DataTemplate x:Key="MainViewControls" DataType="{x:Type models:MainStreamerModel}">
-        <Grid Margin="10,10,10,0" x:Name="root" MaxWidth="600" Background="Transparent">
+        <Grid Margin="10,10,10,0" x:Name="root" MaxWidth="700" Background="Transparent">
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="Auto"/>
                 <ColumnDefinition Width="Auto"/>
                 <ColumnDefinition Width="Auto"/>
             </Grid.ColumnDefinitions>
@@ -29,103 +69,44 @@
                 </DockPanel>
             </Border>
 
-            <Border x:Name="startStreaming" Margin="10,0,0,0" Grid.Column="1" BorderBrush="#808080" Background="#151515" BorderThickness="0" CornerRadius="8" Visibility="Collapsed">
+            <ToggleButton x:Name="startVpn" Margin="10,0,0,0" Grid.Column="1" Style="{StaticResource ControlToggle}"
+                          ToolTip="Start VPN connection to secure communication between your computer and internet. VPN also secures communication from your web browser"
+                          IsChecked="{Binding CoreData.ThisDevice.VpnRequested}"
+                          Visibility="Collapsed">
                 <StackPanel Orientation="Horizontal">
-                    <TextBlock x:Name="streaming" Margin="10,0,7,0" Text="Stream to cloud" FontWeight="Normal" FontSize="12" VerticalAlignment="Center">
-                        <TextBlock.Foreground>
-                            <SolidColorBrush x:Name="streamingBrush" Color="#808080" />
-                        </TextBlock.Foreground>
-                    </TextBlock>
-                    <ToggleButton x:Name="streamingToggle" Width="32" Height="32" Margin="-4" Padding="0" 
-                                  Style="{StaticResource MaterialDesignIconForegroundButton}" IsChecked="{Binding CoreData.Settings.StreamingToCloudStarted}"
-                                  ToolTip="Start streaming to cloud">
-                        <materialDesign:PackIcon x:Name="streamingButton" Kind="Wifi" Height="16" Width="16" Foreground="#20FF40" />
-                    </ToggleButton>
+                    <materialDesign:PackIcon Kind="Security" Height="16" Width="16"/>
+                    <TextBlock x:Name="vpnText" Margin="4,0,3,0" Text="VPN" FontWeight="Normal" FontSize="12" VerticalAlignment="Center"/>
                 </StackPanel>
-            </Border>
+                
+            </ToggleButton>
 
-            <Border Margin="10,0,0,0" Grid.Column="2" BorderBrush="#808080" Background="#151515" BorderThickness="0" CornerRadius="8">
+            <ToggleButton x:Name="startStreaming" Margin="10,0,0,0" Grid.Column="2" Style="{StaticResource ControlToggle}"
+                          ToolTip="Start streaming to cloud"
+                          IsChecked="{Binding CoreData.Settings.StreamingToCloudStarted}">
                 <StackPanel Orientation="Horizontal">
-                    <TextBlock x:Name="recording" Margin="10,0,7,0" Text="Recording" FontWeight="Normal" FontSize="12" VerticalAlignment="Center">
-                        <TextBlock.Foreground>
-                            <SolidColorBrush x:Name="recordingBrush" Color="#808080" />
-                        </TextBlock.Foreground>
-                    </TextBlock>
-                    <ToggleButton x:Name="recordingToggle" Width="32" Height="32" Margin="-4" Padding="0" 
-                                  Style="{StaticResource MaterialDesignIconForegroundButton}" IsChecked="{Binding CoreData.Settings.IsRecordingRequested}"
-                                  ToolTip="Record video to a location configured in Settings">
-                        <materialDesign:PackIcon x:Name="recordingButton" Kind="Record" Height="16" Width="16" Foreground="Red" />
-                    </ToggleButton>
+                    <materialDesign:PackIcon Kind="Wifi" Height="16" Width="16"/>
+                    <TextBlock Margin="4,0,3,0" x:Name="streamingText" Text="Stream to cloud" FontWeight="Normal" FontSize="12" VerticalAlignment="Center"/>
                 </StackPanel>
-            </Border>
-            
+
+            </ToggleButton>
+
+            <ToggleButton Margin="10,0,0,0" Grid.Column="3" Style="{StaticResource ControlToggle}"
+                          ToolTip="Record video to a location configured in Settings"
+                          IsChecked="{Binding CoreData.Settings.IsRecordingRequested}">
+                <StackPanel Orientation="Horizontal">
+                    <materialDesign:PackIcon Kind="Record" Height="16" Width="16"/>
+                    <TextBlock Margin="4,0,3,0" x:Name="recordingText" Text="Recording" FontWeight="Normal" FontSize="12" VerticalAlignment="Center"/>
+                </StackPanel>
+            </ToggleButton>
+
         </Grid>
 
         <DataTemplate.Triggers>
-            <DataTrigger Binding="{Binding CoreData.Settings.StreamingToCloud}" Value="Manually">
-                <Setter TargetName="startStreaming" Property="Visibility" Value="Visible"/>
+
+            <DataTrigger Binding="{Binding Vpn.IsEnabled}" Value="True">
+                <Setter TargetName="startVpn" Property="Visibility" Value="Visible"/>
             </DataTrigger>
-
-            <DataTrigger Binding="{Binding CoreData.Settings.StreamingToCloudStarted}" Value="True">
-                <Setter TargetName="streamingButton" Property="Foreground" Value="#AAAAAA"/>
-                <Setter TargetName="streamingButton" Property="Kind" Value="CloseThick"/>
-                <Setter TargetName="streamingToggle" Property="ToolTip" Value="Stop streaming to cloud"/>
-
-                <DataTrigger.EnterActions>
-                    <BeginStoryboard>
-                        <Storyboard>
-                            <ColorAnimationUsingKeyFrames Storyboard.TargetName="streamingBrush" Storyboard.TargetProperty="Color"
-                                                          Duration="0:0:2" RepeatBehavior="Forever">
-                                <LinearColorKeyFrame Value="#808080" KeyTime="0:0:0" />
-                                <LinearColorKeyFrame Value="#4080FF" KeyTime="0:0:1" />
-                                <LinearColorKeyFrame Value="#808080" KeyTime="0:0:2" />
-                            </ColorAnimationUsingKeyFrames>
-                        </Storyboard>
-                    </BeginStoryboard>
-                </DataTrigger.EnterActions>
-
-                <DataTrigger.ExitActions>
-                    <BeginStoryboard>
-                        <Storyboard>
-                            <ColorAnimationUsingKeyFrames Storyboard.TargetName="streamingBrush" Storyboard.TargetProperty="Color"
-                                                          Duration="0:0:1">
-                                <LinearColorKeyFrame Value="#808080" KeyTime="0:0:1" />
-                            </ColorAnimationUsingKeyFrames>
-                        </Storyboard>
-                    </BeginStoryboard>
-                </DataTrigger.ExitActions>
-            </DataTrigger>
-
-            <DataTrigger Binding="{Binding CoreData.Settings.IsRecordingRequested}" Value="True">
-                <Setter TargetName="recordingButton" Property="Foreground" Value="#AAAAAA"/>
-                <Setter TargetName="recordingButton" Property="Kind" Value="Stop"/>
-                <Setter TargetName="recordingToggle" Property="ToolTip" Value="Stop recording"/>
-
-                <DataTrigger.EnterActions>
-                    <BeginStoryboard>
-                        <Storyboard>
-                            <ColorAnimationUsingKeyFrames Storyboard.TargetName="recordingBrush" Storyboard.TargetProperty="Color"
-                                                          Duration="0:0:2" RepeatBehavior="Forever">
-                                <LinearColorKeyFrame Value="White" KeyTime="0:0:0" />
-                                <LinearColorKeyFrame Value="Red" KeyTime="0:0:1" />
-                                <LinearColorKeyFrame Value="White" KeyTime="0:0:2" />
-                            </ColorAnimationUsingKeyFrames>
-                        </Storyboard>
-                    </BeginStoryboard>
-                </DataTrigger.EnterActions>
-
-                <DataTrigger.ExitActions>
-                    <BeginStoryboard>
-                        <Storyboard>
-                            <ColorAnimationUsingKeyFrames Storyboard.TargetName="recordingBrush" Storyboard.TargetProperty="Color"
-                                                          Duration="0:0:1">
-                                <LinearColorKeyFrame Value="#808080" KeyTime="0:0:1" />
-                            </ColorAnimationUsingKeyFrames>
-                        </Storyboard>
-                    </BeginStoryboard>
-                </DataTrigger.ExitActions>
-            </DataTrigger>
-
+            
             <DataTrigger Binding="{Binding ActualBitrateState.Value}" Value="Unknown">
                 <Setter TargetName="slider" Property="IsSelectionRangeEnabled" Value="False"></Setter>
             </DataTrigger>
@@ -142,8 +123,9 @@
 
             <DataTrigger Binding="{Binding (support:ResponsiveHost.Calculation).Values.HideBitrateTitle, ElementName=root}" Value="True">
                 <Setter TargetName="bitrate" Property="Text" Value="BR"/>
-                <Setter TargetName="recording" Property="Text" Value="REC"/>
-                <Setter TargetName="streaming" Property="Text" Value="STR"/>
+                <Setter TargetName="recordingText" Property="Visibility" Value="Collapsed"/>
+                <Setter TargetName="streamingText" Property="Visibility" Value="Collapsed"/>
+                <Setter TargetName="vpnText" Property="Visibility" Value="Collapsed"/>
             </DataTrigger>
 
             <DataTrigger Binding="{Binding (support:ResponsiveHost.Calculation).Values.HideBitrate, ElementName=root}" Value="True">

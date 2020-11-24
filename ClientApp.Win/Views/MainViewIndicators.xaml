@@ -268,6 +268,18 @@
         </DataTemplate.Triggers>
     </DataTemplate>
 
+    <DataTemplate x:Key="VpnDetails" DataType="{x:Type models:IndicatorModelVpn}">
+        <StackPanel Width="265">
+            <TextBlock FontSize="18" Text="{Binding DetailedDescription.Value}" TextAlignment="Center"/>
+            <TextBlock Text="Sent over VPN in last 2 minutes" Margin="10,12,0,3" FontWeight="Normal" Foreground="White"/>
+            <oxy:PlotView Model="{Binding ChartModel.PlotModel}" Foreground="Black"  Background="#0E0E0E" Height="200" Margin="10,0" />
+            <TextBlock Text="Received over VPN in last 2 minutes" Margin="10,12,0,3" FontWeight="Normal" Foreground="White"/>
+            <oxy:PlotView Model="{Binding Received.PlotModel}" Foreground="Black"  Background="#0E0E0E" Height="200" Margin="10,0" />
+        </StackPanel>
+    </DataTemplate>
+
+
+
     <DataTemplate x:Key="EncoderDetails" DataType="{x:Type models:IndicatorModelEncoder}">
         <StackPanel Width="265">
             <TextBlock FontSize="18" Text="{Binding DetailedDescription.Value}" TextAlignment="Center"/>
@@ -364,6 +376,23 @@
                     </support:Indicator.SmallContent>
                 </support:Indicator>
 
+                <support:Indicator x:Name="vpn"
+                               DataContext="{Binding Vpn}"
+                               Content="{Binding }" 
+                               ContentTemplate="{StaticResource VpnDetails}" 
+                               State="{Binding State.Value}"
+                               DetailedDescription="{Binding DetailedDescription.Value}">
+                    <support:Indicator.SmallIcon>
+                        <materialDesign:PackIcon  Margin="1,2,0,0" Kind="Security" Width="20" Height="20"/>
+                    </support:Indicator.SmallIcon>
+                    <support:Indicator.BigIcon>
+                        <materialDesign:PackIcon  Margin="1,2,0,0" Kind="Security" Width="20" Height="20"/>
+                    </support:Indicator.BigIcon>
+                    <support:Indicator.SmallContent>
+                        <TextBlock FontWeight="Black" FontSize="16" Text="{Binding Value.Value}" />
+                    </support:Indicator.SmallContent>
+                </support:Indicator>
+
                 <support:Indicator x:Name="cloudIn"
                                DataContext="{Binding CloudIn}"
                                Content="{Binding }" 
@@ -452,6 +481,10 @@
 
             <DataTrigger Binding="{Binding Encoder.State.Value}" Value="Unknown">
                 <Setter TargetName="encoder" Property="Visibility" Value="Collapsed"/>
+            </DataTrigger>
+
+            <DataTrigger Binding="{Binding Vpn.State.Value}" Value="Unknown">
+                <Setter TargetName="vpn" Property="Visibility" Value="Collapsed"/>
             </DataTrigger>
 
             <DataTrigger Binding="{Binding CloudIn.State.Value}" Value="Unknown">

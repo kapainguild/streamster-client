@@ -19,6 +19,7 @@ namespace Streamster.ClientCore.Models
         private readonly StateLoggerService _stateLoggerService;
         private readonly LocalSettingsService _localSettingsService;
         private readonly IUpdateManager _updateManager;
+        private readonly IAppResources _appResources;
         private readonly ModelClient _serverClient;
         private readonly IWindowStateManager _windowStateManager;
         private bool _firstPatchReceived;
@@ -43,6 +44,8 @@ namespace Streamster.ClientCore.Models
 
         public MainAboutModel About { get; }
 
+        public TransientMessageModel TransientMessage { get; }
+
         public Property<bool> Loaded { get; } = new Property<bool>();
 
         public Property<bool> IsDialogShown { get; } = new Property<bool>();
@@ -61,7 +64,9 @@ namespace Streamster.ClientCore.Models
             CoreData coreData,
             StateLoggerService stateLoggerService,
             LocalSettingsService localSettingsService,
-            IUpdateManager updateManager)
+            IUpdateManager updateManager,
+            TransientMessageModel transientMessageModel,
+            IAppResources appResources)
         {
             Root = root;
             Targets = targets;
@@ -76,6 +81,8 @@ namespace Streamster.ClientCore.Models
             _stateLoggerService = stateLoggerService;
             _localSettingsService = localSettingsService;
             _updateManager = updateManager;
+            TransientMessage = transientMessageModel;
+            _appResources = appResources;
             _serverClient = new ModelClient { Filter = new FilterConfigurator(true).Build() };
             _coreData.GetManager().Register(_serverClient);
             _serverClient.SerializeAndClearChanges();
@@ -132,10 +139,10 @@ namespace Streamster.ClientCore.Models
             }
         }
 
-        private void InitializeAfterFirstPatch()
+        private async Task InitializeAfterFirstPatchAsync()
         {
             Targets.Start();
-            Streamer.Start();
+            await Streamer.StartAsync();
             Settings.Start();
             About.Start();
             _stateLoggerService.Start();
@@ -172,18 +179,25 @@ namespace Streamster.ClientCore.Models
 
         private void ProcessNewVersion(ClientVersion[] upperVersions)
         {
-            var current = ClientVersionHelper.GetCurrent(upperVersions);
-            if (current != null && upperVersions.Length == 1 && !string.IsNullOrWhiteSpace(current.WhatsNew))
+            var (currentVersionInfo, currentVersionString) = ClientVersionHelper.GetCurrent(upperVersions);
+
+            bool simulateUpdate = false;
+            string custom = "3.2.0";
+
+            if (_localSettingsService.Settings.LastRunVerion != currentVersionString || simulateUpdate)
             {
-                if (_localSettingsService.Settings.LastRunVerion != current.Version)
+                if ((_localSettingsService.Settings.NotFirstInstall || _localSettingsService.NoSettingsFileAtLoad == false) && string.IsNullOrEmpty(_appResources.AppData.Domain) || simulateUpdate)
                 {
-                    if (_localSettingsService.Settings.NotFirstInstall)
+                    string[] standard = string.IsNullOrWhiteSpace(currentVersionInfo?.WhatsNew) ? null :
+                        currentVersionInfo.WhatsNew.Split(';').Where(s => !string.IsNullOrWhiteSpace(s)).Select(s => "\u2022 " + s.Trim()).ToArray();
+
+                    if (standard != null || currentVersionString == custom)
                     {
-                        var newVersion = new NewVersionModel
+                        NewVersionModel newVersion = new NewVersionModel
                         {
-                            WhatsNew = current.WhatsNew.Split(';').Where(s => !string.IsNullOrWhiteSpace(s))
-                                                .Select(s => "\u2022 " + s.Trim()).ToArray(),
-                            Title = $"You are running new version {current.Version}"
+                            WhatsNew = standard,
+                            Title = $"You are running new version {currentVersionString}",
+                            CustomView = !string.IsNullOrWhiteSpace(custom)
                         };
 
                         if (DialogContent.Value == null)
@@ -192,13 +206,13 @@ namespace Streamster.ClientCore.Models
                             IsDialogShown.Value = true;
                         }
                     }
-
-                    TaskHelper.RunUnawaited(_localSettingsService.ChangeSettingsUnconditionally(s =>
-                    { 
-                        s.LastRunVerion = current.Version;
-                        s.NotFirstInstall = true;
-                    }), "Store LastRunVerion");
                 }
+
+                TaskHelper.RunUnawaited(_localSettingsService.ChangeSettingsUnconditionally(s =>
+                {
+                    s.LastRunVerion = currentVersionString;
+                    s.NotFirstInstall = true;
+                }), "Store LastRunVerion");
             }
         }
 
@@ -227,7 +241,7 @@ namespace Streamster.ClientCore.Models
                 // we want to initialize everything in background thread
                 _coreData.GetManager().ApplyChanges(_serverClient, payload.Changes);
                 ProcessSubscriptions();
-                InitializeAfterFirstPatch();
+                await InitializeAfterFirstPatchAsync();
                 ProcessSubscriptions();
                 await SendPatch();
 
@@ -342,7 +356,22 @@ namespace Streamster.ClientCore.Models
 
         public async ValueTask DisposeAsync()
         {
-            await Task.Delay(1);
+            if (_firstPatchReceived)
+            {
+                var dev = _coreData.ThisDevice;
+
+                if (dev != null)
+                    dev.DisconnectRequested = true;
+
+                try
+                {
+                    await SendPatch();
+                }
+                catch (Exception e)
+                {
+                    Log.Error(e, "Send final Patch failed");
+                }
+            }
         }
     }
 
@@ -353,8 +382,10 @@ namespace Streamster.ClientCore.Models
 
     public class NewVersionModel
     {
-        public string[] WhatsNew{ get; set; } 
+        public string[] WhatsNew { get; set; } 
 
         public string Title { get; set; }
+
+        public bool CustomView { get; set; }
     }
 }

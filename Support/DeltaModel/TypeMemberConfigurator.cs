@@ -23,7 +23,7 @@ namespace Clutch.DeltaModel
         {
         }
 
-        public TypeMemberConfigurator<T> HasDefault(T defVal)
+        public TypeMemberConfigurator<T> HasDefault(T defVal) // VERY dangerous
         {
             Configuration.DefaultValue = defVal;
             return this;

@@ -2,6 +2,7 @@
 using MongoDB.Bson.IO;
 using MongoDB.Bson.Serialization;
 using MongoDB.Bson.Serialization.Conventions;
+using Serilog;
 using System;
 
 namespace Clutch.DeltaModel
@@ -68,6 +69,13 @@ namespace Clutch.DeltaModel
             {
                 return BsonSerializer.Deserialize(context.BsonReader, typeConfig.Type);
             }
+        }
+
+        public void DeserializeBsonIgnoredValue(BsonDeserializingContext context, string name)
+        {
+            var obj = BsonSerializer.Deserialize(context.BsonReader, typeof(object));
+
+            Log.Warning($"Bson property {name}={obj} is ignored");
         }
     }
 

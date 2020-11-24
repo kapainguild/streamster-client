@@ -8,7 +8,6 @@
         mc:Ignorable="d"
         Width="640" Height="550"
         MinWidth="343" MinHeight="194"
-        DataContext="{x:Static local:App.Root}"
         WindowStyle="SingleBorderWindow"
         ResizeMode="NoResize"
         WindowStartupLocation="CenterScreen"

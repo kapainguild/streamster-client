@@ -10,6 +10,8 @@ namespace Streamster.ClientCore.Models
 {
     public class MainSettingsModel
     {
+        private readonly ConnectionService _connectionService;
+
         public Property<bool> AutoLogon { get; } = new Property<bool>();
 
         public Property<bool> EnableVideoPreview { get; } = new Property<bool>();
@@ -47,6 +49,12 @@ namespace Streamster.ClientCore.Models
             new SettingsSelectorData<TopMostMode> { Value = TopMostMode.Never, DisplayName = "Never" },
         };
 
+        public List<SettingsSelectorData<VpnBehavior>> VpnBehaviors { get; } = new List<SettingsSelectorData<VpnBehavior>>
+        {
+            new SettingsSelectorData<VpnBehavior> { Value = VpnBehavior.AppStart, DisplayName = "App is started" },
+            new SettingsSelectorData<VpnBehavior> { Value = VpnBehavior.Manually, DisplayName = "I do it manually" },
+        };
+
         public Property<SettingsSelectorData<StreamingToCloudBehavior>> CurrentStreamingToCloudBehavior { get; } = new Property<SettingsSelectorData<StreamingToCloudBehavior>>();
 
         public Property<SettingsSelectorData<EncoderType>> CurrentEncoderType { get; } = new Property<SettingsSelectorData<EncoderType>>();
@@ -55,10 +63,15 @@ namespace Streamster.ClientCore.Models
 
         public Property<SettingsSelectorData<TopMostMode>> CurrentTopMostMode { get; } = new Property<SettingsSelectorData<TopMostMode>>();
 
-        public MainSettingsModel(LocalSettingsService localSettings, CoreData coreData, MainStreamerModel mainStreamerModel)
+        public Property<SettingsSelectorData<VpnBehavior>> CurrentVpnBehavior { get; } = new Property<SettingsSelectorData<VpnBehavior>>();
+
+        public bool UserHasVpn { get; set; }
+
+        public MainSettingsModel(LocalSettingsService localSettings, CoreData coreData, MainStreamerModel mainStreamerModel, ConnectionService connectionService)
         {
             CoreData = coreData;
             MainStreamerModel = mainStreamerModel;
+            _connectionService = connectionService;
             AutoLogon.SilentValue = localSettings.Settings.AutoLogon; // TODO: what is is not registred and not save password
             AutoLogon.OnChange = async (o, n) => await localSettings.ChangeSettingsUnconditionally(s => s.AutoLogon = n);
 
@@ -72,6 +85,7 @@ namespace Streamster.ClientCore.Models
             CurrentEncoderType.Value = EncoderTypes.First(s => s.Value == default);
             CurrentEncoderQuality.Value = EncoderQualities.First(s => s.Value == default);
             CurrentTopMostMode.Value = TopMostModes.First(s => s.Value == TopMostMode.WhenCompact);
+            CurrentVpnBehavior.Value = VpnBehaviors.First(s => s.Value == default);
 
 
             CurrentStreamingToCloudBehavior.OnChange = (o, n) => coreData.Settings.StreamingToCloud = n.Value;
@@ -82,18 +96,23 @@ namespace Streamster.ClientCore.Models
                 coreData.ThisDevice.DeviceSettings.DisableTopMost = TopMostModeConverter.GetDisableTopMost(n.Value);
                 coreData.ThisDevice.DeviceSettings.TopMostExtendedMode = TopMostModeConverter.GetTopMostExtendedMode(n.Value);
             };
+            CurrentVpnBehavior.OnChange = (o, n) => coreData.ThisDevice.DeviceSettings.VpnBehavior = n.Value;
 
             CoreData.Subscriptions.SubscribeForProperties<ISettings>(s => s.StreamingToCloud, (s, c, p) => CurrentStreamingToCloudBehavior.SilentValue = StreamingToCloudBehaviors.FirstOrDefault(r => r.Value == CoreData.Settings.StreamingToCloud));
             CoreData.Subscriptions.SubscribeForProperties<ISettings>(s => s.EncoderType, (s, c, p) => CurrentEncoderType.SilentValue = EncoderTypes.FirstOrDefault(r => r.Value == CoreData.Settings.EncoderType));
             CoreData.Subscriptions.SubscribeForProperties<ISettings>(s => s.EncoderQuality, (s, c, p) => CurrentEncoderQuality.SilentValue = EncoderQualities.FirstOrDefault(r => r.Value == CoreData.Settings.EncoderQuality));
+            
             CoreData.Subscriptions.SubscribeForProperties<IDeviceSettings>(s => s.DisableTopMost, (s, c, p) => UpdateTopMost());
             CoreData.Subscriptions.SubscribeForProperties<IDeviceSettings>(s => s.TopMostExtendedMode, (s, c, p) => UpdateTopMost());
+            CoreData.Subscriptions.SubscribeForProperties<IDeviceSettings>(s => s.VpnBehavior, (s, c, p) => CurrentVpnBehavior.SilentValue = VpnBehaviors.FirstOrDefault(r => r.Value == CoreData.ThisDevice.DeviceSettings.VpnBehavior));
         }
 
         private void UpdateTopMost() => CurrentTopMostMode.SilentValue = TopMostModes.FirstOrDefault(s => s.Value == TopMostModeConverter.ToMode(CoreData.ThisDevice.DeviceSettings));
 
         public void Start()
         {
+            UserHasVpn = _connectionService.Claims.HasVpn;
+
             if (!IsValidRecordingPath(CoreData.ThisDevice.DeviceSettings.RecordingsPath))
                 CoreData.ThisDevice.DeviceSettings.RecordingsPath = Environment.GetFolderPath(Environment.SpecialFolder.MyVideos);
         }

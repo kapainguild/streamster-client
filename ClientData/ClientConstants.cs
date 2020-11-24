@@ -12,12 +12,11 @@ namespace Streamster.ClientData
         public static string LoadBalancerFiles_Versions = "versions";
         public static string LoadBalancerFiles_Targets = "targets";
 
-#if DEBUG
+#if DEBUG_
         public static string[] LoadBalancerServers = new[] { "localhost" };
 #else
         public static string[] LoadBalancerServers = new[] { "fi1.streamster.io", "de2.streamster.io", "mo1.streamster.io" };
 #endif
-        public static string TargetHintTemplate = "https://streamster.io/{0}";
 
         public static string AnonymousGrandType = "ano";
         public static string WinClientId = "win";
@@ -31,5 +30,9 @@ namespace Streamster.ClientData
         public static string VersionClaim = "ver";
         public static string AppUpdatePathClaim = "aup";
         public static string DebugClaim = "deb";
+        public static string VpnClaim = "vpn";
+        public static string DomainClaim = "dmn";
+
+        public static int VpnVersion = 1;
     }
 }

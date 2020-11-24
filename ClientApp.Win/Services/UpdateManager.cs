@@ -16,14 +16,16 @@ namespace Streamster.ClientApp.Win.Services
     {
         private readonly IAppEnvironment _environment;
         private readonly LocalSettingsService _localSettingsService;
+        private readonly string _domain;
 
         [DllImport("msi.dll", CharSet = CharSet.Unicode, SetLastError = true)]
         internal static extern int MsiEnumRelatedProducts(string lpUpgradeCode, int dwReserved, int iProductIndex, StringBuilder lpProductBuf); 
 
-        public UpdateManager(IAppEnvironment environment, LocalSettingsService localSettingsService)
+        public UpdateManager(IAppEnvironment environment, LocalSettingsService localSettingsService, IAppResources appResources)
         {
             _environment = environment;
             _localSettingsService = localSettingsService;
+            _domain = appResources.AppData.Domain;
         }
 
         public Task Update(string appUpdatePath)
@@ -41,10 +43,16 @@ namespace Streamster.ClientApp.Win.Services
                 var path = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location);
                 path = Path.Combine(path, "..\\Update.exe");
 
-                string root = $"https://{ClientConstants.LoadBalancerServers[nextServer]}:{ClientConstants.LoadBalancerServerPort}{ClientConstants.LoadBalancerFilesFolder}";
-                string pp = $"{root}/{ClientConstants.LoadBalancerFiles_Versions}/{_environment.GetClientId()}";
+                var suffix = _environment.GetClientId();
+                if (!string.IsNullOrEmpty(_domain))
+                    suffix += "." + _domain;
+
                 if (!string.IsNullOrEmpty(appUpdatePath))
-                    pp = $"{pp}/{appUpdatePath}";
+                    suffix += "." + appUpdatePath;
+
+                string root = $"https://{ClientConstants.LoadBalancerServers[nextServer]}:{ClientConstants.LoadBalancerServerPort}{ClientConstants.LoadBalancerFilesFolder}";
+                string pp = $"{root}/{ClientConstants.LoadBalancerFiles_Versions}/{suffix}";
+                
 
                 Log.Information($"Update starting({pp}, {path})");
                 if (File.Exists(path))

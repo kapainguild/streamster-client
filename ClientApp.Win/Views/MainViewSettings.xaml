@@ -109,6 +109,31 @@
                     </StackPanel>
                 </Border>
 
+                <TextBlock x:Name="vpnTitle" Style="{StaticResource GroupTitle}" Text="VPN security"/>
+
+                <Border x:Name="vpnContent" Style="{StaticResource GroupBorderStyle}">
+                    <StackPanel Orientation="Vertical">
+                        <DockPanel>
+                            <ComboBox Margin="0,0,8,0" DockPanel.Dock="Right" VerticalAlignment="Top" BorderThickness="0"
+                                      ItemsSource="{Binding VpnBehaviors}" SelectedItem="{Binding CurrentVpnBehavior.Value}" DisplayMemberPath="DisplayName">
+                            </ComboBox>
+                            <HeaderedContentControl Header="Start VPN connection when" 
+                                                Content="Determines when VPN connection should be established"
+                                                Style="{StaticResource MaterialDesignHeaderedContentControl}"/>
+
+                        </DockPanel>
+                        <Border Background="{DynamicResource MaterialDesignDivider}" Height="1" SnapsToDevicePixels="True" />
+                        <DockPanel>
+                            <ToggleButton Margin="0,0,8,0" DockPanel.Dock="Right" VerticalAlignment="Center" Style="{StaticResource MaterialDesignSwitchToggleButton}"
+                                          IsChecked="{Binding CoreData.Settings.NoStreamWithoutVpn}"/>
+                            <HeaderedContentControl Header="No stream without VPN" 
+                                                Content="Prevents streaming to Cloud if VPN is off or broken. So the option ensures that stram is always protected."
+                                                Style="{StaticResource MaterialDesignHeaderedContentControl}"/>
+
+                        </DockPanel>
+                    </StackPanel>
+                </Border>
+
                 <TextBlock Style="{StaticResource GroupTitle}" Text="Encoding"/>
 
                 <Border Style="{StaticResource GroupBorderStyle}">
@@ -167,6 +192,11 @@
         </ScrollViewer>
 
         <DataTemplate.Triggers>
+            <DataTrigger Binding="{Binding UserHasVpn}" Value="False">
+                <Setter TargetName="vpnTitle" Property="Visibility" Value="Collapsed"/>
+                <Setter TargetName="vpnContent" Property="Visibility" Value="Collapsed"/>
+            </DataTrigger>
+            
             <DataTrigger Binding="{Binding MainStreamerModel.ChangeStreamParamsDisabled.Value}" Value="True">
                 <Setter TargetName="encoderQuality" Property="IsEnabled" Value="False"/>
                 <Setter TargetName="encoderQuality" Property="ToolTip" Value="Encoder quality cannot be changed during Restreaming or Recording"/>

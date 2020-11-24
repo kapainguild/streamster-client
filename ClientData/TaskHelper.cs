@@ -39,6 +39,20 @@ namespace Streamster.ClientData
             }
         }
 
+        public static Task WaitOneAsync(WaitHandle waitHandle, string message)
+        {
+            var tcs = new TaskCompletionSource<bool>();
+            var rwh = ThreadPool.RegisterWaitForSingleObject(waitHandle,
+                delegate 
+                {
+                    Log.Information(message);
+                    tcs.TrySetResult(true); 
+                }, null, -1, true);
+            var t = tcs.Task;
+            t.ContinueWith((antecedent) => rwh.Unregister(null));
+            return t;
+        }
+
         public static bool IsCancellation(Exception e) => e is TaskCanceledException || e is OperationCanceledException;
 
         private static async Task RunUnwaitedAsync(Task task, string name)

@@ -94,6 +94,27 @@ namespace Clutch.DeltaModel
             throw new InvalidOperationException($"Cannot get id for {obj} ({obj == null})");
         }
 
+        public int GetIndexInParent(object obj)
+        {
+            if (obj is IEntityHandlerProvider provider)
+            {
+                var handler = provider.GetHandler();
+                if (handler == null) return -2;
+
+                var nameInParent = handler.NameInParent;
+                if (nameInParent == null) return -3;
+                if (handler.Parent == null) return -4;
+                var values = handler.Parent.GetValues();
+                if (values == null) return -5;
+                return values.Select((entry, index) => new { entry.Key, index })
+                          .Where(x => x.Key == nameInParent)
+                          .Select(x => x.index)
+                          .DefaultIfEmpty(-6)
+                          .First();
+            }
+            return -1;
+        }
+
         public bool IsRooted(object obj)
         {
             if (obj is IEntityHandlerProvider provider)
@@ -188,7 +209,7 @@ namespace Clutch.DeltaModel
         private void AddChange(ChangeType type, IEntityHandler parent, string key, object value)
         {
             string path = GetPath(parent, key);
-            Subscriptions.NotifyChange(null, type, parent, key);
+            Subscriptions.NotifyChange(null, type, parent, key, value);
             _clients.ForEach(client => AddChange(client, type, path, parent, key, value));
         }
 
@@ -302,10 +323,10 @@ namespace Clutch.DeltaModel
                 throw new Exception();
         }
 
-        public void DeserializeIgnoredValue(DeserializingContext context)
+        public void DeserializeIgnoredValue(DeserializingContext context, Change change, string reason)
         {
             var res = context.Serializer.Deserialize(context.Reader);
-            Log.Warning($"Deserializing ignored value '{res}'");
+            Log.Warning($"Deserializing ignored value {change.Path}={res} ({change.Type}), reason:{reason}");
         }
 
         public List<Change> ApplyChanges(ModelClient sourceClient, string changesData)
@@ -322,7 +343,7 @@ namespace Clutch.DeltaModel
                         var change = DeserializeAndApplyChange(context);
                         if (!change.Ignored) // ignored change due to unsync
                         {
-                            Subscriptions.NotifyChange(sourceClient, change.Type, change.Handler, change.Key);
+                            Subscriptions.NotifyChange(sourceClient, change.Type, change.Handler, change.Key, change.Value);
                             if (change.OldValue != null)
                                 DetachOldItem(sourceClient, change.OldValue);
                             if (change.Value != null)
@@ -443,7 +464,7 @@ namespace Clutch.DeltaModel
                 else
                 {
                     change.Ignored = true;
-                    DeserializeIgnoredValue(context);
+                    DeserializeIgnoredValue(context, change, "Path not reachable");
                     Log.Warning($"Change '{change.Path}:{change.Type}' is ignored");
                     return;
                 }

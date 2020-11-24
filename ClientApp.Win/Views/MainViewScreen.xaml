@@ -9,8 +9,8 @@
         <ResourceDictionary Source="MainViewFilters.xaml"/>
     </ResourceDictionary.MergedDictionaries>
 
-    <DataTemplate DataType="{x:Type models:TransientMessageModel}">
-        <Border x:Name="root" Background="#95000000" BorderThickness="1" BorderBrush="Black" >
+    <DataTemplate x:Key="OnScreenMessage" DataType="{x:Type models:TransientMessageModel}">
+        <Border x:Name="root" Background="#95000000" BorderThickness="0">
             <DockPanel>
                 <Button Margin="3" DockPanel.Dock="Right" Style="{StaticResource MaterialDesignIconForegroundButton}" ToolTip="Close message"
                                 Command="{Binding Close, Converter={StaticResource CommandConverter}}">
@@ -228,7 +228,7 @@
                     
                 </Border>
 
-                <ContentControl Focusable="False" Content="{Binding VideoSource.Message}" HorizontalAlignment="Center" VerticalAlignment="Center" Margin="10,40,10,40"/>
+                <ContentControl Focusable="False" Content="{Binding VideoSource.Message}" ContentTemplate="{StaticResource OnScreenMessage}" HorizontalAlignment="Center" VerticalAlignment="Center" Margin="10,40,10,40"/>
                 
                 <ContentControl x:Name="preview" Focusable="False" Content="{Binding VideoSource.CurrentPreview.Value}" ContentTemplate="{StaticResource VideoInputPreview}"/>
 

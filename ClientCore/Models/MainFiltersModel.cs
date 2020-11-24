@@ -74,16 +74,19 @@ namespace Streamster.ClientCore.Models
         public FilterSpecs[] GetFiltersSpec(VideoFilters filters)
         {
             List<FilterSpecs> result = new List<FilterSpecs>();
-            if (filters.FlipH)
-                result.Add(new FilterSpecs("hflip"));
+            if (filters != null)
+            {
+                if (filters.FlipH)
+                    result.Add(new FilterSpecs("hflip"));
 
-            if (filters.Items != null)
-                foreach(var filter in filters.Items)
-                {
-                    var filterSpec = _all.FirstOrDefault(s => s.Name == filter.Name)?.Spec(result, filter);
-                    if (filterSpec != null)
-                        result.Add(filterSpec);
-                }
+                if (filters.Items != null)
+                    foreach (var filter in filters.Items)
+                    {
+                        var filterSpec = _all.FirstOrDefault(s => s.Name == filter.Name)?.Spec(result, filter);
+                        if (filterSpec != null)
+                            result.Add(filterSpec);
+                    }
+            }
             return result.OrderBy(s => s, new FilterSpecComparer()).ToArray();
         }
 
@@ -128,10 +131,7 @@ namespace Streamster.ClientCore.Models
                 if (!Equals(model, GetFiltersModel()))
                 {
                     if (model == null)
-                    {
-                        Log.Warning("Filters model should not be null");
                         model = new VideoFilters();
-                    }
 
                     FlipH.SilentValue = model.FlipH;
                     _all.ForEach(s =>
@@ -162,6 +162,9 @@ namespace Streamster.ClientCore.Models
 
         private VideoFilters GetFiltersModel()
         {
+            if (!FlipH.Value && _noFilter.IsOn.Value)
+                return null;
+
             var result = new VideoFilters();
             result.FlipH = FlipH.Value;
             if (!_noFilter.IsOn.Value)

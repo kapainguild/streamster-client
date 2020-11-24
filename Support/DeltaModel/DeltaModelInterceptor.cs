@@ -158,8 +158,7 @@ namespace Clutch.DeltaModel
                 switch (change.Type)
                 {
                     case ChangeType.Add: 
-                        Log.Warning($"Unsync while adding property {property} to {ProxyType}");
-                        _manager.DeserializeIgnoredValue(context);
+                        _manager.DeserializeIgnoredValue(context, change, "Unsync on add");
                         break;
                     case ChangeType.Remove:
                         _manager.DeserializeAndApplyRemove(value, change);
@@ -174,16 +173,26 @@ namespace Clutch.DeltaModel
             }
             else
             {
-                if (change.Type == ChangeType.Add)
+                if (_typeConfig.Members.TryGetValue(property, out var memConfig))
                 {
-                    _values.Add(property, _manager.DeserializeAndApplyAdd(this, property, _typeConfig.Members[property].TypeConfiguration, change, context));
-                    _propertyChangedHandler?.Invoke(Proxy, new PropertyChangedEventArgs(property));
+                    if (change.Type == ChangeType.Add)
+                    {
+
+                        _values.Add(property, _manager.DeserializeAndApplyAdd(this, property, memConfig.TypeConfiguration, change, context));
+                        _propertyChangedHandler?.Invoke(Proxy, new PropertyChangedEventArgs(property));
+                    }
+                    else
+                    {
+                        if (change.Type == ChangeType.Replace)
+                            _manager.DeserializeIgnoredValue(context, change, "Unsync on replace");
+                    }
                 }
                 else
                 {
-                    Log.Warning($"Unsync while '{change}' property {property} in {ProxyType}");
-                    if (change.Type == ChangeType.Replace)
-                        _manager.DeserializeIgnoredValue(context);
+                    if (change.Type != ChangeType.Remove)
+                    {
+                        _manager.DeserializeIgnoredValue(context, change, "Unknown property");
+                    }
                 }
             }
         }
@@ -208,8 +217,14 @@ namespace Clutch.DeltaModel
             {
                 string name = context.BsonReader.ReadName(Utf8NameDecoder.Instance);
 
-                var o = _manager.DeserializeBsonValue(_typeConfig.Members[name].TypeConfiguration, this, name, context);
-                _values[name] = o;
+                if (_typeConfig.Members.TryGetValue(name, out var memConfig))
+                {
+                    var o = _manager.DeserializeBsonValue(memConfig.TypeConfiguration, this, name, context);
+                    _values[name] = o;
+                }
+                else
+                    _manager.DeserializeBsonIgnoredValue(context, name);
+
                 if (context.BsonReader.State == BsonReaderState.Type)
                     context.BsonReader.ReadBsonType();
             }

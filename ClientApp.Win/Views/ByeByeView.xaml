@@ -10,7 +10,7 @@
     <DataTemplate DataType="{x:Type models:ByeByeModel}">
         <Border BorderBrush="#1883D7" BorderThickness="1">
             <Grid ClipToBounds="True">
-                <Image x:Name="background" RenderOptions.BitmapScalingMode="HighQuality" Source="{Binding Root.AppData.Background}" Margin="0,0,0,0" HorizontalAlignment="Left" VerticalAlignment="Top" Stretch="UniformToFill" />
+                <Image x:Name="background" RenderOptions.BitmapScalingMode="HighQuality" Source="{Binding Root.AppData.BackgroundBye}" Margin="0,0,0,0" HorizontalAlignment="Left" VerticalAlignment="Top" Stretch="UniformToFill" />
                 <Image x:Name="logo" Source="{Binding Root.AppData.Logo}" Margin="20" Height="80" HorizontalAlignment="Right" VerticalAlignment="Bottom" Stretch="Uniform" 
                 Opacity="0.5"/>
             </Grid>

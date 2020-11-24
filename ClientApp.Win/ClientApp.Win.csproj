@@ -1,62 +1,38 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk.WindowsDesktop">
   
   <PropertyGroup>
-    <OutputType>WinExe</OutputType>
+    <OutputType>Library</OutputType>
     <TargetFramework>netcoreapp3.1</TargetFramework>
     <UseWPF>true</UseWPF>
-    <AssemblyName>Streamster.ClientApp.Win</AssemblyName>
+    <AssemblyName>Streamster.ClientApp.WinCore</AssemblyName>
     <RootNamespace>Streamster.ClientApp.Win</RootNamespace>
-    <OutDir>$(ProjectDir)..\..\bin\$(Configuration)\Client.Win</OutDir>
-    <AssemblyTitle>Streamster App</AssemblyTitle>
-    <PackageId>Streamster</PackageId>
-    <ApplicationIcon>Assets\Play.ico</ApplicationIcon>
-    <NoWin32Manifest>true</NoWin32Manifest>
-    
-    
-    <NuspecProperties>$(NuspecProperties);configuration=$(Configuration)</NuspecProperties>
-    <NuspecProperties>$(NuspecProperties);version=$(Version)</NuspecProperties>
-    <NuspecProperties>$(NuspecProperties);id=$(PackageId)</NuspecProperties>
-    <NuspecProperties>$(NuspecProperties);author=$(Authors)</NuspecProperties>
-    <NuspecProperties>$(NuspecProperties);title=$(AssemblyTitle)</NuspecProperties>
-    <NuspecProperties>$(NuspecProperties);description=$(Description)</NuspecProperties>
-    <NuspecProperties>$(NuspecProperties);Copyright=$(Copyright)</NuspecProperties>
   </PropertyGroup>
 
   <ItemGroup>
-    <None Remove="Assets\*.png" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <Resource Include="Assets\*.png" />
-  </ItemGroup>
-
-
-  <ItemGroup>
-	  <None Include="..\Support\vc_redist142\concrt140.dll" Link="concrt140.dll" Visible="False">
-    	  <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-      </None>
-	  <None Include="..\Support\vc_redist142\msvcp140.dll" Link="msvcp140.dll" Visible="False">
-		  <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-	  </None>
-	  <None Include="..\Support\vc_redist142\msvcp140_1.dll" Link="msvcp140_1.dll" Visible="False">
-		  <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-	  </None>
-	  <None Include="..\Support\vc_redist142\msvcp140_2.dll" Link="msvcp140_2.dll" Visible="False">
-		  <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-	  </None>
-	  <None Include="..\Support\vc_redist142\msvcp140_codecvt_ids.dll" Link="msvcp140_codecvt_ids.dll" Visible="False">
-		  <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-	  </None>
-	  <None Include="..\Support\vc_redist142\vccorlib140.dll" Link="vccorlib140.dll" Visible="False">
-		  <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-	  </None>
-	  <None Include="..\Support\vc_redist142\vcruntime140.dll" Link="vcruntime140.dll" Visible="False">
-		  <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-	  </None>
-	  <None Include="..\Support\vc_redist142\vcruntime140_1.dll" Link="vcruntime140_1.dll" Visible="False">
-		  <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-	  </None>
-	  
+    <None Include="..\Support\vc_redist142\concrt140.dll" Link="concrt140.dll" Visible="False">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Include="..\Support\vc_redist142\msvcp140.dll" Link="msvcp140.dll" Visible="False">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Include="..\Support\vc_redist142\msvcp140_1.dll" Link="msvcp140_1.dll" Visible="False">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Include="..\Support\vc_redist142\msvcp140_2.dll" Link="msvcp140_2.dll" Visible="False">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Include="..\Support\vc_redist142\msvcp140_codecvt_ids.dll" Link="msvcp140_codecvt_ids.dll" Visible="False">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Include="..\Support\vc_redist142\vccorlib140.dll" Link="vccorlib140.dll" Visible="False">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Include="..\Support\vc_redist142\vcruntime140.dll" Link="vcruntime140.dll" Visible="False">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Include="..\Support\vc_redist142\vcruntime140_1.dll" Link="vcruntime140_1.dll" Visible="False">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
     <None Include="..\Support\ffmpeg_bin\avcodec-58.dll" Link="avcodec-58.dll" Visible="False">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
@@ -106,11 +82,5 @@
   <ItemGroup>
     <ProjectReference Include="..\ClientCore\ClientCore.csproj" />
     <ProjectReference Include="..\Support\DirectShowLib\DirectShowLib.csproj" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <None Update="Streamster.ClientApp.Win.exe.manifest">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </None>
   </ItemGroup>
 </Project>

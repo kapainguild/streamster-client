@@ -16,6 +16,7 @@ namespace Streamster.ClientCore.Models
         private ITarget[] _initialTargets;
         private readonly StaticFilesCacheService _staticFilesCacheService;
         private readonly ConnectionService _connectionService;
+        private readonly IAppResources _resources;
 
         public TargetFilterModel[] Filters { get; private set; }
 
@@ -25,15 +26,18 @@ namespace Streamster.ClientCore.Models
 
         public CoreData CoreData { get; }
 
-        public MainTargetsModel(StaticFilesCacheService staticFilesCacheService, CoreData coreData, ConnectionService connectionService)
+        public AppData AppData { get; }
+
+        public MainTargetsModel(StaticFilesCacheService staticFilesCacheService, CoreData coreData, ConnectionService connectionService, IAppResources resources)
         {
             _staticFilesCacheService = staticFilesCacheService;
             CoreData = coreData;
             _connectionService = connectionService;
-            CoreData.Subscriptions.SubscribeForAnyProperty<IChannel>((s, c) => RefreshChannelState(s));
+            _resources = resources;
+            CoreData.Subscriptions.SubscribeForAnyProperty<IChannel>((s, c, p, v) => RefreshChannelState(s));
+            AppData = resources.AppData;
 
             CoreData.Subscriptions.SubscribeForProperties<ISettings>(s => s.StreamingToCloudStarted, (a, b, c) => RefreshAllChannels());
-            CoreData.Subscriptions.SubscribeForProperties<ISettings>(s => s.StreamingToCloud, (a, b, c) => RefreshAllChannels());
 
             CustomTarget = CoreData.Create<ITarget>(s =>
             {
@@ -82,11 +86,11 @@ namespace Streamster.ClientCore.Models
             if (model == null)
                 return;
 
-            if (s.IsOn && CoreData.Settings.StreamingToCloud == StreamingToCloudBehavior.Manually && !CoreData.Settings.StreamingToCloudStarted)
+            if (s.IsOn && !CoreData.Settings.StreamingToCloudStarted)
             {
                 model.State.Value = ChannelModelState.WaitingForStreamToCloud;
                 model.Bitrate.Value = "";
-                model.TextState.Value = "Waiting for a stream...";
+                model.TextState.Value = "Waiting for a stream to cloud...";
             }
             else if ((s.IsOn == false) != (s.State == ChannelState.Idle))
             {
@@ -147,6 +151,8 @@ namespace Streamster.ClientCore.Models
             foreach (var source in _initialTargets)
             {
                 bool add = (source.Flags & filter) > 0;
+                if (AppData.HideTargetFilter)
+                    add = _resources.TargetFilter(source);
                 var exists = Targets.FirstOrDefault(s => s.Source == source);
                 if (add)
                 {
@@ -263,7 +269,7 @@ namespace Streamster.ClientCore.Models
             Delete = () => parent.Remove(this);
             Start = DoStart;
             Stop = () => Source.IsOn = false;
-            GoToHelp = () => environment.OpenUrl(string.Format(ClientConstants.TargetHintTemplate, source.TargetId == null ? "Custom" : source.TargetId));
+            GoToHelp = () => environment.OpenUrl(string.Format(parent.AppData.TargetHintTemplate, source.TargetId == null ? "Custom" : source.TargetId));
             GoToWebUrl = () => environment.OpenUrl(WebUrl.Value);
 
             WebUrl.OnChange = (o, n) => Source.WebUrl = n == Target.WebUrl ? null : n;

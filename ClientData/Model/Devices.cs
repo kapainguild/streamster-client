@@ -20,6 +20,16 @@ namespace Streamster.ClientData.Model
         IDeviceSettings DeviceSettings { get; set; }
 
         IDeviceIndicators KPIs { get; set; }
+
+        VpnData VpnData { get; set; }
+
+        bool VpnRequested { get; set; }
+
+        VpnState VpnState { get; set; }
+
+        string VpnServerIpAddress { get; set; }
+
+        bool DisconnectRequested { get; set; }
     }
 
     public enum DeviceState

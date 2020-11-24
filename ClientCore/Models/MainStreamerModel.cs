@@ -21,6 +21,7 @@ namespace Streamster.ClientCore.Models
         private readonly ConnectionService _connectionService;
         private readonly RootModel _rootModel;
         private readonly LogService _logService;
+        private readonly TransientMessageModel _transientMessage;
         private Streamer _dynamicStreamer = null;
         private DynamicStreamerState _dynamicStreamerState;
 
@@ -28,6 +29,7 @@ namespace Streamster.ClientCore.Models
         private string _receiverStreamerState = null;
         private bool _statisticsStarted;
         private bool _promoIsShown;
+        private int _vpnMessage = -1;
 
         private StreamerLogger _streamerLogger = new StreamerLogger("**");
 
@@ -62,6 +64,8 @@ namespace Streamster.ClientCore.Models
 
         public MainSourcesModel VideoSource { get; }
 
+        public MainVpnModel Vpn { get; }
+
         public Action<object> SelectResolution { get; }
 
         public Action<object> SelectFps { get; }
@@ -72,7 +76,14 @@ namespace Streamster.ClientCore.Models
 
         public Property<bool> ChangeStreamParamsDisabled { get; } = new Property<bool>();
 
-        public MainStreamerModel(CoreData coreData, MainFiltersModel filters, ScreenRendererModel screenRenderer, ConnectionService connectionService, MainSourcesModel videoSource, RootModel rootModel, LogService logService)
+        public MainStreamerModel(CoreData coreData, MainFiltersModel filters, 
+            ScreenRendererModel screenRenderer, 
+            ConnectionService connectionService, 
+            MainSourcesModel videoSource,
+            RootModel rootModel, 
+            LogService logService, 
+            MainVpnModel vpnModel,
+            TransientMessageModel transientMessage)
         {
             CoreData = coreData;
             Filters = filters;
@@ -81,7 +92,8 @@ namespace Streamster.ClientCore.Models
             VideoSource = videoSource;
             _rootModel = rootModel;
             _logService = logService;
-
+            Vpn = vpnModel;
+            _transientMessage = transientMessage;
             SelectResolution = o => CoreData.Settings.Resolution = (Resolution)o;
             SelectFps = o => CoreData.Settings.Fps = (int)o;
 
@@ -95,9 +107,11 @@ namespace Streamster.ClientCore.Models
             await VideoSource.PrepareAsync(this);
         }
 
-        internal void Start()
+        internal async Task StartAsync()
         {
             MaxBitrate = _connectionService.Claims.MaxBitrate;
+            if (CoreData.Settings.StreamingToCloud == StreamingToCloudBehavior.AppStart)
+                CoreData.Settings.StreamingToCloudStarted = true;
 
             CoreData.Subscriptions.SubscribeForProperties<ISettings>(s => s.Resolution, (i, c, p) => RefreshStreamer());
             CoreData.Subscriptions.SubscribeForProperties<ISettings>(s => s.Fps, (i, c, p) => RefreshStreamer());
@@ -110,8 +124,8 @@ namespace Streamster.ClientCore.Models
             });
             CoreData.Subscriptions.SubscribeForProperties<ISettings>(s => s.EncoderType, (i, c, p) => RefreshStreamer());
             CoreData.Subscriptions.SubscribeForProperties<ISettings>(s => s.EncoderQuality, (i, c, p) => RefreshStreamer());
-            CoreData.Subscriptions.SubscribeForProperties<ISettings>(s => s.StreamingToCloud, (i, c, p) => RefreshStreamer());
             CoreData.Subscriptions.SubscribeForProperties<ISettings>(s => s.StreamingToCloudStarted, (i, c, p) => RefreshStreamer());
+            CoreData.Subscriptions.SubscribeForProperties<ISettings>(s => s.NoStreamWithoutVpn, (i, c, p) => RefreshStreamer());
             CoreData.Subscriptions.SubscribeForProperties<ISettings>(s => s.IsRecordingRequested, (i, c, p) =>
             {
                 RefreshControls();
@@ -119,19 +133,23 @@ namespace Streamster.ClientCore.Models
             });
 
             CoreData.Subscriptions.SubscribeForProperties<IVideoInput>(s => s.Filters, (i, c, p) => RefreshStreamer());
-            CoreData.Subscriptions.SubscribeForProperties<IVideoInput>(s => s.Filters, (i, c, p) => RefreshStreamer());
             CoreData.Subscriptions.SubscribeForProperties<IIngest>(s => s.Data, (i, c, p) => RefreshStreamer());
             CoreData.Subscriptions.SubscribeForProperties<IDevice>(s => s.AssignedOutgest, (i, c, p) => RefreshStreamer());
+            CoreData.Subscriptions.SubscribeForProperties<IDevice>(s => s.VpnState, (i, c, p) => RefreshStreamer());
+            CoreData.Subscriptions.SubscribeForProperties<IDevice>(s => s.VpnServerIpAddress, (i, c, p) => RefreshStreamer());
             CoreData.Subscriptions.SubscribeForProperties<IChannel>(s => s.IsOn, (i, c, p) =>
             {
                 RefreshControls();
-                if (CoreData.Settings.StreamingToCloud == StreamingToCloudBehavior.FirstChannel)
-                    RefreshStreamer();
+                if (CoreData.Settings.StreamingToCloud == StreamingToCloudBehavior.FirstChannel && i.IsOn && CoreData.Root.Channels.Values.Count(e => e.IsOn) == 1)
+                    CoreData.Settings.StreamingToCloudStarted = true;
             });
 
             VideoSource.Start();
             ScreenRenderer.SetStreamer(_dynamicStreamer, true);
             ScreenRenderer.Start();
+
+            await Vpn.StartAsync();
+
             RefreshPromo();
             RefreshStreamer();
         }
@@ -194,10 +212,14 @@ namespace Streamster.ClientCore.Models
             if (videoInput.Owner == CoreData.ThisDeviceId)
             {
                 if (CoreData.ThisDevice.RequireOutgest)
+                {
+                    Log.Information("Withdrawing outgest");
                     CoreData.ThisDevice.RequireOutgest = false;
+                }
 
                 if (_receiverStreamerState != null)
                 {
+                    Log.Information("Closing outgest streamer");
                     ScreenRenderer.SetStreamer(null, true);
                     _receiverStreamer.Shutdown();
                     _receiverStreamer = null;
@@ -281,18 +303,20 @@ namespace Streamster.ClientCore.Models
                 }
                 else
                 {
-                    string ingestHash = $"{ingest.Data.Type}, {ingest.Data.Output}, {ingest.Data.Options}";
+                    var ingestUrl = GetIngestOutgestUrl(ingest.Data.Output);
+
+                    string ingestHash = $"{ingest.Data.Type}, {ingestUrl}, {ingest.Data.Options}";
                     if (_dynamicStreamerState.StreamingOutputId == -1) // add
                     {
                         Log.Information($"Start Streaming ({ingestHash})");
-                        _dynamicStreamerState.StreamingOutputId = _dynamicStreamer.AddOutput(ingest.Data.Type, ingest.Data.Output, ingest.Data.Options);
+                        _dynamicStreamerState.StreamingOutputId = _dynamicStreamer.AddOutput(ingest.Data.Type, ingestUrl, ingest.Data.Options);
                         _dynamicStreamerState.StreamingOutput = ingestHash;
                     }
                     else if (ingestHash != _dynamicStreamerState.StreamingOutput) // update
                     {
                         Log.Information($"Update Streaming ({ingestHash})");
                         _dynamicStreamer.RemoveOutput(_dynamicStreamerState.StreamingOutputId);
-                        _dynamicStreamerState.StreamingOutputId = _dynamicStreamer.AddOutput(ingest.Data.Type, ingest.Data.Output, ingest.Data.Options);
+                        _dynamicStreamerState.StreamingOutputId = _dynamicStreamer.AddOutput(ingest.Data.Type, ingestUrl, ingest.Data.Options);
                         _dynamicStreamerState.StreamingOutput = ingestHash;
                     }
                 }
@@ -321,23 +345,32 @@ namespace Streamster.ClientCore.Models
             }
             else
             {
+                if (_vpnMessage != -1)
+                    _transientMessage.Clear(_vpnMessage);
+
                 if (!CoreData.ThisDevice.RequireOutgest)
+                {
+                    Log.Information("Requesting outgest");
                     CoreData.ThisDevice.RequireOutgest = true;
+                }
 
                 var outgestId = CoreData.ThisDevice.AssignedOutgest;
                 if (outgestId != null && CoreData.Root.Outgests.TryGetValue(outgestId, out var outgest))
                 {
-                    var state = $"{outgest.Data.Type}, {outgest.Data.Output}, {outgest.Data.Options}";
+                    var outgetsUrl = GetIngestOutgestUrl(outgest.Data.Output);
+                    var state = $"{outgest.Data.Type}, {outgetsUrl}, {outgest.Data.Options}";
                     if (_receiverStreamerState == null)
                     {
+                        Log.Information($"Connecting to outgest '{state}'");
                         _receiverStreamer = new Streamer(_streamerLogger);
                         ScreenRenderer.SetStreamer(_receiverStreamer, false);
-                        _receiverStreamer.SetInput(outgest.Data.Type, outgest.Data.Output, outgest.Data.Options, 0, 0, 0);
+                        _receiverStreamer.SetInput(outgest.Data.Type, outgetsUrl, outgest.Data.Options, 0, 0, 0);
                         _receiverStreamerState = state;
                     }
                     else if (_receiverStreamerState != state)
                     {
-                        _receiverStreamer.SetInput(outgest.Data.Type, outgest.Data.Output, outgest.Data.Options, 0, 0, 0);
+                        Log.Information($"Updating outgest '{state}'");
+                        _receiverStreamer.SetInput(outgest.Data.Type, outgetsUrl, outgest.Data.Options, 0, 0, 0);
                         _receiverStreamerState = state;
                     }
                 }
@@ -345,14 +378,41 @@ namespace Streamster.ClientCore.Models
 
         }
 
+        private string GetIngestOutgestUrl(string url)
+        {
+            var vpn = CoreData.ThisDevice.VpnServerIpAddress;
+            if (vpn == null)
+            {
+                return url;
+            }
+            else
+            {
+                UriBuilder builder = new UriBuilder(url);
+                builder.Host = vpn;
+                return builder.ToString();
+            }
+        }
+
         private bool ShouldStartStream()
         {
-            if (CoreData.Settings.StreamingToCloud == StreamingToCloudBehavior.AppStart)
-                return true;
-            else if (CoreData.Settings.StreamingToCloud == StreamingToCloudBehavior.Manually)
-                return CoreData.Settings.StreamingToCloudStarted;
-            else
-                return CoreData.Root.Channels.Values.Any(s => s.IsOn);
+            bool requested = CoreData.Settings.StreamingToCloudStarted;
+            if (requested)
+            {
+                if (CoreData.Settings.NoStreamWithoutVpn)
+                {
+                    if (CoreData.ThisDevice.VpnState != VpnState.Connected)
+                    {
+                        if (CoreData.ThisDevice.VpnState == VpnState.Idle)
+                            _vpnMessage = _transientMessage.Show("VPN is OFF. Streaming is not possible.", TransientMessageType.Error, false);
+                        else
+                            _vpnMessage = _transientMessage.Show("VPN is ON but not yet connected. Streaming not possible.", TransientMessageType.Error, false);
+                        return false;
+                    }
+                }
+            }
+            if (_vpnMessage != -1)
+                _transientMessage.Clear(_vpnMessage);
+            return requested;
         }
 
         internal void SetActualBitrate(int ave, IndicatorState state)

@@ -24,6 +24,8 @@ namespace Streamster.ClientCore.Models
         public IndicatorModelCloudOut CloudIn { get; } = new IndicatorModelCloudIn() { Name = "Stream from cloud state" };
 
         public IndicatorModelRestream Restream { get; } = new IndicatorModelRestream() { Name = "Stream from cloud state" };
+
+        public IndicatorModelVpn Vpn { get; } = new IndicatorModelVpn();
     }
 
     public class IndicatorModelBase
@@ -86,6 +88,17 @@ namespace Streamster.ClientCore.Models
 
     public class IndicatorModelCloudIn : IndicatorModelCloudOut
     {
+    }
+
+    public class IndicatorModelVpn : IndicatorModelBase
+    {
+        public ChartModel Received { get; } = new ChartModel();
+
+        public override void Reset()
+        {
+            base.Reset();
+            Received.Clear();
+        }
     }
 
     public class IndicatorModelCloudOut : IndicatorModelBase

@@ -19,6 +19,10 @@ namespace Streamster.ClientCore.Models
         private readonly CoreData _coreData;
         private readonly LocalSettingsService _localSettingsService;
         private readonly SynchronizationContext _syncContext;
+
+        private IVideoSource[] _startupVideoSources;
+        private IAudioSource[] _startupAudioSources;
+
         private bool _remotePreviewRequested;
         private bool _isReady;
         private string _preparedDeviceId;
@@ -50,12 +54,12 @@ namespace Streamster.ClientCore.Models
             Streamer = mainStreamerModel;
             var lastCamera = _localSettingsService.Settings.LastSelectedVideoId;
 
-            var devices = await _localVideoSourceManager.RetrieveSourcesListAsync();
-            await _localAudioSourceManager.RetrieveSourcesListAsync();
+            _startupVideoSources = await _localVideoSourceManager.RetrieveSourcesListAsync();
+            _startupAudioSources = await _localAudioSourceManager.RetrieveSourcesListAsync();
 
-            bool hasLastCamera = devices.Any(s => s.Id == lastCamera);
+            bool hasLastCamera = _startupVideoSources.Any(s => s.Id == lastCamera);
             if (!hasLastCamera)
-                lastCamera = devices.FirstOrDefault()?.Id;
+                lastCamera = _startupVideoSources.FirstOrDefault()?.Id;
             _preparedDeviceId = lastCamera;
 
             if (lastCamera != null)
@@ -91,9 +95,12 @@ namespace Streamster.ClientCore.Models
             _localVideoSourceManager.Start(OnLocalDeviceManagerVideoChanged, OnLocalDeviceManagerPreviewAvailable);
             _localAudioSourceManager.Start(OnLocalDeviceManagerAudioChanged);
 
+            _startupVideoSources.ToList().ForEach(AddOrUpdateLocalVideoDevice);
+            _startupAudioSources.ToList().ForEach(AddOrUpdateAudio);
+
+            SelectStartupCamera();
             UpdateVideoSelection(_coreData.Settings.SelectedVideo);
             UpdateAudioSelection(_coreData.Settings.SelectedAudio);
-            SelectStartupCamera();
             RefreshDeviceBasedState();
         }
 
@@ -219,6 +226,7 @@ namespace Streamster.ClientCore.Models
 
             if (_coreData.Root.VideoInputs.TryGetValue(id, out var videoInput))
             {
+                Log.Information($"Request to connect '{videoInput.Name}'");
                 if (videoInput.Owner == _coreData.ThisDeviceId)
                 {
                     if (startup && _preparedDeviceId != GetLocalSourceId(_coreData.GetId(videoInput)))
@@ -258,6 +266,9 @@ namespace Streamster.ClientCore.Models
                 _localAudioSourceManager.SetRunningSource(localAudioId);
                 _isReady = true;
                 var audio = audioInput == null ? null : _coreData.GetId(audioInput);
+
+                Log.Information($"Selecting local '{videoInput?.Name}:{audioInput?.Name}'");
+
                 _coreData.RunOnMainThread(() =>
                 {
                     _coreData.Settings.SelectedVideo = _coreData.GetId(videoInput);
@@ -392,7 +403,7 @@ namespace Streamster.ClientCore.Models
                 Message.Show($"Looks like '{sourceName}' is removed", TransientMessageType.Error);
                 return false;
             }
-            else if (source.State == InputState.Ready || source.State == InputState.Running)
+            else if (source.State == InputState.Ready || source.State == InputState.Running || source.State == InputState.Unknown)
             {
                 return true;
             }
@@ -548,7 +559,6 @@ namespace Streamster.ClientCore.Models
                 videoInput.Type = videoDevice.Type;
                 videoInput.Owner = _coreData.ThisDeviceId;
                 videoInput.Capabilities = new VideoInputCapabilities { Caps = videoDevice.Capabilities };
-                videoInput.Filters = new VideoFilters();
                 _coreData.Root.VideoInputs[id] = videoInput;
             }
             else

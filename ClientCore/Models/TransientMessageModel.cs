@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Serilog;
+using System;
 using System.Threading.Tasks;
 
 namespace Streamster.ClientCore.Models
@@ -20,6 +21,11 @@ namespace Streamster.ClientCore.Models
 
         public int Show(string message, TransientMessageType type, bool timeOut = true, int messageToOverride = -1)
         {
+            if (type == TransientMessageType.Error)
+                Log.Warning($"UI source error '{message}'");
+            else
+                Log.Information($"UI source info '{message}'");
+
             int currentMessageId;
             lock(this)
             {

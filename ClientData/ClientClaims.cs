@@ -15,12 +15,23 @@ namespace Streamster.ClientData
 
         public string AppUpdatePath { get; set; }
 
+        public bool HasVpn { get; set; }
+
         public ClientClaims(IEnumerable<Claim> claims)
         {
             MaxBitrate = GetIntClaim(claims, ClientConstants.MaxBitrateClaim, 4000);
             MaxChannels = GetIntClaim(claims, ClientConstants.MaxChannelsClaim, 2);
             IsDebug = claims.Any(s => s.Type == ClientConstants.DebugClaim);
             AppUpdatePath = claims.FirstOrDefault(s => s.Type == ClientConstants.AppUpdatePathClaim)?.Value;
+
+            var found = claims.FirstOrDefault(s => s.Type == ClientConstants.VpnClaim);
+            if (found != null && int.TryParse(found.Value, out var vpnVersion))
+            {
+                if (vpnVersion == ClientConstants.VpnVersion)
+                    HasVpn = true;
+                else
+                    Log.Warning($"VpnVersion {vpnVersion}!={ClientConstants.VpnVersion} mismatch");
+            }
         }
 
         private int GetIntClaim(IEnumerable<Claim> claims, string name, int def)

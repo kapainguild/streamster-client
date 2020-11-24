@@ -110,15 +110,29 @@ namespace Streamster.ClientApp.Win.Services
 
         public void Start()
         {
+            var monitorAreas = MonitorHelper.GetMonitorsWorkingAreas();
             var appSettings = _coreData.ThisDevice.DeviceSettings;
             _started = true;
             _appSettings = appSettings;
             _window.ResizeMode = ResizeMode.CanResizeWithGrip;
-            _compactRect = appSettings.CompactWnd;
-            _normalRect = appSettings.NormalWnd;
+            _compactRect = AdjustRectToVisible(appSettings.CompactWnd, monitorAreas, true); 
+            _normalRect = AdjustRectToVisible(appSettings.NormalWnd, monitorAreas, false);
             GoToState(appSettings.AppWindowState);
 
             RefreshButtons(false);
+        }
+
+        private IntRect AdjustRectToVisible(IntRect input, Rect[] monitorAreas, bool compact)
+        {
+            if (input != null && monitorAreas != null && monitorAreas.Length > 0)
+            {
+                var inputRect = new Rect(input.L, input.T, input.W, input.H);
+                var anyCrossing = monitorAreas.Any(s => s.IntersectsWith(inputRect));
+
+                if (!anyCrossing)
+                    return GetDefaultRect(compact);
+            }
+            return input;
         }
 
         public void Dispose()

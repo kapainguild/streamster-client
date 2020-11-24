@@ -13,6 +13,8 @@ namespace Streamster.ClientData.Model
         IIndicatorCloudOut CloudOut { get; set; }
 
         IIndicatorEncoder Encoder { get; set; }
+
+        IIndicatorVpn Vpn { get; set; }
     }
 
     public interface IIndicatorBase
@@ -60,5 +62,14 @@ namespace Streamster.ClientData.Model
         int InputFps { get; set; }
 
         int InputTargetFps { get; set; }
+    }
+
+    public interface IIndicatorVpn : IIndicatorBase
+    {
+        int Sent { get; set; }
+
+        int Received { get; set; }
+
+        VpnState State { get; set; }
     }
 }

@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Streamster.ClientCore.Models;
+using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Linq;
@@ -26,6 +27,8 @@ namespace ClientApp.Win
             InitializeComponent();
         }
 
+        public RootModel Root { get; internal set; }
+
         private void OnSysCommandCanExecute(object sender, CanExecuteRoutedEventArgs e)
         {
             e.CanExecute = true;
@@ -49,7 +52,7 @@ namespace ClientApp.Win
         private void OnWindowClosing(object sender, CancelEventArgs e)
         {
             e.Cancel = true;
-            App.Root.Exit();
+            Root.Exit();
         }
     }
 }

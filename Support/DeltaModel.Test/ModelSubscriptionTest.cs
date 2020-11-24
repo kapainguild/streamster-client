@@ -72,7 +72,7 @@ namespace DeltaModel.Test
 
 
             _manager.Subscriptions.SubscribeForProperties<ITestModel>((o, c, p) => counter1++, nameof(ITestModel.Level1));
-            _manager.Subscriptions.SubscribeForAnyProperty<ITestModel>((o, c) => counter2++);
+            _manager.Subscriptions.SubscribeForAnyProperty<ITestModel>((o, c,e,r) => counter2++);
             _manager.Root.Level1 = _manager.Create<ILevel1>();
 
             _manager.Subscriptions.GetAndClearNotifications().ForEach(p => p());

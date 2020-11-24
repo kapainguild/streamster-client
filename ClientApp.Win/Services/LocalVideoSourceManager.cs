@@ -1,6 +1,5 @@
 ﻿using DirectShowLib;
 using Serilog;
-using Streamster.ClientCore;
 using Streamster.ClientCore.Cross;
 using Streamster.ClientCore.Services;
 using Streamster.ClientData;
@@ -347,7 +346,7 @@ namespace Streamster.ClientApp.Win.Services
                             else
                                 SetState(source, InputState.Ready);
                             Task.Run(() => tcs.TrySetResult(true));
-                        }), 0);
+                        }), 1);
 
                     Checked(() => hr, "SetCallback", null);
                     Checked(() => filterGraph.AddFilter((IBaseFilter)grabber, "grabber"), "AddGrabber", null);
@@ -361,7 +360,7 @@ namespace Streamster.ClientApp.Win.Services
                 Log.Information($"Update ({source.Name}): Rendered");
 
                 var res = mediaControl.Run();
-                Log.Information($"Update ({source.Name}): Ran");
+                Log.Information($"Update ({source.Name}): Ran ({res})");
 
                 if (res == 1)
                     res = mediaControl.GetState(0, out var state);
@@ -372,10 +371,18 @@ namespace Streamster.ClientApp.Win.Services
                 {
                     if (videoPreviewEnabled)
                     {
-                        if (await Task.WhenAny(tcs.Task, Task.Delay(6_000, cancellationToken)) != tcs.Task)
+                        bool obsNew = source.DsDevice.Name == "OBS Virtual Camera";
+
+                        int timeout = obsNew ? 700 : 6_000;
+
+                        if (await Task.WhenAny(tcs.Task, Task.Delay(timeout, cancellationToken)) != tcs.Task)
                         {
                             cancellationToken.ThrowIfCancellationRequested();
-                            SetState(source, InputState.Failed);
+
+                            if (obsNew) // sometimes it fails
+                                SetState(source, InputState.Ready);
+                            else
+                                SetState(source, InputState.Failed);
                             Log.Warning($"Source failed '{source.Name}'");
                         }
                         else
@@ -428,7 +435,10 @@ namespace Streamster.ClientApp.Win.Services
             {
                 var cap = FindBestPreviewCapability(source.InternalCapabilities);
                 if (cap == null)
+                {
+                    Log.Warning($"Capability NOT FOUND for Previewing '{source.Name}'");
                     return;
+                }
 
                 Log.Information($"'{cap}' for Previewing '{source.Name}'");
                 object pin = DsFindPin.ByCategory(sourceFilter, PinCategory.Capture, 0);
@@ -488,6 +498,9 @@ namespace Streamster.ClientApp.Win.Services
             var shortlist = caps.Where(s => s.Fmt == VideoInputCapabilityFormat.Raw).ToList();
             if (shortlist.Count == 0)
                 shortlist = caps.Where(s => s.Fmt == VideoInputCapabilityFormat.Empty).ToList();
+            if (shortlist.Count == 0)
+                shortlist = caps.Where(s => s.Fmt == VideoInputCapabilityFormat.I420).ToList();
+
 
             shortlist = shortlist.Where(s => s.W>= minWidth).ToList();
 
@@ -649,6 +662,8 @@ namespace Streamster.ClientApp.Win.Services
                 case 0x47504A4D: return VideoInputCapabilityFormat.MJpeg; 
                 case 0x32595559: return VideoInputCapabilityFormat.Raw;
                 case 0x34363248: return VideoInputCapabilityFormat.H264;
+                case 0x3231564e: return VideoInputCapabilityFormat.NV12;
+                case 0x30323449: return VideoInputCapabilityFormat.I420;
                 case 0x0: return VideoInputCapabilityFormat.Raw;
                 default: return VideoInputCapabilityFormat.Unknown; 
             }
@@ -723,6 +738,8 @@ namespace Streamster.ClientApp.Win.Services
             {
                 case 0x47504A4D: return "J";
                 case 0x32595559: return "R";
+                case 0x3231564e: return "NV12";
+                case 0x30323449: return "I420";
                 case -1: return "-";
                 default: return compression.ToString();
             }

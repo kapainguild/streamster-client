@@ -28,6 +28,7 @@ namespace Streamster.ClientCore.Services
                     var str = Encoding.UTF8.GetString(bytes);
                     Settings = JsonConvert.DeserializeObject<LocalSettings>(str);
                 }
+                else NoSettingsFileAtLoad = true;
             });
 
             Settings = Settings ?? new LocalSettings();
@@ -80,5 +81,6 @@ namespace Streamster.ClientCore.Services
         }
 
         public LocalSettings Settings { get; private set; }
+        public bool NoSettingsFileAtLoad { get; private set; }
     }
 }

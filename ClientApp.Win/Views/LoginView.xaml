@@ -10,17 +10,17 @@
     <DataTemplate DataType="{x:Type models:LoginModel}">
         <Border BorderBrush="#1883D7" BorderThickness="1" x:Name="root">
             <Grid>
-                <Image x:Name="background"
+                <Image x:Name="background" 
                    RenderOptions.BitmapScalingMode="HighQuality" 
                    Source="{Binding Root.AppData.Background}" 
                    HorizontalAlignment="Left" 
                    VerticalAlignment="Top"
                    Stretch="UniformToFill" >
                 </Image>
-                <Viewbox x:Name="animatedLogo"  Stretch="Uniform" Width="400" Margin="0,65"  VerticalAlignment="Top" HorizontalAlignment="Center" >
+                <Viewbox x:Name="animatedLogo" Stretch="Uniform" Width="400" Margin="0,65"  VerticalAlignment="Top" HorizontalAlignment="Center" Visibility="Collapsed">
                     <StackPanel Orientation="Vertical">
                         <StackPanel x:Name="logo" Orientation="Horizontal" ClipToBounds="False" Opacity="0">
-                            <Image x:Name="l1" Source="../../Assets/Logo1.png" Stretch="None" RenderTransformOrigin="0.5,0.5">
+                            <Image x:Name="l1" Source="{Binding Root.AppData.Logo1}" Stretch="None" RenderTransformOrigin="0.5,0.5">
                                 <Image.RenderTransform>
                                     <TransformGroup>
                                         <TranslateTransform X="500" Y="200"/>
@@ -29,7 +29,7 @@
                                     </TransformGroup>
                                 </Image.RenderTransform>
                             </Image>
-                            <Image x:Name="l2" Margin="-15,0,0,0" Source="../../Assets/Logo2.png" Stretch="None" RenderTransformOrigin="0.5,0.5">
+                            <Image x:Name="l2" Margin="-15,0,0,0" Source="{Binding Root.AppData.Logo2}" Stretch="None" RenderTransformOrigin="0.5,0.5">
                                 <Image.RenderTransform>
                                     <TransformGroup>
                                         <TranslateTransform X="-300" Y="-200"/>
@@ -38,7 +38,7 @@
                                     </TransformGroup>
                                 </Image.RenderTransform>
                             </Image>
-                            <Image x:Name="l3" Source="../../Assets/Logo3.png" Stretch="None" RenderTransformOrigin="0.5,0.5">
+                            <Image x:Name="l3" Source="{Binding Root.AppData.Logo3}" Stretch="None" RenderTransformOrigin="0.5,0.5">
                                 <Image.RenderTransform>
                                     <TransformGroup>
                                         <TranslateTransform X="1500" Y="0"/>
@@ -46,7 +46,7 @@
                                     </TransformGroup>
                                 </Image.RenderTransform>
                             </Image>
-                            <Image x:Name="l4" Source="../../Assets/Logo4.png" Stretch="None" RenderTransformOrigin="0.5,0.5">
+                            <Image x:Name="l4" Source="{Binding Root.AppData.Logo4}" Stretch="None" RenderTransformOrigin="0.5,0.5">
                                 <Image.RenderTransform>
                                     <TransformGroup>
                                         <TranslateTransform X="-1500" Y="0"/>
@@ -57,6 +57,11 @@
                         </StackPanel>
                     </StackPanel>
                 </Viewbox>
+
+                <Image x:Name="appearedLogo" Width="400" Margin="0,65"  VerticalAlignment="Top" HorizontalAlignment="Center" Opacity="0"
+                       Source="{Binding Root.AppData.Logo}">
+                    
+                </Image>
 
                 <Grid x:Name="bothControls" Width="300" IsEnabled="{Binding ControlsEnabled.Value}"  
                                                      Margin="0,155,0,0" 
@@ -126,6 +131,12 @@
             </Grid>
         </Border>
         <DataTemplate.Triggers>
+
+            <DataTrigger Binding="{Binding Root.AppData.SimpleLogo}" Value="false">
+                <Setter TargetName="animatedLogo" Property="Visibility" Value="Visible"/>
+                <Setter TargetName="appearedLogo" Property="Visibility" Value="Collapsed"/>
+            </DataTrigger>
+
             <DataTrigger Binding="{Binding ControlsEnabled.Value}" Value="False">
                 <Setter TargetName="userName" Property="BorderBrush" Value="Transparent"/>
                 <Setter TargetName="password" Property="BorderBrush" Value="Transparent"/>
@@ -179,6 +190,8 @@
                             <DoubleAnimation Duration="0:0:2" Storyboard.TargetName="l4" Storyboard.TargetProperty="RenderTransform.Children[1].ScaleX" To="1"><DoubleAnimation.EasingFunction><CubicEase EasingMode="EaseOut"/></DoubleAnimation.EasingFunction></DoubleAnimation>
                             <DoubleAnimation Duration="0:0:2" Storyboard.TargetName="l4" Storyboard.TargetProperty="RenderTransform.Children[1].ScaleY" To="1"><DoubleAnimation.EasingFunction><CubicEase EasingMode="EaseOut"/></DoubleAnimation.EasingFunction></DoubleAnimation>
 
+                            <DoubleAnimation Duration="0:0:2" Storyboard.TargetName="appearedLogo" Storyboard.TargetProperty="Opacity" To="1"/>
+
                             <DoubleAnimation Duration="0:0:2" Storyboard.TargetName="logo" Storyboard.TargetProperty="Opacity" To="1"/>
 
                             <DoubleAnimation BeginTime="0:0:1.5" Duration="0:0:0.5" To="1" FillBehavior="HoldEnd"
@@ -193,21 +206,6 @@
                                     <CubicEase EasingMode="EaseOut"/>
                                 </DoubleAnimation.EasingFunction>
                             </DoubleAnimation>
-                        </Storyboard>
-                    </BeginStoryboard>
-                </DataTrigger.EnterActions>
-            </DataTrigger>
-
-            <DataTrigger Binding="{Binding Errors.Type.Value}" Value="Progress">
-                <DataTrigger.EnterActions>
-                    <BeginStoryboard>
-                        <Storyboard>
-                            <ThicknessAnimation Duration="0:0:3.5" To="-100,0,0,0" FillBehavior="HoldEnd"
-                                    Storyboard.TargetProperty="Margin" Storyboard.TargetName="background" >
-                                <ThicknessAnimation.EasingFunction>
-                                    <CubicEase EasingMode="EaseOut"/>
-                                </ThicknessAnimation.EasingFunction>
-                            </ThicknessAnimation>
                         </Storyboard>
                     </BeginStoryboard>
                 </DataTrigger.EnterActions>

@@ -13,14 +13,40 @@ namespace Clutch.DeltaModel
         private bool _onChangeCalled;
         private bool _onLocalChangeCalled;
 
+        private Action _onLocalChange = () => { };
+        private Action _onChangeForSubscriptions = () => { };
+
         public SubscriptionManager(DeltaModelManager manager)
         {
             _manager = manager;
         }
 
-        public Action OnChangeForSubscriptions { get; set; } = () => { };
+        public Action OnChangeForSubscriptions
+        {
+            get => _onChangeForSubscriptions;
+            set
+            {
+                lock (_manager)
+                {
+                    _onChangeForSubscriptions = value;
+                    _onChangeCalled = false;
+                }
+            }
+        }
 
-        public Action OnLocalChange { get; set; } = () => { };
+        public Action OnLocalChange
+        {
+            get => _onLocalChange;
+            set
+            {
+                lock (_manager)
+                {
+                    _onLocalChange = value;
+                    _onLocalChangeCalled = false;
+                }
+            }
+        }
+
 
 
         public List<Action> GetAndClearNotifications()
@@ -47,10 +73,10 @@ namespace Clutch.DeltaModel
             };
         }
 
-        public Subscription SubscribeForAnyProperty<T>(Action<T, ChangeType> action)
+        public Subscription SubscribeForAnyProperty<T>(Action<T, ChangeType, string, object> action)
         {
             var t = GetOrCreate(typeof(T));
-            Action<object, ChangeType> ac = (o, c) => action((T)o, c);
+            Action<object, ChangeType, string, object> ac = (o, c, p, v) => action((T)o, c, p, v);
 
             t.AnyPropertyChanges.Add(ac);
 
@@ -134,11 +160,11 @@ namespace Clutch.DeltaModel
                 _onLocalChangeCalled = false;
         }
 
-        public void NotifyChange(ModelClient sourceClient, ChangeType type, IEntityHandler parent, string key)
+        public void NotifyChange(ModelClient sourceClient, ChangeType type, IEntityHandler parent, string key, object val)
         {
             if (parent != null && _types.TryGetValue(parent.ProxyType, out var subscriptions))
             {
-                subscriptions.AnyPropertyChanges.ForEach(s => AddCall(() => s(parent.Proxy, type)));
+                subscriptions.AnyPropertyChanges.ForEach(s => AddCall(() => s(parent.Proxy, type, key, val)));
 
                 if (subscriptions.PropertySubscriptions.TryGetValue(key, out var perProperty))
                 {
@@ -163,7 +189,7 @@ namespace Clutch.DeltaModel
             if (_types.TryGetValue(handler.ProxyType, out var subscriptions))
             {
                 subscriptions.TypeChanges.ForEach(s => AddCall(() => s(handler.Proxy, type)));
-                subscriptions.AnyPropertyChanges.ForEach(s => AddCall(() => s(handler.Proxy, type)));
+                subscriptions.AnyPropertyChanges.ForEach(s => AddCall(() => s(handler.Proxy, type, null, null)));
 
                 var props = subscriptions.PropertySubscriptions;
                 if (props.Count > 0)
@@ -206,7 +232,7 @@ namespace Clutch.DeltaModel
     {
         public List<Action<object, ChangeType>> TypeChanges { get; } = new List<Action<object, ChangeType>>();
 
-        public List<Action<object, ChangeType>> AnyPropertyChanges { get; } = new List<Action<object, ChangeType>>();
+        public List<Action<object, ChangeType, string, object>> AnyPropertyChanges { get; } = new List<Action<object, ChangeType, string, object>>();
 
         public Dictionary<string, List<Action<object, ChangeType, string>>> PropertySubscriptions { get; } = new Dictionary<string, List<Action<object, ChangeType, string>>>();
     }

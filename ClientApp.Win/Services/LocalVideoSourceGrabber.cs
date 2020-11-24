@@ -3,7 +3,6 @@ using Serilog;
 using Streamster.ClientData.Model;
 using System;
 using System.IO;
-using System.Runtime.InteropServices;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
 
@@ -28,7 +27,9 @@ namespace Streamster.ClientApp.Win.Services
             _grabber = grabber;
         }
 
-        public int SampleCB(double SampleTime, IMediaSample pSample)
+        public int SampleCB(double SampleTime, IMediaSample pSample) => 0;
+
+        public int BufferCB(double SampleTime, IntPtr pBuffer, int BufferLen)
         {
             DateTime now = DateTime.UtcNow;
             if ((now - _last).TotalMilliseconds > 150) // just to avoid issues with bad cameras
@@ -48,10 +49,6 @@ namespace Streamster.ClientApp.Win.Services
 
                     if (_getFrames)
                     {
-
-                        int size = pSample.GetSize();
-                        pSample.GetPointer(out var samplePtr);
-
                         BitmapSource image = BitmapSource.Create(
                                 _width,
                                 _height,
@@ -59,11 +56,9 @@ namespace Streamster.ClientApp.Win.Services
                                 96,
                                 PixelFormats.Bgr24,
                                 null,
-                                samplePtr,
-                                size,
+                                pBuffer,
+                                BufferLen,
                                 _width * 3);
-
-                        Marshal.ReleaseComObject(pSample);
 
                         JpegBitmapEncoder encoder = new JpegBitmapEncoder { QualityLevel = _width > 500 ? 30 : 50 };
 
@@ -92,6 +87,5 @@ namespace Streamster.ClientApp.Win.Services
             return 0;
         }
 
-        public int BufferCB(double SampleTime, IntPtr pBuffer, int BufferLen) => 0;
     }
 }

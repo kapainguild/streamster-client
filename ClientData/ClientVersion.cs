@@ -37,10 +37,10 @@ namespace Streamster.ClientData
             return $"{v.Major}.{v.Minor}.{v.Build}";
         }
 
-        public static ClientVersion GetCurrent(ClientVersion[] versions)
+        public static (ClientVersion, string) GetCurrent(ClientVersion[] versions)
         {
-            var ver = Assembly.GetExecutingAssembly().GetName().Version;
-            return versions?.FirstOrDefault(s => s.Version == GetVersion());
+            var ver = GetVersion();
+            return (versions?.FirstOrDefault(s => s.Version == ver), ver);
         }
     }
 }

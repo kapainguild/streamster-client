@@ -6,7 +6,6 @@ using System.Threading.Tasks;
 using Microsoft.AspNetCore.SignalR.Client;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.AspNetCore.Http.Connections;
-using Streamster.ClientData;
 
 namespace Streamster.ClientCore.Services
 {
@@ -56,7 +55,7 @@ namespace Streamster.ClientCore.Services
             }
         }
 
-        private async Task OnConnectionClosed(Exception e)
+        private async Task OnConnectionClosed(Exception e) 
         {
             if (e != null)
             {

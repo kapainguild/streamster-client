@@ -68,8 +68,7 @@ namespace Clutch.DeltaModel
                 switch (change.Type)
                 {
                     case ChangeType.Add: 
-                        Log.Warning($"Unsync while adding key {property} to dictionary");
-                        _manager.DeserializeIgnoredValue(context);
+                        _manager.DeserializeIgnoredValue(context, change, "Unsync on dict add");
                         break;
                     case ChangeType.Remove:
                         _manager.DeserializeAndApplyRemove(oldValue, change);
@@ -88,9 +87,8 @@ namespace Clutch.DeltaModel
                 }
                 else
                 {
-                    Log.Warning($"Unsync while '{change}' key {property} to dictionary");
                     if (change.Type == ChangeType.Replace)
-                        _manager.DeserializeIgnoredValue(context);
+                        _manager.DeserializeIgnoredValue(context, change, "Unsync on dict replace");
                 }
             }
         }

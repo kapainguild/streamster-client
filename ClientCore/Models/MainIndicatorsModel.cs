@@ -51,6 +51,43 @@ namespace Streamster.ClientCore.Models
 
             _coreData.Subscriptions.SubscribeForProperties<IDevice>(s => s.State, (o, c, p) => RefreshDevicesStates(o));
 
+            _coreData.Subscriptions.SubscribeForProperties<IIndicatorVpn>(s => s.Enabled, (o, c, p) => Refresh(o, (d, i) => Reset(d.Vpn, i)));
+            _coreData.Subscriptions.SubscribeForProperties<IIndicatorVpn>(s => s.Sent, (o, c, p) => Refresh(o, RefreshVpnSent));
+            _coreData.Subscriptions.SubscribeForProperties<IIndicatorVpn>(s => s.Received, (o, c, p) => Refresh(o, RefreshVpnReceived));
+            _coreData.Subscriptions.SubscribeForProperties<IIndicatorVpn>(s => s.State, (o, c, p) => Refresh(o, RefreshVpnState));
+
+        }
+
+        private void RefreshVpnSent(DeviceIndicatorsModel local, IIndicatorVpn data) => local.Vpn.ChartModel.AddValue(data.Sent / 1000.0, 10);
+
+        private void RefreshVpnReceived(DeviceIndicatorsModel local, IIndicatorVpn data) => local.Vpn.Received.AddValue(data.Received / 1000.0, 10);
+
+        private void RefreshVpnState(DeviceIndicatorsModel local, IIndicatorVpn data)
+        {
+            var vpn = local.Vpn;
+            switch (data.State)
+            {
+                case VpnState.Idle:
+                    vpn.State.Value = IndicatorState.Unknown;
+                    vpn.Value.Value = "?";
+                    vpn.DetailedDescription.Value = "?";
+                    break;
+                case VpnState.Connecting:
+                    vpn.State.Value = IndicatorState.Warning;
+                    vpn.DetailedDescription.Value = "Connecting...";
+                    vpn.Value.Value = "...";
+                    break;
+                case VpnState.Reconnecting:
+                    vpn.State.Value = IndicatorState.Error;
+                    vpn.DetailedDescription.Value = "Failed. VPN is reconnecting...";
+                    vpn.Value.Value = "E";
+                    break;
+                case VpnState.Connected:
+                    vpn.State.Value = IndicatorState.Ok;
+                    vpn.DetailedDescription.Value = "VPN established and works";
+                    vpn.Value.Value = "ok";
+                    break;
+            }
         }
 
         private void RefreshDevicesStates(IDevice o)

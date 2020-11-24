@@ -28,6 +28,8 @@ namespace Streamster.ClientData.Model
         EncoderQuality EncoderQuality { get; set; }
 
         bool IsRecordingRequested { get; set; }
+
+        bool NoStreamWithoutVpn { get; set; }
     }
 
     public enum StreamingToCloudBehavior
@@ -50,6 +52,15 @@ namespace Streamster.ClientData.Model
         Balanced,
         BalancedQuality,
         Quality
+    }
+
+    public class VpnData
+    {
+        public string User { get; set; }
+
+        public string Pwd { get; set; }
+
+        public string Url { get; set; }
     }
 
 

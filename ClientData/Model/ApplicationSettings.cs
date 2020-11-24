@@ -14,7 +14,25 @@ namespace Streamster.ClientData.Model
         bool TopMostExtendedMode { get; set; }
 
         string RecordingsPath { get; set; }
+
+        VpnBehavior VpnBehavior { get; set; }
     }
+
+
+    public enum VpnBehavior
+    {
+        Manually,
+        AppStart,
+    }
+
+    public enum VpnState
+    {
+        Idle,
+        Connecting,
+        Reconnecting,
+        Connected
+    }
+
 
     public enum AppWindowState
     {

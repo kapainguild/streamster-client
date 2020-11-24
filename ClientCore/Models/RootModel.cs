@@ -11,13 +11,15 @@ namespace Streamster.ClientCore.Models
     {
         private readonly ILifetimeScope _container;
         private readonly HubConnectionService _hubConnectionService;
+        private readonly MainVpnModel _mainVpnModel;
 
-        public RootModel(ILifetimeScope container, IWindowStateManager windowStateManager, HubConnectionService hubConnectionService)
+        public RootModel(ILifetimeScope container, IWindowStateManager windowStateManager, HubConnectionService hubConnectionService, MainVpnModel mainVpnModel, IAppResources appResources)
         {
-            AppData = AppDataFactory.Create();
+            AppData = appResources.AppData;
             _container = container;
             WindowStateManager = windowStateManager;
             _hubConnectionService = hubConnectionService;
+            _mainVpnModel = mainVpnModel;
         }
 
         public ByeByeModel ByeByeModel { get; set; }
@@ -84,6 +86,8 @@ namespace Streamster.ClientCore.Models
             
             if (_hubConnectionService.Connection != null)
                 await _hubConnectionService.Connection.DisposeAsync();
+
+            await _mainVpnModel.StopAsync();
         }
     }
 }

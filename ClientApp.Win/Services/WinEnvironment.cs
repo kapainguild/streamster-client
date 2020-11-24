@@ -15,9 +15,11 @@ namespace Streamster.ClientApp.Win
     class WinEnvironment : IAppEnvironment
     {
         private string _processorName;
+        private string _dataFolder;
 
-        public WinEnvironment()
+        public WinEnvironment(IAppResources appResources)
         {
+            _dataFolder = appResources.AppData.DataFolder;
         }
 
         public string GetClientId() => ClientConstants.WinClientId;
@@ -25,6 +27,14 @@ namespace Streamster.ClientApp.Win
 
         public void StartObtainProcessorName() => TaskHelper.RunUnawaited(() => Task.Run(() =>
         {
+            try
+            {
+                GetObsVersions(out var obs, out var obsCam);
+                Log.Information($"OBS: {obs}, cam: {obsCam}");
+            }
+            catch
+            { }
+
             try
             {
                 var processorSearcher = new ManagementObjectSearcher("SELECT * FROM Win32_Processor");
@@ -42,7 +52,7 @@ namespace Streamster.ClientApp.Win
 
         public string GetProcessorName() => _processorName;
 
-        public string GetStorageFolder() => Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "Streamster.Data");
+        public string GetStorageFolder() => Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), _dataFolder);
 
         public void SetHighPriorityToApplication()
         {

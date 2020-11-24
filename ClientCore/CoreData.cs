@@ -82,6 +82,7 @@ namespace Streamster.ClientCore
             _manager.GetOrCreate(() => ThisDevice.KPIs.CloudIn, v => ThisDevice.KPIs.CloudIn = v);
             _manager.GetOrCreate(() => ThisDevice.KPIs.CloudOut, v => ThisDevice.KPIs.CloudOut = v);
             _manager.GetOrCreate(() => ThisDevice.KPIs.Encoder, v => ThisDevice.KPIs.Encoder = v);
+            _manager.GetOrCreate(() => ThisDevice.KPIs.Vpn, v => ThisDevice.KPIs.Vpn = v);
 
             PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(Root)));
             PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(ThisDevice)));
@@ -111,8 +112,6 @@ namespace Streamster.ClientCore
             {
                 c.Property(s => s.SelectedVideo).DontCompareBeforeSet();
                 c.Property(s => s.SelectedAudio).DontCompareBeforeSet();
-
-                c.Property(s => s.StreamingToCloud).HasDefault(StreamingToCloudBehavior.FirstChannel);
             });
 
             builder.Config<IIndicatorCpu>(c => { c.Property(s => s.Load).DontCompareBeforeSet(); });
@@ -124,6 +123,9 @@ namespace Streamster.ClientCore
                 c.Property(s => s.InputFps).DontCompareBeforeSet();
                 c.Property(s => s.QueueSize).DontCompareBeforeSet();
             });
+
+            builder.Config<IIndicatorVpn>(c => { c.Property(s => s.Sent).DontCompareBeforeSet(); });
+            builder.Config<IIndicatorVpn>(c => { c.Property(s => s.Received).DontCompareBeforeSet(); });
 
             return builder.Build<IRoot>(deltaServiceProvider, new SingleThreadLockerProvider());
         }

@@ -1,7 +1,8 @@
-﻿using System;
+﻿using Serilog;
+using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Runtime.InteropServices;
-using System.Text;
 using System.Windows;
 using System.Windows.Interop;
 
@@ -31,11 +32,20 @@ namespace Streamster.ClientApp.Win.Services
             public int bottom;
         }
 
+
+        [DllImport("user32.dll")]
+        static extern uint EnumDisplayMonitors(IntPtr hdc, IntPtr lprcClip, EnumMonitorsDelegate lpfnEnum, IntPtr dwData);
+
+        [DllImport("shcore.dll")]
+        internal static extern uint GetDpiForMonitor(IntPtr hmonitor, int dpiType, out uint dpiX, out uint dpiY);
+
+        delegate bool EnumMonitorsDelegate(IntPtr monitor, IntPtr hdc, IntPtr lprcMonitor, IntPtr lparam);
+
         [DllImport("user32.dll", ExactSpelling = true)]
         public static extern IntPtr MonitorFromWindow(HandleRef handle, int flags);
 
         [DllImport("user32.dll", CharSet = CharSet.Auto)]
-        public static extern bool GetMonitorInfo(HandleRef hmonitor, [In, Out]MONITORINFOEX info);
+        public static extern uint GetMonitorInfo(HandleRef hmonitor, [In, Out]MONITORINFOEX info);
 
         public static Rect GetMonitorWorkingArea(Window window)
         {
@@ -48,6 +58,46 @@ namespace Streamster.ClientApp.Win.Services
 
             var rc = info.rcWork;
             return new Rect(rc.left / dpiX, rc.top / dpiX, (rc.right - rc.left) / dpiX, (rc.bottom - rc.top) / dpiY);
+        }
+
+        public static Rect[] GetMonitorsWorkingAreas()
+        {
+            try
+            {
+                List<IntPtr> monitors = new List<IntPtr>();
+                Checked(1, "EnumDisplayMonitors", EnumDisplayMonitors(IntPtr.Zero, IntPtr.Zero, (a, b, c, d) => { monitors.Add(a); return true; }, IntPtr.Zero));
+
+                return monitors.Select(handle =>
+                {
+                    Checked(0, "GetDpiForMonitor", GetDpiForMonitor(handle, 0, out var x, out var y));
+                    MONITORINFOEX info = new MONITORINFOEX();
+                    Checked(1, "GetMonitorInfo", GetMonitorInfo(new HandleRef(null, handle), info));
+
+                    var rc = info.rcWork;
+                    var dpiX = x / 96.0;
+                    var dpiY = y / 96.0;
+                    return new Rect(rc.left / dpiX, rc.top / dpiX, (rc.right - rc.left) / dpiX, (rc.bottom - rc.top) / dpiY);
+                }).ToArray();
+            }
+            catch(Exception e)
+            {
+                Log.Warning(e, "GetMonitorsWorkingAreas failed");
+                return null;
+            }
+        }
+
+        private static void Checked(uint ideal, string name, uint errorcode)
+        {
+            if (ideal == 0)
+            {
+                if (errorcode != 0)
+                    throw new InvalidOperationException($"{name} failed with {errorcode}");
+            }
+            else
+            {
+                if (errorcode == 0)
+                    throw new InvalidOperationException($"{name} failed with {errorcode}");
+            }
         }
 
         private static void GetDpi(Window wnd, out double dpiX, out double dpiY)
