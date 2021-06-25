@@ -16,7 +16,33 @@ namespace Streamster.ClientData.Model
         string RecordingsPath { get; set; }
 
         VpnBehavior VpnBehavior { get; set; }
+
+        RendererType RendererType { get; set; }
+
+        string RendererAdapter { get; set; }
+
+        BlenderType BlenderType { get; set; }
     }
+
+
+    public enum RendererType
+    {
+        HardwareAuto,
+        HardwareSpecific,
+        SoftwareFFMPEG, 
+        SoftwareDirectX
+    }
+
+    public enum BlenderType
+    {
+        Smart, 
+        Linear,
+        Lanczos, 
+        BilinearLowRes, 
+        Bicubic, 
+        Area
+    }
+
 
 
     public enum VpnBehavior

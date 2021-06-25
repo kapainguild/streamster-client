@@ -47,7 +47,7 @@
                             </ToggleButton.ToolTip>
                             <Grid  Width="50" Height="50" UseLayoutRounding="True">
                                 <Border x:Name="smallBorder" BorderThickness="2" Margin="0,12,0,0" CornerRadius="5" Background="#2f2f2f" SnapsToDevicePixels="True" BorderBrush="Red" Opacity="0.3"/>
-                                <Border Margin="0,12,0,0" Width="28" Height="3" HorizontalAlignment="Center" VerticalAlignment="Top" Background="Black" SnapsToDevicePixels="True" />
+                                <Border Margin="0,12,0,0" Width="27" Height="3" HorizontalAlignment="Center" VerticalAlignment="Top" Background="Black" SnapsToDevicePixels="True" />
 
                                 <ContentPresenter x:Name="smallIcon" Margin="13,0,10,8" Content="{TemplateBinding SmallIcon}" HorizontalAlignment="Left" VerticalAlignment="Top"/>
 
@@ -93,7 +93,23 @@
                             <Setter TargetName="content" Property="TextElement.Foreground" Value="#FFC020"/>
                         </Trigger>
 
+                        <Trigger Property="State" Value="Warning2">
+                            <Setter TargetName="smallBorder" Property="BorderBrush" Value="Orange"/>
+                            <Setter TargetName="smallIcon" Property="TextElement.Foreground" Value="Orange"/>
+                            <Setter TargetName="smallValue" Property="TextElement.Foreground" Value="Orange"/>
+                            <Setter TargetName="bigIcon" Property="TextElement.Foreground" Value="Orange"/>
+                            <Setter TargetName="content" Property="TextElement.Foreground" Value="#FFC020"/>
+                        </Trigger>
+
                         <Trigger Property="State" Value="Error">
+                            <Setter TargetName="smallBorder" Property="BorderBrush" Value="Red"/>
+                            <Setter TargetName="smallIcon" Property="TextElement.Foreground" Value="Red"/>
+                            <Setter TargetName="smallValue" Property="TextElement.Foreground" Value="Red"/>
+                            <Setter TargetName="bigIcon" Property="TextElement.Foreground" Value="Red"/>
+                            <Setter TargetName="content" Property="TextElement.Foreground" Value="#FF4040"/>
+                        </Trigger>
+
+                        <Trigger Property="State" Value="Error2">
                             <Setter TargetName="smallBorder" Property="BorderBrush" Value="Red"/>
                             <Setter TargetName="smallIcon" Property="TextElement.Foreground" Value="Red"/>
                             <Setter TargetName="smallValue" Property="TextElement.Foreground" Value="Red"/>
@@ -175,7 +191,23 @@
                             <Setter TargetName="content" Property="TextElement.Foreground" Value="#FFC020"/>
                         </Trigger>
 
+                        <Trigger Property="State" Value="Warning2">
+                            <Setter TargetName="smallBorder" Property="BorderBrush" Value="Orange"/>
+                            <Setter TargetName="smallIcon" Property="TextElement.Foreground" Value="Orange"/>
+                            <Setter TargetName="smallValue" Property="TextElement.Foreground" Value="Orange"/>
+                            <Setter TargetName="bigIcon" Property="TextElement.Foreground" Value="Orange"/>
+                            <Setter TargetName="content" Property="TextElement.Foreground" Value="#FFC020"/>
+                        </Trigger>
+
                         <Trigger Property="State" Value="Error">
+                            <Setter TargetName="smallBorder" Property="BorderBrush" Value="Red"/>
+                            <Setter TargetName="smallIcon" Property="TextElement.Foreground" Value="Red"/>
+                            <Setter TargetName="smallValue" Property="TextElement.Foreground" Value="Red"/>
+                            <Setter TargetName="bigIcon" Property="TextElement.Foreground" Value="Red"/>
+                            <Setter TargetName="content" Property="TextElement.Foreground" Value="#FF4040"/>
+                        </Trigger>
+
+                        <Trigger Property="State" Value="Error2">
                             <Setter TargetName="smallBorder" Property="BorderBrush" Value="Red"/>
                             <Setter TargetName="smallIcon" Property="TextElement.Foreground" Value="Red"/>
                             <Setter TargetName="smallValue" Property="TextElement.Foreground" Value="Red"/>
@@ -255,19 +287,6 @@
         </DataTemplate.Triggers>
     </DataTemplate>
 
-    <DataTemplate x:Key="InputDetails" DataType="{x:Type models:IndicatorModelInput}">
-        <StackPanel Width="265">
-            <TextBlock FontSize="18" Text="{Binding DetailedDescription.Value}" TextAlignment="Center"/>
-            <TextBlock Text="Camera FPS over last 2 minutes" Margin="20,12,0,3" FontWeight="Normal" Foreground="White"/>
-            <oxy:PlotView Model="{Binding ChartModel.PlotModel}" Foreground="Black"  Background="#0E0E0E" Height="200" Margin="10,0" />
-            <TextBlock Text="Hints to fix possible issues:" Margin="10,12,0,3" FontWeight="Normal" Foreground="White"/>
-            <TextBlock Text="- ensure you have enough light" Style="{StaticResource recommendation}"/>
-            <TextBlock Text="- check settings of virtual camera/software" Style="{StaticResource recommendation}"/>
-        </StackPanel>
-        <DataTemplate.Triggers>
-        </DataTemplate.Triggers>
-    </DataTemplate>
-
     <DataTemplate x:Key="VpnDetails" DataType="{x:Type models:IndicatorModelVpn}">
         <StackPanel Width="265">
             <TextBlock FontSize="18" Text="{Binding DetailedDescription.Value}" TextAlignment="Center"/>
@@ -281,10 +300,20 @@
 
 
     <DataTemplate x:Key="EncoderDetails" DataType="{x:Type models:IndicatorModelEncoder}">
-        <StackPanel Width="265">
+        <StackPanel>
             <TextBlock FontSize="18" Text="{Binding DetailedDescription.Value}" TextAlignment="Center"/>
-            <TextBlock Text="Encoder overload over last 2 minutes" Margin="10,12,0,3" FontWeight="Normal" Foreground="White"/>
-            <oxy:PlotView Model="{Binding ChartModel.PlotModel}" Foreground="Black"  Background="#0E0E0E" Height="200" Margin="10,0" />
+
+            <StackPanel Orientation="Horizontal">
+                <StackPanel Width="265">
+                    <TextBlock Text="Encoder overload over last 2 minutes." Margin="10,12,0,3" FontWeight="Normal" Foreground="White"/>
+                    <oxy:PlotView Model="{Binding ChartModel.PlotModel}" Foreground="Black"  Background="#0E0E0E" Height="200" Margin="10,0" />
+                </StackPanel>
+
+                <StackPanel Width="265">
+                    <TextBlock Text="Output FPS over last 2 minutes" Margin="10,12,0,3" FontWeight="Normal" Foreground="White"/>
+                    <oxy:PlotView Model="{Binding OutputFps.PlotModel}" Foreground="Black"  Background="#0E0E0E" Height="200" Margin="10,0" />
+                </StackPanel>
+            </StackPanel>
 
             <TextBlock Text="Hints to decrease the load:" Margin="10,12,0,3" FontWeight="Normal" Foreground="White"/>
             <TextBlock Text="- close unused applications" Style="{StaticResource recommendation}"/>
@@ -336,23 +365,6 @@
                     </support:Indicator.SmallIcon>
                     <support:Indicator.BigIcon>
                         <materialDesign:PackIcon  Margin="0,2,0,0" Kind="AlphaCCircle" Width="24" Height="24"/>
-                    </support:Indicator.BigIcon>
-                    <support:Indicator.SmallContent>
-                        <TextBlock FontWeight="Black" FontSize="16" Text="{Binding Value.Value}" />
-                    </support:Indicator.SmallContent>
-                </support:Indicator>
-
-                <support:Indicator x:Name="input"
-                               DataContext="{Binding Input}"
-                               Content="{Binding }" 
-                               ContentTemplate="{StaticResource InputDetails}" 
-                               State="{Binding State.Value}"
-                               DetailedDescription="{Binding DetailedDescription.Value}">
-                    <support:Indicator.SmallIcon>
-                        <materialDesign:PackIcon  Margin="0,0,0,0" Kind="Webcam" Width="24" Height="24"/>
-                    </support:Indicator.SmallIcon>
-                    <support:Indicator.BigIcon>
-                        <materialDesign:PackIcon  Margin="0,0,0,0" Kind="Webcam" Width="24" Height="24"/>
                     </support:Indicator.BigIcon>
                     <support:Indicator.SmallContent>
                         <TextBlock FontWeight="Black" FontSize="16" Text="{Binding Value.Value}" />
@@ -471,31 +483,27 @@
                 <Setter TargetName="name" Property="Visibility" Value="Collapsed"/>
             </DataTrigger>
 
-            <DataTrigger Binding="{Binding Cpu.State.Value}" Value="Unknown">
+            <DataTrigger Binding="{Binding Cpu.State.Value}" Value="Disabled">
                 <Setter TargetName="cpu" Property="Visibility" Value="Collapsed"/>
             </DataTrigger>
 
-            <DataTrigger Binding="{Binding Input.State.Value}" Value="Unknown">
-                <Setter TargetName="input" Property="Visibility" Value="Collapsed"/>
-            </DataTrigger>
-
-            <DataTrigger Binding="{Binding Encoder.State.Value}" Value="Unknown">
+            <DataTrigger Binding="{Binding Encoder.State.Value}" Value="Disabled">
                 <Setter TargetName="encoder" Property="Visibility" Value="Collapsed"/>
             </DataTrigger>
 
-            <DataTrigger Binding="{Binding Vpn.State.Value}" Value="Unknown">
+            <DataTrigger Binding="{Binding Vpn.State.Value}" Value="Disabled">
                 <Setter TargetName="vpn" Property="Visibility" Value="Collapsed"/>
             </DataTrigger>
 
-            <DataTrigger Binding="{Binding CloudIn.State.Value}" Value="Unknown">
+            <DataTrigger Binding="{Binding CloudIn.State.Value}" Value="Disabled">
                 <Setter TargetName="cloudIn" Property="Visibility" Value="Collapsed"/>
             </DataTrigger>
-            
-            <DataTrigger Binding="{Binding CloudOut.State.Value}" Value="Unknown">
+
+            <DataTrigger Binding="{Binding CloudOut.State.Value}" Value="Disabled">
                 <Setter TargetName="cloudOut" Property="Visibility" Value="Collapsed"/>
             </DataTrigger>
 
-            <DataTrigger Binding="{Binding Restream.State.Value}" Value="Unknown">
+            <DataTrigger Binding="{Binding Restream.State.Value}" Value="Disabled">
                 <Setter TargetName="restream" Property="Visibility" Value="Collapsed"/>
             </DataTrigger>
         </DataTemplate.Triggers>

@@ -57,12 +57,12 @@ namespace Streamster.ClientCore.Models
             try
             {
                 Log.Information("Exit app requested");
-                var maxDelay = Task.Delay(4000);
+                var maxDelay = Task.Delay(5000);
                 if (await Task.WhenAny(maxDelay,
                                  Task.WhenAll(new Task[] { Task.Delay(2000), 
                                                             StopAll() })) == maxDelay)
                 {
-                    Log.Warning("No exit withing 4 seconds");
+                    Log.Warning("No exit withing 5 seconds");
                 }
             }
             catch(Exception e)
@@ -75,8 +75,15 @@ namespace Streamster.ClientCore.Models
         private async Task StopAll()
         {
             Log.Information("Disposing all");
-            await _container.DisposeAsync().AsTask();
-            Log.Information("Disposed all");
+            try
+            {
+                await _container.DisposeAsync().AsTask();
+                Log.Information("Disposed all");
+            }
+            catch(Exception e)
+            {
+                Log.Error(e, "Dispose all failed");
+            }
 
             await Task.Delay(400); // wait for everything is done.
 

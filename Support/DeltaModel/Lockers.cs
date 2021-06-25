@@ -28,8 +28,8 @@ namespace Clutch.DeltaModel
             public SingleThreadLocker()
             {
 #if DEBUG
-                if (SynchronizationContext.Current == null)
-                    throw new InvalidOperationException("Change to data is called on none UI thread");
+                //if (SynchronizationContext.Current == null)
+                //    throw new InvalidOperationException("Change to data is called on none UI thread");
 #endif
                 if (SynchronizationContext.Current == null)
                     Log.Warning("Access from none UI thread");

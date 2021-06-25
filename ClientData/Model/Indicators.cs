@@ -17,9 +17,19 @@ namespace Streamster.ClientData.Model
         IIndicatorVpn Vpn { get; set; }
     }
 
+    public enum IndicatorState
+    {
+        Disabled,
+        Ok,
+        Warning,
+        Warning2,
+        Error,
+        Error2
+    }
+
     public interface IIndicatorBase
     {
-        bool Enabled { get; set; }
+        IndicatorState State { get; set; }
     }
 
 
@@ -40,28 +50,25 @@ namespace Streamster.ClientData.Model
     public interface IIndicatorCloudOut : IIndicatorBase
     {
         int Bitrate { get; set; }
-
-        int Errors { get; set; } 
-
-        int Drops { get; set; }
     }
 
     public interface IIndicatorCloudIn : IIndicatorBase
     {
         int Bitrate { get; set; }
+    }
 
-        int Errors { get; set; }
+    public class EncoderData
+    {
+        public int Q { get; set; } // queue size
+
+        public int O { get; set; } // output fps
+
+        public int F { get; set; } // failed inputs
     }
 
     public interface IIndicatorEncoder : IIndicatorBase
     {
-        int QueueSize { get; set; }
-
-        int InputErrors { get; set; }
-
-        int InputFps { get; set; }
-
-        int InputTargetFps { get; set; }
+        EncoderData Data { get; set; }
     }
 
     public interface IIndicatorVpn : IIndicatorBase
@@ -69,7 +76,5 @@ namespace Streamster.ClientData.Model
         int Sent { get; set; }
 
         int Received { get; set; }
-
-        VpnState State { get; set; }
     }
 }

@@ -27,9 +27,15 @@ namespace Streamster.ClientData.Model
 
         EncoderQuality EncoderQuality { get; set; }
 
+        bool PreferNalHdr { get; set; }
+
+        bool DisableQsvNv12Optimization { get; set; }
+
         bool IsRecordingRequested { get; set; }
 
         bool NoStreamWithoutVpn { get; set; }
+
+        string SelectedScene { get; set; }
     }
 
     public enum StreamingToCloudBehavior
@@ -86,6 +92,6 @@ namespace Streamster.ClientData.Model
 
         public override int GetHashCode() => Height * Width;
 
-        public override string ToString() => $"{Width} x {Height}";
+        public override string ToString() => Width == 0 ? "Custom" : $"{Width} x {Height}";
     }
 }

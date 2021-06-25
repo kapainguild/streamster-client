@@ -12,12 +12,16 @@ namespace Streamster.ClientApp.Win.Services
 {
     static class ObsHelper
     {
+        public static HashSet<string> s_loggedNames = new HashSet<string>();
+
         private static ObsStream[] Streams =
         {
             new ObsStream { QueueName = "OBSVirtualVideo", DeviceName="obs-camera", Index = 0 },
             new ObsStream { QueueName = "OBSVirtualVideo2", DeviceName="obs-camera2", Index = 1 },
             new ObsStream { QueueName = "OBSVirtualVideo3", DeviceName="obs-camera3", Index = 2 },
             new ObsStream { QueueName = "OBSVirtualVideo4", DeviceName="obs-camera4", Index = 3 },
+            new ObsStream { QueueName = "OBSVirtualCamVideo", DeviceName="obs virtual camera", Index = 0 },
+            
             new ObsStream { QueueName = "OBSVirtualAudio", DeviceName="obs-audio", Index = -1 },
         };
 
@@ -29,13 +33,20 @@ namespace Streamster.ClientApp.Win.Services
                 // obs camera;
                 if (ObsHelper.TryGetStreamInfo(obsStream.QueueName, out var header))
                 {
-                    if (obsStream.Index < 0)
+                    lock (s_loggedNames)
                     {
-                        Log.Information($"OBS check {name}: {header.recommended_width}");
-                    }
-                    else
-                    {
-                        Log.Information($"OBS check {name}: {header.recommended_width}x{header.recommended_height}x{GetFps(header.frame_time)}");
+                        if (!s_loggedNames.Contains(name))
+                        {
+                            s_loggedNames.Add(name);
+                            if (obsStream.Index < 0)
+                            {
+                                Log.Information($"OBS check {name}: {header.recommended_width}");
+                            }
+                            else
+                            {
+                                Log.Information($"OBS check {name}: {header.recommended_width}x{header.recommended_height}x{header.delay_frame}x{header.frame_time}x{header.aspect_ratio_type}");
+                            }
+                        }
                     }
                 }
                 else

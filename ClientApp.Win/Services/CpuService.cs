@@ -1,6 +1,7 @@
 ﻿using Serilog;
 using Streamster.ClientCore;
 using Streamster.ClientCore.Cross;
+using Streamster.ClientCore.Support;
 using Streamster.ClientData;
 using Streamster.ClientData.Model;
 using System;
@@ -25,6 +26,7 @@ namespace Streamster.ClientApp.Win.Services
         private readonly CoreData _coreData;
         private CancellationTokenSource _cts = new CancellationTokenSource();
         private Dictionary<int, ProcessInfo> _processes = new Dictionary<int, ProcessInfo>();
+        private AverageIntValue _loadAverage = new AverageIntValue(3, false);
 
         public CpuService(CoreData coreData)
         {
@@ -71,7 +73,12 @@ namespace Streamster.ClientApp.Win.Services
                 try
                 {
                     int load = (int)_cpu.NextValue();
+                    load = _loadAverage.AddValue(load);
+#if DEBUG
+                    ProcessLoad[] processes = null;
+#else
                     var processes = GetProcesses();
+#endif
                     _coreData.RunOnMainThread(() => SetLoad(load, processes));
                 }
                 catch(Exception e)
@@ -154,6 +161,13 @@ namespace Streamster.ClientApp.Win.Services
                 var kpis = _coreData.ThisDevice.KPIs;
                 var cpu = _coreData.GetOrCreate(() => kpis.Cpu, v => kpis.Cpu = v);
                 cpu.Load = load;
+
+                if (load < 75)
+                    cpu.State = IndicatorState.Ok;
+                else if (load < 90)
+                    cpu.State = IndicatorState.Warning;
+                else
+                    cpu.State = IndicatorState.Error;
 
                 if (loads != null)
                     cpu.Top = loads;

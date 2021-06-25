@@ -8,6 +8,7 @@ using Streamster.ClientCore.Cross;
 using Streamster.ClientCore.Logging;
 using Streamster.ClientCore.Models;
 using System;
+using System.IO;
 using System.Threading;
 using System.Windows;
 using System.Windows.Media;
@@ -23,6 +24,8 @@ namespace ClientApp.Win
 
         public static void RunApp<T>(Application app)
         {
+            RemoveCefSharpShortcuts();
+
             app.Resources.MergedDictionaries.Add(new BundledTheme
             {
                 BaseTheme = BaseTheme.Dark,
@@ -66,8 +69,30 @@ namespace ClientApp.Win
             MainWindow mainWindow = new MainWindow();
             mainWindow.DataContext = root;
             mainWindow.Root = root;
+
+
             ((WindowStateManager)windowStateManager).SetWindow(mainWindow);
             mainWindow.Show();
+        }
+
+        private static void RemoveCefSharpShortcuts()
+        {
+            try
+            {
+                string desktop = Environment.GetFolderPath(Environment.SpecialFolder.DesktopDirectory);
+                string desktopShortcut = Path.Combine(desktop, "CefSharp.lnk");
+                if (File.Exists(desktopShortcut))
+                    File.Delete(desktopShortcut);
+
+                string programs = Environment.GetFolderPath(Environment.SpecialFolder.Programs);
+
+                var cefDir = Path.Combine(programs, "The CefSharp Authors");
+                if (Directory.Exists(cefDir))
+                    Directory.Delete(cefDir, true);
+            }
+            catch
+            {
+            }
         }
 
         private static bool SetSingleStart(string v)

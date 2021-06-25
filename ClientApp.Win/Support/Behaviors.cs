@@ -25,6 +25,11 @@ namespace Streamster.ClientApp.Win.Support
             element.SetValue(IsActivatedProperty, value);
         }
 
+        public static readonly DependencyProperty DoubleValueProperty = DependencyProperty.RegisterAttached("DoubleValue", typeof(double), typeof(Behaviors));
+        public static void SetDoubleValue(UIElement element, double value) => element.SetValue(DoubleValueProperty, value);
+        public static double GetDoubleValue(UIElement element) => (double)element.GetValue(DoubleValueProperty);
+
+
 
         public static readonly DependencyProperty MouseOverProperty = DependencyProperty.RegisterAttached("MouseOver", typeof(bool), typeof(Behaviors));
         public static void SetMouseOver(UIElement element, bool value) => element.SetValue(MouseOverProperty, value);

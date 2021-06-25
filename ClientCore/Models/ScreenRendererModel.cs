@@ -1,4 +1,5 @@
-﻿using Serilog;
+﻿using DynamicStreamer.Queues;
+using Serilog;
 using Streamster.ClientCore.Cross;
 using Streamster.ClientData;
 using Streamster.ClientData.Model;
@@ -10,146 +11,47 @@ using System.Threading.Tasks;
 
 namespace Streamster.ClientCore.Models
 {
-    public class ScreenRendererModel : IDisposable
+    public interface IScreenRenderer
     {
-        public IScreenRenderer ScreenRenderer { get; }
+        void ShowFrame(FrameOutputData fromPool);
+    }
 
-        public int BufferVersion { get; set; }
+    public interface IScreenRendererHost
+    {
+        void Register(IScreenRenderer renderer);
+    }
 
-        private byte[] _buffer;
-        private int _bufferHeight;
-        private int _bufferWidth;
-        
-        private DateTime _lastFrameTime = DateTime.MinValue;
+    public class ScreenRendererModel : IScreenRendererHost
+    {
+        private IScreenRenderer _screenRenderer;
 
-        private byte[] _blackBuffer;
+        public Property<bool> IsEnabled { get; } = new Property<bool>(true);
 
-        private int _incomingSequenceNumber;
+        public Action OnChanged { get; set; }
 
-        private volatile int _byPass = 1;
-        private Streamer _streamer;
-        private bool _localStreamer;
-        private int _removeStreamerId;
-        private CancellationTokenSource _cts = new CancellationTokenSource();
-        private readonly CoreData _coreData;
-
-        public ScreenRendererModel(IScreenRenderer screenRenderer, CoreData coreData)
+        public ScreenRendererModel()
         {
-            ScreenRenderer = screenRenderer;
-            _coreData = coreData;
-            
-
-            _coreData.Subscriptions.SubscribeForProperties<IDevice>(s => s.DisplayVideoHidden, (i, c, p) => ShowHidePreview());
+            IsEnabled.OnChange = (o, n) => OnIsEnabledChanged(n);
         }
 
-        public void Start()
+        private void OnIsEnabledChanged(bool newValue)
         {
-            TaskHelper.RunUnawaited(MainLoop(), "ScreenRendererModel.MainLoop");
+            OnChanged?.Invoke();
         }
 
-        private void ShowHidePreview()
+        public void OnFrame(FrameOutputData frameData)
         {
-            ChangeVisibility(!_coreData.ThisDevice.DisplayVideoHidden);
-        }
-
-        public void SetStreamer(Streamer streamer, bool local)
-        {
-            ChangeVisibility(false);
-            _streamer = streamer;
-            _localStreamer = local;
-            ChangeVisibility(!_coreData.ThisDevice.DisplayVideoHidden);
-        }
-
-        private void ChangeVisibility(bool visible)
-        {
-            try
+            if (_screenRenderer != null)
             {
-                if (_streamer != null)
-                {
-                    if (visible)
-                    {
-                        if (_localStreamer)
-                            this._streamer.SetDirectFrameCallback(OnFrame);
-                        else
-                            _removeStreamerId = this._streamer.SetOutputCallback(OnFrame, 0);
-                    }
-                    else
-                    {
-                        if (_localStreamer)
-                            this._streamer.SetDirectFrameCallback(null);
-                        else
-                            this._streamer.SetOutputCallback(null, _removeStreamerId);
-                    }
-                }
+                _screenRenderer.ShowFrame(frameData);
             }
-            catch (Exception e)
-            {
-                Log.Error(e, "Initialization error");
-            }
+            else
+                frameData.Frame.Dispose();
         }
 
-        private void OnFrame(int width, int height, int length, long data)
+        public void Register(IScreenRenderer renderer)
         {
-            _incomingSequenceNumber++;
-
-            if (_incomingSequenceNumber % _byPass != 0)
-                return;
-
-            lock (this)
-            {
-                _bufferHeight = height;
-                _bufferWidth = width;
-                if (_buffer == null || _buffer.Length != length)
-                    _buffer = new byte[length];
-
-                IntPtr ptr = new IntPtr(data);
-                Marshal.Copy(ptr, _buffer, 0, length);
-                BufferVersion++;
-                _lastFrameTime = DateTime.UtcNow;
-            }
-            _coreData.RunOnMainThread(() => CommitToUI());
-        }
-
-        private async Task MainLoop()
-        {
-            while (!_cts.IsCancellationRequested)
-            {
-                int bypass = 1;
-
-                if (_coreData.Settings.Fps > 30)
-                    bypass++;
-
-                if (_coreData.ThisDevice.KPIs.Encoder.QueueSize > 6)
-                    bypass++;
-
-                lock (this)
-                {
-                    if (_lastFrameTime != DateTime.MinValue && !_coreData.ThisDevice.DisplayVideoHidden)
-                    {
-                        if (DateTime.UtcNow - _lastFrameTime > TimeSpan.FromSeconds(2))
-                        {
-                            int size = 3 * _bufferHeight * _bufferWidth;
-                            if (_blackBuffer == null || _blackBuffer.Length != size)
-                                _blackBuffer = new byte[size];
-                            ScreenRenderer.ShowFrame(_bufferWidth, _bufferHeight, -1, _blackBuffer);
-                        }
-                    }
-                }
-                await Task.Delay(2000, _cts.Token);
-            }
-        }
-
-        private void CommitToUI()
-        {
-            lock (this)
-            {
-                ScreenRenderer.ShowFrame(_bufferWidth, _bufferHeight, BufferVersion, _buffer);
-            }
-        }
-
-        public void Dispose()
-        {
-            _cts.Cancel();
+            _screenRenderer = renderer;
         }
     }
 }

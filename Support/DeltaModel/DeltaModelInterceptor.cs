@@ -202,9 +202,15 @@ namespace Clutch.DeltaModel
             while (context.Reader.Read() && context.Reader.TokenType != Newtonsoft.Json.JsonToken.EndObject)
             {
                 string property = (string)context.Reader.Value;
-                var memberConfig = _typeConfig.Members[property];
                 context.Reader.Read();
-                _values[property] = _manager.DeserializeMemeberValue(memberConfig.TypeConfiguration, this, property, context); 
+                if (_typeConfig.Members.TryGetValue(property, out var memberConfig))
+                {
+                    _values[property] = _manager.DeserializeMemeberValue(memberConfig.TypeConfiguration, this, property, context);
+                }
+                else
+                {
+                    _manager.DeserializeIgnoredValue(context, null, $"Unsync on Deserialize '{property}'");
+                }
             }
         }
 

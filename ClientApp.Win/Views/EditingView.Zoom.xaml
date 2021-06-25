@@ -1,0 +1,86 @@
+﻿<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                    xmlns:models="clr-namespace:Streamster.ClientCore.Models;assembly=Streamster.ClientCore" 
+                    xmlns:materialDesign="http://materialdesigninxaml.net/winfx/xaml/themes">
+    <ResourceDictionary.MergedDictionaries>
+        <ResourceDictionary Source="Common.xaml"/>
+        <ResourceDictionary Source="EditingView.Styles.xaml"/>
+        <ResourceDictionary Source="OnScreenStyles.Slider.xaml"/>
+    </ResourceDictionary.MergedDictionaries>
+
+
+    <DataTemplate DataType="{x:Type models:ZoomModel}">
+        <DockPanel VerticalAlignment="Top">
+            <TextBlock x:Name="note" DockPanel.Dock="Bottom" Text="Note. You can also control your web camera zoom with the mouse wheel. Move your mouse cursor over the area you want to zoom in and scroll up/down to zoom in/out."  VerticalAlignment="Center" TextWrapping="WrapWithOverflow" FontSize="12" Margin="20,8,20,0" FontWeight="Normal" />
+
+            <DockPanel DockPanel.Dock="Bottom" x:Name="behavior" Margin="0,10,0,0" HorizontalAlignment="Left" >
+                <ComboBox DockPanel.Dock="Right" ItemsSource="{Binding ZoomBehaviors}" SelectedItem="{Binding ZoomBehavior.Value}" DisplayMemberPath="DisplayName"/>
+                <TextBlock FontSize="13" Margin="20,2,20,0" Foreground="#bbbbbb" FontWeight="Normal" Text="Use higher camera resolution to improve quality" VerticalAlignment="Center" TextWrapping="WrapWithOverflow"/>
+            </DockPanel>
+
+            
+            <Viewbox HorizontalAlignment="Left" StretchDirection="DownOnly">
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="300"/>
+                        <ColumnDefinition Width="30"/>
+                        <ColumnDefinition Width="Auto"/>
+                    </Grid.ColumnDefinitions>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                    </Grid.RowDefinitions>
+
+                    <Slider VerticalAlignment="Bottom" Margin="20,0" Minimum="1" Maximum="3" Value="{Binding Zoom.Value}"/>
+
+                    <Button Grid.Row="1" Style="{StaticResource MaterialDesignIconForegroundButton}" Content="1x" Command="{Binding Set1x, Converter={StaticResource CommandConverter}}"
+                        HorizontalAlignment="Left"/>
+                    <Button Grid.Row="1" Style="{StaticResource MaterialDesignIconForegroundButton}" Content="2x" Command="{Binding Set2x, Converter={StaticResource CommandConverter}}"
+                        HorizontalAlignment="Center"/>
+                    <Button Grid.Row="1" Style="{StaticResource MaterialDesignIconForegroundButton}" Content="3x" Command="{Binding Set3x, Converter={StaticResource CommandConverter}}"
+                        HorizontalAlignment="Right"/>
+
+                    <Button Grid.RowSpan="2" Grid.Column="2" Style="{StaticResource MaterialDesignIconForegroundButton}" Command="{Binding Up, Converter={StaticResource CommandConverter}}" HorizontalAlignment="Left"
+                        IsEnabled="{Binding CanUp.Value}"
+                        VerticalAlignment="Top"
+                        Margin="30,0">
+                        <materialDesign:PackIcon Kind="ChevronUp"/>
+                    </Button>
+
+                    <Button Grid.RowSpan="2" Grid.Column="2" Style="{StaticResource MaterialDesignIconForegroundButton}" Command="{Binding Left, Converter={StaticResource CommandConverter}}" HorizontalAlignment="Left"
+                        IsEnabled="{Binding CanLeft.Value}"
+                        Margin="0,30">
+                        <materialDesign:PackIcon Kind="ChevronLeft"/>
+                    </Button>
+
+                    <Button Grid.RowSpan="2" Grid.Column="2" Style="{StaticResource MaterialDesignIconForegroundButton}" Command="{Binding Right, Converter={StaticResource CommandConverter}}" HorizontalAlignment="Right"
+                        IsEnabled="{Binding CanRight.Value}"
+                        Margin="0,30">
+                        <materialDesign:PackIcon Kind="ChevronRight"/>
+                    </Button>
+
+                    <Button Grid.RowSpan="2" Grid.Column="2" Style="{StaticResource MaterialDesignIconForegroundButton}" Command="{Binding Down, Converter={StaticResource CommandConverter}}" HorizontalAlignment="Left"
+                        IsEnabled="{Binding CanDown.Value}"
+                        VerticalAlignment="Bottom"
+                        Margin="30,0">
+                        <materialDesign:PackIcon Kind="ChevronDown"/>
+                    </Button>
+                    <Border Grid.RowSpan="2" Grid.Column="2" BorderThickness="1" BorderBrush="#343434" CornerRadius="100"/>
+
+                </Grid>
+            </Viewbox>
+            
+
+        </DockPanel>
+
+        <DataTemplate.Triggers>
+            <DataTrigger Binding="{Binding ZoomBehaviorEnabled.Value}" Value="False">
+                <Setter TargetName="behavior" Property="Visibility" Value="Collapsed"/>
+                <Setter TargetName="note" Property="Visibility" Value="Collapsed"/>
+            </DataTrigger>
+            
+        </DataTemplate.Triggers>
+
+    </DataTemplate>
+
+</ResourceDictionary>

@@ -4,6 +4,8 @@ namespace Streamster.ClientData.Model
 {
     public interface IRoot
     {
+        int ModelVersion { get; set; }
+
         IDictionary<string, ITarget> Targets { get; set; }
 
         IDictionary<string, IChannel> Channels { get; set; }
@@ -17,6 +19,10 @@ namespace Streamster.ClientData.Model
         IDictionary<string, IIngest> Ingests { get; set; }
 
         IDictionary<string, IOutgest> Outgests { get; set; }
+
+        IDictionary<string, IResource> Resources { get; set; }
+
+        IDictionary<string, IScene> Scenes { get; set; }
 
         ISettings Settings { get; set; }
     }

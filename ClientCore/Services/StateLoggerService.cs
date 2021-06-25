@@ -55,10 +55,15 @@ namespace Streamster.ClientCore.Services
             var rec = settings.IsRecordingRequested ? ":Rec" : "";
 
 
-            string streamToCloud = _coreData.Settings.StreamingToCloudStarted ? $"|Bit{kpis.CloudOut.Bitrate}:OEr{kpis.CloudOut.Errors}" : null;
+            string streamToCloud = _coreData.Settings.StreamingToCloudStarted ? $"|Bit{kpis.CloudOut.Bitrate}" : null;
             string kpi = null;
             if (kpis != null)
-                kpi = $"P{kpis.Cpu.Load}:Q{kpis.Encoder.QueueSize}:IFps{kpis.Encoder.InputFps}:TFps{kpis.Encoder.InputTargetFps}:IE{kpis.Encoder.InputErrors}{streamToCloud}";
+            { 
+                kpi = $"P{kpis.Cpu.Load}";
+                if (kpis.Encoder?.Data != null)
+                    kpi += $":EQ{kpis.Encoder.Data.Q}:EOFps{kpis.Encoder.Data?.O}:FI{kpis.Encoder.Data.F}";
+                kpi += streamToCloud;
+            }
 
             var channels = string.Join("|", root.Channels.Values.Where(s => s.IsOn).Select(s => $"Ch:{s.TargetId}:{(int)s.State}:{s.Bitrate}"));
 

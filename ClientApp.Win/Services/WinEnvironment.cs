@@ -1,4 +1,5 @@
-﻿using Serilog;
+﻿using DynamicStreamer.Screen;
+using Serilog;
 using Streamster.ClientApp.Win.Services;
 using Streamster.ClientCore.Cross;
 using Streamster.ClientData;
@@ -42,11 +43,19 @@ namespace Streamster.ClientApp.Win
 
                 if (proc["Name"] is string name)
                 {
-                    Log.Information($"Processor: {name}");
+                    Log.Information($"Processor '{name}'");
                     _processorName = name;
                 }
             }
             catch { }
+
+            try
+            {
+                Log.Information($"Windows Contract {ScreenCaptureManager.GetApiContract()}");
+            }
+            catch
+            { }
+            
         }), "ObtainProcessorName");
 
 

@@ -19,22 +19,23 @@ namespace Streamster.ClientCore.Logging
             Log.Logger = new LoggerConfiguration()
                 .MinimumLevel.ControlledBy(_switch)
 #if DEBUG
-                .WriteTo.Async(a =>
-                {
-                    a.Debug(outputTemplate: "[{Timestamp:dd HH:mm:ss.fff} {Level:u3}] {Message:lj}{NewLine}{Exception}");
-                })
+                //.WriteTo.Async(a =>
+                //{
+                //    a.Debug(outputTemplate: "[{Timestamp:dd HH:mm:ss.fff} {Level:u3}] {Message:lj}{NewLine}{Exception}");
+                //})
 #endif
                 .WriteTo.File(path: $"{environment.GetStorageFolder()}\\Logs\\Client.txt",
                                 fileSizeLimitBytes: 10_000_000,
                                 retainedFileCountLimit: 2,
                                 rollOnFileSizeLimit: true,
+                //                flushToDiskInterval: TimeSpan.Zero,
                                 outputTemplate: "[{Timestamp:dd HH:mm:ss.fff}] {Level:u3}]: {Message:lj}{NewLine}{Exception}")
                 .WriteTo.ServerLog(hubConnectionServiceFactory)
                 .CreateLogger();
 
             AppDomain.CurrentDomain.UnhandledException += CurrentDomain_UnhandledException;
 
-            Log.Information($"Application started ({ClientVersionHelper.GetVersion()})");
+            Log.Information($"Application started '{ClientVersionHelper.GetVersion()}'");
         }
 
         public void EnableDebug()

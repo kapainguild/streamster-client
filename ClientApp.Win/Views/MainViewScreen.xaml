@@ -2,12 +2,15 @@
                     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
                     xmlns:models="clr-namespace:Streamster.ClientCore.Models;assembly=Streamster.ClientCore"
                     xmlns:support="clr-namespace:Streamster.ClientApp.Win.Support" 
-                    xmlns:materialDesign="http://materialdesigninxaml.net/winfx/xaml/themes">
+                    xmlns:materialDesign="http://materialdesigninxaml.net/winfx/xaml/themes" xmlns:controls="clr-namespace:Streamster.ClientApp.Win.Controls" xmlns:system="clr-namespace:System;assembly=mscorlib">
     <ResourceDictionary.MergedDictionaries>
         <ResourceDictionary Source="Common.xaml"/>
         <ResourceDictionary Source="OnScreenStyles.xaml"/>
         <ResourceDictionary Source="MainViewFilters.xaml"/>
+        <ResourceDictionary Source="EditingOnScreen.xaml"/>
+        <ResourceDictionary Source="EditingView.Styles.xaml"/>
     </ResourceDictionary.MergedDictionaries>
+    
 
     <DataTemplate x:Key="OnScreenMessage" DataType="{x:Type models:TransientMessageModel}">
         <Border x:Name="root" Background="#95000000" BorderThickness="0">
@@ -50,320 +53,240 @@
         </DataTemplate.Triggers>
     </DataTemplate>
 
-    <DataTemplate x:Key="VideoInputPreview" DataType="{x:Type models:LocalVideoInputModel}">
-        <Border x:Name="root" Margin="315,30,30,50" BorderBrush="Black" BorderThickness="1" HorizontalAlignment="Left" VerticalAlignment="Bottom">
-            <Grid MaxWidth="424" >
-                <Viewbox>
-                    <Border Background="#202020" Width="424" Height="239"/>
-                </Viewbox>
 
-                <TextBlock x:Name="noPreview" Margin="10,5" Foreground="White" Text="Preview not supported" HorizontalAlignment="Center" VerticalAlignment="Center" Visibility="Collapsed"/>
+    <Style x:Key="OnScreenAddLayerButtonStyle" TargetType="Button" BasedOn="{StaticResource OnScreenPopupBoxButton}">
+        <Setter Property="Margin" Value="0,0,5,5"/>
+    </Style>
+           
 
-                <Image x:Name="preview" Source="{Binding Preview.Value, Converter={StaticResource ImageConverter}}" VerticalAlignment="Center" Stretch="Uniform" RenderTransformOrigin="0.5,0.5">
-                    <Image.RenderTransform>
-                        <ScaleTransform ScaleY="-1"/>
-                    </Image.RenderTransform>
-                </Image>
-
-                <Border x:Name="previewText" HorizontalAlignment="Center" CornerRadius="0,0,5,5" VerticalAlignment="Top" Background="#90000000" Margin="0">
-                    <TextBlock FontWeight="Normal" Margin="6,2" Foreground="White" Text="Preview"/>
-                </Border>
-
-                <Border x:Name="stateBorder" HorizontalAlignment="Center" VerticalAlignment="Center" Background="#202020" Margin="15" Visibility="Visible" CornerRadius="3">
-                    <TextBlock x:Name="stateText" Margin="10,0" Foreground="White" Text="" TextWrapping="Wrap"/>
-                </Border>
-            </Grid>
-        </Border>
-        <DataTemplate.Triggers>
-            <DataTrigger Binding="{Binding Preview.Value}" Value="{x:Null}">
-                <Setter TargetName="preview" Property="Visibility" Value="Collapsed"/>
-                <Setter TargetName="previewText" Property="Visibility" Value="Collapsed"/>
-            </DataTrigger>
-
-            <DataTrigger Binding="{Binding State.Value}" Value="Unknown">
-                <Setter TargetName="stateText" Property="Text" Value="Updating state..."/>
-            </DataTrigger>
-
-            <DataTrigger Binding="{Binding State.Value}" Value="Running">
-                <Setter TargetName="stateText" Property="Text" Value="The video source is running"/>
-            </DataTrigger>
-
-            <DataTrigger Binding="{Binding State.Value}" Value="RemoteDeviceOffline">
-                <Setter TargetName="stateText" Property="Text" Value="Owning computer/device is offline"/>
-            </DataTrigger>
-            <DataTrigger Binding="{Binding State.Value}" Value="RemoteDeviceInactive">
-                <Setter TargetName="stateText" Property="Text" Value="Owning computer/device is inactive"/>
-            </DataTrigger>
-
-            <DataTrigger Binding="{Binding State.Value}" Value="Ready">
-                <Setter TargetName="stateBorder" Property="Visibility" Value="Collapsed"/>
-                <Setter TargetName="noPreview" Property="Visibility" Value="Visible"/>
-            </DataTrigger>
-
-            <DataTrigger Binding="{Binding State.Value}" Value="InUseByOtherApp">
-                <Setter TargetName="stateText" Property="Text" Value="In use by another application"/>
-            </DataTrigger>
-
-            <DataTrigger Binding="{Binding State.Value}" Value="Removed">
-                <Setter TargetName="stateText" Property="Text" Value="The device was unplugged"/>
-            </DataTrigger>
-
-            <DataTrigger Binding="{Binding State.Value}" Value="Failed">
-                <Setter TargetName="stateText" Property="Text" Value="Failed"/>
-            </DataTrigger>
-
-            <DataTrigger Binding="{Binding State.Value}" Value="ObsIsNotStarted">
-                <Setter TargetName="stateText" Property="Text" Value="OBS virtual camera is turned off"/>
-            </DataTrigger>
-        </DataTemplate.Triggers>
-    </DataTemplate>
-
-
-    <DataTemplate x:Key="VideoInputInPopup" DataType="{x:Type models:LocalVideoInputModel}">
-        <Border x:Name="root" Background="Transparent" 
-                support:Behaviors.MouseOverListen="true"
-                support:Behaviors.MouseOver="{Binding IsPreviewing.Value, Mode=TwoWay}">
-            <Button x:Name="button" Margin="0,3" Style="{StaticResource OnScreenPopupBoxButton}" HorizontalContentAlignment="Stretch"
-                    Command="{Binding Select, Converter={StaticResource CommandConverter}}">
+    <DataTemplate x:Key="OnScreenSceneItem" DataType="{x:Type models:SceneItemModel}">
+        <Button x:Name="root" Width="260" Style="{StaticResource OnScreenAddLayerButtonStyle}"
+                Command="{Binding Select, Converter={StaticResource CommandConverter}}"
+                IsDefault="True"
+                ToolTip="{Binding SourceIssue.Value}"
+                ToolTipService.Placement="Right"
+                ToolTipService.InitialShowDelay="0"
+                HorizontalContentAlignment="Stretch">
+            <Button.Resources>
+                <Style TargetType="ToolTip" BasedOn="{StaticResource {x:Type ToolTip}}">
+                    <Setter Property="Background" Value="#aa0000"/>
+                    <Setter Property="Foreground" Value="White"/>
+                    <Setter Property="TextElement.FontSize" Value="14"/>
+                    <Setter Property="Margin" Value="10,0"/>
+                    <Setter Property="VerticalOffset" Value="-4"/>
+                </Style>
+            </Button.Resources>
+            <DockPanel>
+                <Button Margin="0" x:Name="showHidePreview2" DockPanel.Dock="Right" Style="{StaticResource MaterialDesignIconForegroundButton}"
+                                      Width="30" Height="30" MinWidth="30"
+                                        ToolTip="Remove layer"
+                                        ToolTipService.Placement="Right"
+                        Command="{Binding Delete, Converter={StaticResource CommandConverter}}">
+                    <Button.Resources>
+                        <Style TargetType="ToolTip" BasedOn="{StaticResource {x:Type ToolTip}}">
+                            <Setter Property="Background" Value="white"/>
+                            <Setter Property="Foreground" Value="Black"/>
+                            <Setter Property="TextElement.FontSize" Value="14"/>
+                            <Setter Property="Margin" Value="10,0"/>
+                            <Setter Property="VerticalOffset" Value="-4"/>
+                        </Style>
+                    </Button.Resources>
+                    <materialDesign:PackIcon Kind="TrashCanOutline" Height="24" Width="24" />
+                </Button>
+                <ToggleButton Margin="0" x:Name="showHidePreview" DockPanel.Dock="Right" Style="{StaticResource OnScreenHideShowToggleButton}"
+                                      Width="30" Height="30" MinWidth="30"
+                                        ToolTip="Show/hide level"
+                                        ToolTipService.Placement="Right"
+                                        IsChecked="{Binding Model.Visible}">
+                    <ToggleButton.Resources>
+                        <Style TargetType="ToolTip" BasedOn="{StaticResource {x:Type ToolTip}}">
+                            <Setter Property="Background" Value="white"/>
+                            <Setter Property="Foreground" Value="Black"/>
+                            <Setter Property="TextElement.FontSize" Value="14"/>
+                            <Setter Property="Margin" Value="10,0"/>
+                            <Setter Property="VerticalOffset" Value="-4"/>
+                        </Style>
+                    </ToggleButton.Resources>
+                    <materialDesign:PackIcon Kind="EyeOff" Height="24" Width="24" Foreground="#772211"/>
+                    <materialDesign:ToggleButtonAssist.OnContent>
+                        <materialDesign:PackIcon Kind="EyeOutline" Height="24" Width="24" Foreground="Black"/>
+                    </materialDesign:ToggleButtonAssist.OnContent>
+                </ToggleButton>
                 <DockPanel>
-                    <materialDesign:PackIcon Margin="3,0,0,0" DockPanel.Dock="Left" x:Name="type" Kind="Webcam" Height="24" Width="24"/>
-
-                    <Border Margin="5,0" DockPanel.Dock="Right" x:Name="state" Height="20" Width="20">
-                        <Grid>
-                            <Border x:Name="stateIcon" CornerRadius="20" Background="Red"/>
-                            <materialDesign:PackIcon Margin="-2" x:Name="running" Kind="PlayCircle" Visibility="Collapsed" Width="24" Height="24" Foreground="#1070D0"/>
-                            <ProgressBar x:Name="unknown" Style="{StaticResource MaterialDesignCircularProgressBar}" Value="0" IsIndeterminate="True" Visibility="Collapsed" />
-                        </Grid>
-                    </Border>
-                    <TextBlock Width="55" x:Name="stateText" FontSize="12" VerticalAlignment="Center" TextAlignment="Right" DockPanel.Dock="Right"/>
-                    <TextBlock VerticalAlignment="Center" Margin="5,0,8,0" Text="{Binding Source.Name}"/>
+                    <materialDesign:PackIcon Margin="2,0,0,0" x:Name="icon" DockPanel.Dock="Left" Kind="CircleDouble" Width="24" Height="24" VerticalAlignment="Center"/>
+                    <TextBlock Margin="8,0,0,0" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" Text="{Binding Name.Value}"/>
                 </DockPanel>
-            </Button>
-        </Border>
+            </DockPanel>
+        </Button>
         <DataTemplate.Triggers>
-            <DataTrigger Binding="{Binding State.Value}" Value="RemoteDeviceInactive">
-                <Setter TargetName="root" Property="Visibility" Value="Collapsed"/>
-            </DataTrigger>
-            
-            <DataTrigger Binding="{Binding State.Value}" Value="Unknown">
-                <Setter TargetName="unknown" Property="Visibility" Value="Visible"/>
-                <Setter TargetName="stateIcon" Property="Visibility" Value="Collapsed"/>
+            <DataTrigger Binding="{Binding IsSelected.Value}" Value="true">
+                <Setter TargetName="root" Property="Background" Value="{StaticResource OnScreenBackgroundPressed}"/>
             </DataTrigger>
 
-            <DataTrigger Binding="{Binding State.Value}" Value="Running">
-                <Setter TargetName="running" Property="Visibility" Value="Visible"/>
-                <Setter TargetName="stateIcon" Property="Visibility" Value="Collapsed"/>
-                <Setter TargetName="stateText" Property="Text" Value="Running"/>
+            <DataTrigger Binding="{Binding SourceIssue.Value}" Value="{x:Null}">
+                <Setter TargetName="root" Property="IsDefault" Value="False"/>
             </DataTrigger>
-
-            <DataTrigger Binding="{Binding State.Value}" Value="RemoteDeviceOffline">
-                <Setter TargetName="stateText" Property="Text" Value="Offline"/>
-                <Setter TargetName="stateIcon" Property="Background" Value="Orange"/>
-                <Setter TargetName="button" Property="Background" Value="{StaticResource OnScreenBackgroundDisabled}"/>
-                <Setter TargetName="button" Property="BorderBrush" Value="{StaticResource OnScreenBorderDisabled}"/>
+            <DataTrigger Binding="{Binding Type}" Value="WebPage">
+                <Setter TargetName="icon" Property="Kind" Value="Web"/>
             </DataTrigger>
-
-            <DataTrigger Binding="{Binding State.Value}" Value="Ready">
-                <Setter TargetName="stateIcon" Property="Background" Value="Green"/>
-                <Setter TargetName="stateText" Property="Text" Value="Ready"/>
+            <DataTrigger Binding="{Binding Type}" Value="Image">
+                <Setter TargetName="icon" Property="Kind" Value="Image"/>
             </DataTrigger>
-
-            <DataTrigger Binding="{Binding State.Value}" Value="InUseByOtherApp">
-                <Setter TargetName="button" Property="Background" Value="{StaticResource OnScreenBackgroundDisabled}"/>
-                <Setter TargetName="button" Property="BorderBrush" Value="{StaticResource OnScreenBorderDisabled}"/>
-                <Setter TargetName="stateText" Property="Text" Value="In use"/>
+            <DataTrigger Binding="{Binding Type}" Value="ScreenCapture">
+                <Setter TargetName="icon" Property="Kind" Value="MonitorScreenshot"/>
+                <Setter TargetName="icon" Property="Width" Value="20"/>
+                <Setter TargetName="icon" Property="Margin" Value="5,0,0,0"/>
             </DataTrigger>
-
-            <DataTrigger Binding="{Binding State.Value}" Value="Removed">
-                <Setter TargetName="stateText" Property="Text" Value="Removed"/>
-                <Setter TargetName="stateIcon" Property="Background" Value="DarkGray"/>
-                <Setter TargetName="button" Property="Background" Value="{StaticResource OnScreenBackgroundDisabled}"/>
-                <Setter TargetName="button" Property="BorderBrush" Value="{StaticResource OnScreenBorderDisabled}"/>
+            <DataTrigger Binding="{Binding Type}" Value="WindowCapture">
+                <Setter TargetName="icon" Property="Kind" Value="WindowMaximize"/>
             </DataTrigger>
-
-            <DataTrigger Binding="{Binding State.Value}" Value="Failed">
-                <Setter TargetName="stateText" Property="Text" Value="Failed"/>
-                <Setter TargetName="button" Property="Background" Value="{StaticResource OnScreenBackgroundDisabled}"/>
-                <Setter TargetName="button" Property="BorderBrush" Value="{StaticResource OnScreenBorderDisabled}"/>
-            </DataTrigger>
-
-            <DataTrigger Binding="{Binding State.Value}" Value="ObsIsNotStarted">
-                <Setter TargetName="stateText" Property="Text" Value="Off"/>
-                <Setter TargetName="button" Property="Background" Value="{StaticResource OnScreenBackgroundDisabled}"/>
-                <Setter TargetName="button" Property="BorderBrush" Value="{StaticResource OnScreenBorderDisabled}"/>
-            </DataTrigger>
-
-            <DataTrigger Binding="{Binding Type}" Value="Virtual">
-                <Setter TargetName="type" Property="Kind" Value="AlphaVCircleOutline"/>
-            </DataTrigger>
-
-            <DataTrigger Binding="{Binding Type}" Value="Remote">
-                <Setter TargetName="type" Property="Kind" Value="ContactlessPaymentCircle"/>
+            <DataTrigger Binding="{Binding Type}" Value="Lovense">
+                <Setter TargetName="icon" Property="Kind" Value="AlphaLCircleOutline"/>
             </DataTrigger>
         </DataTemplate.Triggers>
     </DataTemplate>
 
-    <DataTemplate x:Key="VideoInputModelInPopup">
-        <ContentPresenter Content="{Binding Local}" ContentTemplate="{StaticResource VideoInputInPopup}"/>
-    </DataTemplate>
     
-    <DataTemplate x:Key="MainViewScreen" DataType="{x:Type models:MainStreamerModel}">
-        <Border x:Name="root" Background="#111111">
-            <Grid>
-                <Image x:Name="Preview" Source="{Binding ScreenRenderer.ScreenRenderer.Screen.Value}" Stretch="Uniform" RenderOptions.BitmapScalingMode="LowQuality"  />
-
-                <Border x:Name="PreviewIsOff" Visibility="Collapsed" Background="#090909">
-                    <Grid >
-                        <TextBlock Margin="0,0,0,15" Text="Video preview is turned off" Foreground="#303030" VerticalAlignment="Center" HorizontalAlignment="Center"/>
-                        <ToggleButton x:Name="showHidePreview2" Margin="10,10" Style="{StaticResource OnScreenActionToggleButton}"
-                                          ToolTip="Show preview"
-                                      HorizontalAlignment="Center" VerticalAlignment="Bottom" Opacity="0.7"
-                                          IsChecked="{Binding CoreData.ThisDevice.DisplayVideoHidden}">
-                            <materialDesign:PackIcon Kind="EyeOff" Height="24" Width="24"/>
-                            <materialDesign:ToggleButtonAssist.OnContent>
-                                <materialDesign:PackIcon Kind="ShapeRectanglePlus" Height="24" Width="24"/>
-                            </materialDesign:ToggleButtonAssist.OnContent>
-                        </ToggleButton>
-                    </Grid>
+    <DataTemplate x:Key="MainViewScreen" DataType="{x:Type models:MainModel}">
+        <Border x:Name="root" Background="#000000">
+            <controls:ActivatingControl x:Name="activating">
+                <Grid>
+                    <ContentControl x:Name="Preview" Content="{Binding}" ContentTemplate="{StaticResource EditingOnScreen}"/>
                     
-                </Border>
-
-                <ContentControl Focusable="False" Content="{Binding VideoSource.Message}" ContentTemplate="{StaticResource OnScreenMessage}" HorizontalAlignment="Center" VerticalAlignment="Center" Margin="10,40,10,40"/>
-                
-                <ContentControl x:Name="preview" Focusable="False" Content="{Binding VideoSource.CurrentPreview.Value}" ContentTemplate="{StaticResource VideoInputPreview}"/>
-
-                <materialDesign:Transitioner x:Name="controls" SelectedIndex="0" VerticalAlignment="Bottom">
-                    <materialDesign:TransitionerSlide>  
-                        <DockPanel Margin="5,0" VerticalAlignment="Bottom">
-
-                            <Button x:Name="filters" Margin="5" DockPanel.Dock="Right" Style="{StaticResource OnScreenOutlinedButton}" ToolTip="Filters"
-                                    Command="{x:Static materialDesign:Transitioner.MoveNextCommand}">
-                                <materialDesign:PackIcon Kind="AutoFix" Height="24" Width="24" />
+                    <Border x:Name="PreviewIsOff" Visibility="Collapsed" Background="#090909">
+                        <Grid >
+                            <TextBlock Margin="0,0,0,5" Text="Video preview is turned off" Foreground="#303030" VerticalAlignment="Center" HorizontalAlignment="Center"/>
+                            <Button x:Name="showHidePreview2" Margin="10,15" Style="{StaticResource OnScreenPopupBoxButton}"
+                                      HorizontalAlignment="Center" VerticalAlignment="Bottom" Opacity="0.7"
+                                    Command="{Binding StreamSettings.ShowPreview, Converter={StaticResource CommandConverter}}">
+                                <StackPanel Orientation="Horizontal" Margin="10,0">
+                                    <materialDesign:PackIcon Kind="Landscape" Height="24" Width="24"/>
+                                    <TextBlock Margin="5,0,0,0" Text="Show preview" VerticalAlignment="Center"/>
+                                </StackPanel>
                             </Button>
+                        </Grid>
+
+                    </Border>
+
+                    <!--<ContentControl Focusable="False" Content="{Binding VideoSource.Message}" ContentTemplate="{StaticResource OnScreenMessage}" HorizontalAlignment="Center" VerticalAlignment="Center" Margin="10,40,10,40"/>-->
+
+                    <DockPanel x:Name="ctrl" VerticalAlignment="Bottom">
+
+                        <StackPanel Margin="0,5,10,5" x:Name="props" Orientation="Horizontal" DockPanel.Dock="Right" VerticalAlignment="Bottom">
+                            <materialDesign:PopupBox x:Name="resolution" Style="{StaticResource OnScreenPopupBox}" ToolTip="Resolution" Width="120" Margin="0,5,5,5">
+                                <materialDesign:PopupBox.ToggleContent>
+                                    <TextBlock FontWeight="Medium" Text="{Binding CoreData.Settings.Resolution}" />
+                                </materialDesign:PopupBox.ToggleContent>
+                                <Grid Margin="0,5" >
+                                    <ItemsControl x:Name="resolutionList" ItemsSource="{Binding StreamSettings.Resolutions}">
+                                        <ItemsControl.ItemTemplate>
+                                            <DataTemplate>
+                                                <Button Margin="0,3" Style="{StaticResource OnScreenPopupBoxButton}" Content="{Binding}" Width="120"
+                                                Command="{Binding DataContext.StreamSettings.SelectResolution, RelativeSource={RelativeSource AncestorType=ItemsControl},Converter={StaticResource CommandConverter}}"
+                                                CommandParameter="{Binding}"/>
+                                            </DataTemplate>
+                                        </ItemsControl.ItemTemplate>
+                                    </ItemsControl>
+                                    <Border MaxWidth="190" x:Name="resolutionNoChange" Background="{StaticResource OnScreenBackgroundMouseOver}" BorderBrush="{StaticResource OnScreenBorderMouseOver}" BorderThickness="1"
+                                        Visibility="Collapsed"
+                                        CornerRadius="3">
+                                        <TextBlock Margin="10,5" Foreground="{StaticResource OnScreenForegroundMouseOver}"
+                                                TextWrapping="Wrap"
+                                                Text="Resolution cannot be changed during restreaming or recording"/>
+                                    </Border>
+                                </Grid>
+                            </materialDesign:PopupBox>
+
+                            <materialDesign:PopupBox x:Name="fps" Style="{StaticResource OnScreenPopupBox}" 
+                                                 ToolTip="Frames per second" Width="60" Margin="5">
+                                <materialDesign:PopupBox.ToggleContent>
+                                    <TextBlock FontWeight="Medium" Text="{Binding CoreData.Settings.Fps}" />
+                                </materialDesign:PopupBox.ToggleContent>
+                                <Grid Margin="0,5">
+                                    <ItemsControl x:Name="fpsList" ItemsSource="{Binding StreamSettings.FpsList}">
+                                        <ItemsControl.ItemTemplate>
+                                            <DataTemplate>
+                                                <Button Margin="0,3" Style="{StaticResource OnScreenPopupBoxButton}" Content="{Binding}" MinWidth="60"
+                                                Command="{Binding DataContext.StreamSettings.SelectFps, RelativeSource={RelativeSource AncestorType=ItemsControl},Converter={StaticResource CommandConverter}}"
+                                                CommandParameter="{Binding}"/>
+                                            </DataTemplate>
+                                        </ItemsControl.ItemTemplate>
+                                    </ItemsControl>
+                                    <Border MaxWidth="190" x:Name="fpsNoChange" Background="{StaticResource OnScreenBackgroundMouseOver}" BorderBrush="{StaticResource OnScreenBorderMouseOver}" BorderThickness="1"
+                                        Visibility="Collapsed"
+                                        CornerRadius="3">
+                                        <TextBlock Margin="10,5" Foreground="{StaticResource OnScreenForegroundMouseOver}"
+                                                TextWrapping="Wrap"
+                                                Text="FPS cannot be changed during restreaming or recording"/>
+                                    </Border>
+                                </Grid>
+                            </materialDesign:PopupBox>
+
+                            <materialDesign:PopupBox x:Name="showHidePreview" Style="{StaticResource OnScreenPopupBox}" 
+                                                 ToolTip="Application layout" Width="75" Margin="5" PlacementMode="TopAndAlignRightEdges">
+                                <materialDesign:PopupBox.ToggleContent>
+                                    <TextBlock FontWeight="Medium" Text="Layout" />
+                                </materialDesign:PopupBox.ToggleContent>
+                                <Grid Margin="0,5">
+                                    <ItemsControl ItemsSource="{Binding StreamSettings.LayoutTypes}">
+                                        <ItemsControl.ItemTemplate>
+                                            <DataTemplate>
+                                                <Button Margin="0,3" Style="{StaticResource OnScreenPopupBoxButton}" Content="{Binding DisplayName}" MinWidth="140"
+                                                Command="{Binding DataContext.StreamSettings.SelectLayout, RelativeSource={RelativeSource AncestorType=ItemsControl},Converter={StaticResource CommandConverter}}"
+                                                CommandParameter="{Binding}"/>
+                                            </DataTemplate>
+                                        </ItemsControl.ItemTemplate>
+                                    </ItemsControl>
+                                </Grid>
+                            </materialDesign:PopupBox>
+                        </StackPanel>
+
+                        <Border Margin="45,0,0,0" x:Name="editing" HorizontalAlignment="Left" support:Behaviors.DoubleValue="0.0">
+                            <Border.RenderTransform>
+                                <TranslateTransform X="0">
+                                    <TranslateTransform.Y>
+                                        <MultiBinding Converter="{StaticResource MultiplyConverter}">
+                                            <Binding Path="ActualHeight" ElementName="editing"/>
+                                            <Binding Path="(support:Behaviors.DoubleValue)" ElementName="editing" />
+                                        </MultiBinding>
+                                    </TranslateTransform.Y>
+                                </TranslateTransform>
+                            </Border.RenderTransform>
                             
-                            <ToggleButton x:Name="flipH" Margin="5" DockPanel.Dock="Right" Style="{StaticResource OnScreenActionToggleButton}"
-                                          ToolTip="Flip horizontally"
-                                          IsChecked="{Binding Filters.FlipH.Value}">
-                                <materialDesign:PackIcon Kind="ReflectHorizontal" Height="24" Width="24"/>
-                                <materialDesign:ToggleButtonAssist.OnContent>
-                                    <materialDesign:PackIcon Kind="ReflectHorizontal" Height="24" Width="24" RenderTransformOrigin="0.5, 0.5"
-                                                             Foreground="{StaticResource OnScreenHighlightedForeground}">
-                                        <materialDesign:PackIcon.RenderTransform>
-                                            <ScaleTransform ScaleX="-1" />
-                                        </materialDesign:PackIcon.RenderTransform>
-                                    </materialDesign:PackIcon>
-                                </materialDesign:ToggleButtonAssist.OnContent>
-                            </ToggleButton>
+                            <StackPanel Margin="10,5,5,5" Orientation="Vertical" >
+                                <Button x:Name="addLayer" Command="{Binding SceneEditing.AddLayer, Converter={StaticResource CommandConverter}}" 
+                                    Style="{StaticResource OnScreenAddLayerButtonStyle}" HorizontalAlignment="Center"
+                                        Margin="0,0,0,10">
+                                    <StackPanel Margin="10,0" Orientation="Horizontal">
+                                        <materialDesign:PackIcon Kind="Plus"/>
+                                        <TextBlock Margin="5,0" Text="Add layer"/>
+                                    </StackPanel>
+                                </Button>
+                                <ItemsControl ItemsSource="{Binding SceneEditing.Items}" ItemTemplate="{StaticResource OnScreenSceneItem}"/>
+                            </StackPanel>
 
-                            <ToggleButton x:Name="showHidePreview" Margin="5" DockPanel.Dock="Right" Style="{StaticResource OnScreenActionToggleButton}"
-                                          ToolTip="Hide preview. This can prevent overloading of CPU and Encoder"
-                                          IsChecked="{Binding CoreData.ThisDevice.DisplayVideoHidden}">
-                                <materialDesign:PackIcon Kind="TelevisionOff" Height="24" Width="24"/>
-                                <materialDesign:ToggleButtonAssist.OnContent>
-                                    <materialDesign:PackIcon Kind="Eye" Height="24" Width="24"/>
-                                </materialDesign:ToggleButtonAssist.OnContent>
-                            </ToggleButton>
-
-                            <DockPanel HorizontalAlignment="Left">
-
-                                <materialDesign:PopupBox DockPanel.Dock="Right" x:Name="fps" Style="{StaticResource OnScreenPopupBox}" ToolTip="Frames per second"
-                                                         Width="60"
-                                                         Margin="5">
-                                    <materialDesign:PopupBox.ToggleContent>
-                                        <TextBlock FontWeight="Medium" Text="{Binding CoreData.Settings.Fps}" />
-                                    </materialDesign:PopupBox.ToggleContent>
-                                    <Grid Margin="0,5">
-                                        <ItemsControl x:Name="fpsList" ItemsSource="{Binding FpsList}">
-                                            <ItemsControl.ItemTemplate>
-                                                <DataTemplate>
-                                                    <Button Margin="0,3" Style="{StaticResource OnScreenPopupBoxButton}" Content="{Binding}" MinWidth="60"
-                                                        Command="{Binding DataContext.SelectFps, RelativeSource={RelativeSource AncestorType=ItemsControl},Converter={StaticResource CommandConverter}}"
-                                                        CommandParameter="{Binding}"/>
-                                                </DataTemplate>
-                                            </ItemsControl.ItemTemplate>
-                                        </ItemsControl>
-                                        <Border MaxWidth="190" x:Name="fpsNoChange" Background="{StaticResource OnScreenBackgroundMouseOver}" BorderBrush="{StaticResource OnScreenBorderMouseOver}" BorderThickness="1"
-                                                Visibility="Collapsed"
-                                                CornerRadius="3">
-                                            <TextBlock Margin="10,5" Foreground="{StaticResource OnScreenForegroundMouseOver}"
-                                                       TextWrapping="Wrap"
-                                                       Text="FPS cannot be changed during restreaming or recording"/>
-                                        </Border>
-                                    </Grid>
-                                </materialDesign:PopupBox>
-                                
-                                <materialDesign:PopupBox DockPanel.Dock="Right" x:Name="resolution" Style="{StaticResource OnScreenPopupBox}" ToolTip="Resolution"
-                                                         Width="120"
-                                                         Margin="5">
-                                    <materialDesign:PopupBox.ToggleContent>
-                                        <TextBlock FontWeight="Medium" Text="{Binding CoreData.Settings.Resolution}" />
-                                    </materialDesign:PopupBox.ToggleContent>
-                                    <Grid Margin="0,5" >
-                                        <ItemsControl x:Name="resolutionList" ItemsSource="{Binding Resolutions}">
-                                            <ItemsControl.ItemTemplate>
-                                                <DataTemplate>
-                                                    <Button Margin="0,3" Style="{StaticResource OnScreenPopupBoxButton}" Content="{Binding}" Width="120"
-                                                        Command="{Binding DataContext.SelectResolution, RelativeSource={RelativeSource AncestorType=ItemsControl},Converter={StaticResource CommandConverter}}"
-                                                        CommandParameter="{Binding}"/>
-                                                </DataTemplate>
-                                            </ItemsControl.ItemTemplate>
-                                        </ItemsControl>
-                                        <Border MaxWidth="190" x:Name="resolutionNoChange" Background="{StaticResource OnScreenBackgroundMouseOver}" BorderBrush="{StaticResource OnScreenBorderMouseOver}" BorderThickness="1"
-                                                Visibility="Collapsed"
-                                                CornerRadius="3">
-                                            <TextBlock Margin="10,5" Foreground="{StaticResource OnScreenForegroundMouseOver}"
-                                                       TextWrapping="Wrap"
-                                                       Text="Resolution cannot be changed during restreaming or recording"/>
-                                        </Border>
-                                    </Grid>
-                                </materialDesign:PopupBox>
-
-                                <materialDesign:PopupBox x:Name="cameras"
-                                                         Style="{StaticResource OnScreenPopupBox}"
-                                                         IsPopupOpen="{Binding CoreData.ThisDevice.PreviewVideo, Mode=TwoWay}"
-                                                         PlacementMode="TopAndAlignLeftEdges"
-                                                         HorizontalAlignment="Stretch"
-                                                         HorizontalContentAlignment="Stretch"
-                                                         ToolTip="Video source"
-                                                         Margin="5">
-                                    <materialDesign:PopupBox.ToggleContent>
-                                        <Grid>
-                                            <Border Width="260"/>
-                                            <TextBlock FontWeight="Medium" Text="{Binding VideoSource.CurrentVideo.Value}"/>
-                                        </Grid>
-                                    </materialDesign:PopupBox.ToggleContent>
-                                    <Grid Margin="0,5">
-                                        <ItemsControl x:Name="camerasList" ItemsSource="{Binding CoreData.Root.VideoInputs.Values}" ItemTemplate="{StaticResource VideoInputModelInPopup}">
-                                        </ItemsControl>
-                                        <Border x:Name="camerasEmpty"  MaxWidth="290" Background="{StaticResource OnScreenBackground}" BorderThickness="1" CornerRadius="3" BorderBrush="{StaticResource OnScreenBorder}"
-                                                Visibility="Collapsed">
-                                            <TextBlock Margin="20,10" Foreground="{StaticResource OnScreenForegroundPressed}" TextWrapping="Wrap" TextAlignment="Center" Text="No video sources (cameras) detected on this computer"/>
-                                        </Border>
-                                    </Grid>
-                                </materialDesign:PopupBox>
-
-                            </DockPanel>
-                        </DockPanel>
-                    </materialDesign:TransitionerSlide>
-                    <materialDesign:TransitionerSlide TransitionOrigin="1, 1">
-                        <ContentControl Content="{Binding Filters}"/>
-                    </materialDesign:TransitionerSlide>
-                </materialDesign:Transitioner>
-            </Grid>
+                        </Border>
+                        
+                    </DockPanel>
+                </Grid>
+            </controls:ActivatingControl>
         </Border>
 
         <DataTemplate.Triggers>
 
-            <DataTrigger Binding="{Binding ChangeStreamParamsDisabled.Value}" Value="True">
+            <DataTrigger Binding="{Binding SceneEditing.AddLayerSelected.Value}" Value="true">
+                <Setter TargetName="addLayer" Property="Background" Value="{StaticResource OnScreenBackgroundPressed}"/>
+            </DataTrigger>
+
+            <DataTrigger Binding="{Binding StreamSettings.ChangeStreamParamsDisabled.Value}" Value="True">
                 <Setter TargetName="resolutionList" Property="Visibility" Value="Collapsed"/>
                 <Setter TargetName="resolutionNoChange" Property="Visibility" Value="Visible"/>
                 <Setter TargetName="fpsList" Property="Visibility" Value="Collapsed"/>
                 <Setter TargetName="fpsNoChange" Property="Visibility" Value="Visible"/>
             </DataTrigger>
 
-            <DataTrigger Binding="{Binding (support:ResponsiveHost.Calculation).Values.ScreenFilterHidden, ElementName=root}" Value="True">
-                <Setter TargetName="flipH" Property="Visibility" Value="Collapsed"/>
-                <Setter TargetName="filters" Property="Visibility" Value="Collapsed"/>
+            <DataTrigger Binding="{Binding (support:ResponsiveHost.Calculation).Values.ScreenSourcesHidden, ElementName=root}" Value="True">
+                <Setter TargetName="editing" Property="Visibility" Value="Collapsed"/>
             </DataTrigger>
 
             <DataTrigger Binding="{Binding (support:ResponsiveHost.Calculation).Values.ScreenFpsHidden, ElementName=root}" Value="True">
@@ -375,39 +298,19 @@
             </DataTrigger>
 
 
-            <DataTrigger Binding="{Binding CoreData.ThisDevice.DisplayVideoHidden}" Value="True">
+            <DataTrigger Binding="{Binding StreamSettings.SelectedLayout.Value}" Value="NoScreen">
                 <Setter TargetName="Preview" Property="Visibility" Value="Collapsed"/>
                 <Setter TargetName="PreviewIsOff" Property="Visibility" Value="Visible"/>
-                <Setter TargetName="controls" Property="Visibility" Value="Collapsed"/>
-            </DataTrigger>
-            
-            
-            <DataTrigger Binding="{Binding CoreData.Root.VideoInputs.Values.Count}" Value="0">
-                <Setter TargetName="camerasList" Property="Visibility" Value="Collapsed"/>
-                <Setter TargetName="camerasEmpty" Property="Visibility" Value="Visible"/>
+                <Setter TargetName="ctrl" Property="Visibility" Value="Collapsed"/>
             </DataTrigger>
 
-
-            <DataTrigger Binding="{Binding Filters.AnyFilterIsSet.Value}" Value="True">
-                <Setter TargetName="filters" Property="Foreground" Value="{StaticResource OnScreenHighlightedForeground}"/>
-            </DataTrigger>
-
-            <DataTrigger Binding="{Binding Filters.FiltersEnabled.Value}" Value="False">
-                <Setter TargetName="filters" Property="Visibility" Value="Collapsed"/>
-                <Setter TargetName="flipH" Property="Visibility" Value="Collapsed"/>
-            </DataTrigger>
-
-            <DataTrigger Binding="{Binding VideoSource.CurrentPreview.Value}" Value="{x:Null}">
-                <Setter TargetName="preview" Property="Visibility" Value="Collapsed"/>
-            </DataTrigger>
-            
-            <DataTrigger Binding="{Binding IsMouseOver, ElementName=root}" Value="True">
+            <DataTrigger Binding="{Binding SceneEditing.EditingMode.Value}" Value="True">
+                <Setter TargetName="props" Property="IsHitTestVisible" Value="False"/>
                 <DataTrigger.EnterActions>
                     <BeginStoryboard>
                         <Storyboard>
-                            <BooleanAnimationUsingKeyFrames Storyboard.TargetName="controls" Storyboard.TargetProperty="(support:Behaviors.IsActivated)">
-                                <DiscreteBooleanKeyFrame Value="True" KeyTime="0:0:0.3"/>
-                            </BooleanAnimationUsingKeyFrames>
+                            <DoubleAnimation Storyboard.TargetName="editing" Storyboard.TargetProperty="(support:Behaviors.DoubleValue)" Duration="0:0:0.2" To="1.0"/>
+                            <DoubleAnimation Storyboard.TargetName="props" Storyboard.TargetProperty="Opacity" Duration="0:0:0.2" To="0.0"/>
                         </Storyboard>
                     </BeginStoryboard>
                 </DataTrigger.EnterActions>
@@ -415,33 +318,31 @@
                 <DataTrigger.ExitActions>
                     <BeginStoryboard>
                         <Storyboard>
-                            <BooleanAnimationUsingKeyFrames Storyboard.TargetName="controls" Storyboard.TargetProperty="(support:Behaviors.IsActivated)">
-                                <DiscreteBooleanKeyFrame Value="False" KeyTime="0:0:5"/>
-                            </BooleanAnimationUsingKeyFrames>
+                            <DoubleAnimation Storyboard.TargetName="props" Storyboard.TargetProperty="Opacity" Duration="0:0:0.2" To="1.0"/>
+                            <DoubleAnimation Storyboard.TargetName="editing" Storyboard.TargetProperty="(support:Behaviors.DoubleValue)" Duration="0:0:0.2" To="0.0"/>
                         </Storyboard>
                     </BeginStoryboard>
                 </DataTrigger.ExitActions>
             </DataTrigger>
 
-            <DataTrigger Binding="{Binding (support:Behaviors.IsActivated), ElementName=controls}" Value="True">
-                    <DataTrigger.EnterActions>
-                        <BeginStoryboard>
-                            <Storyboard>
-                            <DoubleAnimation Storyboard.TargetName="controls" Storyboard.TargetProperty="Opacity" 
-                                             Duration="0:0:0.2" To="1.0"/>
-                            </Storyboard>
-                        </BeginStoryboard>
-                    </DataTrigger.EnterActions>
+            <DataTrigger Binding="{Binding IsActive, ElementName=activating}" Value="True">
+                <DataTrigger.EnterActions>
+                    <BeginStoryboard>
+                        <Storyboard BeginTime="0:0:0.3">
+                            <DoubleAnimation Storyboard.TargetName="ctrl" Storyboard.TargetProperty="Opacity" Duration="0:0:0.1" To="1.0"/>
+                        </Storyboard>
+                    </BeginStoryboard>
+                </DataTrigger.EnterActions>
 
-                    <DataTrigger.ExitActions>
-                        <BeginStoryboard>
-                            <Storyboard>
-                            <DoubleAnimation Storyboard.TargetName="controls" Storyboard.TargetProperty="Opacity" 
-                                             Duration="0:0:0.2" To="0.0"/>
-                            </Storyboard>
-                        </BeginStoryboard>
-                    </DataTrigger.ExitActions>
-                </DataTrigger>
+                <DataTrigger.ExitActions>
+                    <BeginStoryboard>
+                        <Storyboard BeginTime="0:0:5.0">
+                            <DoubleAnimation Storyboard.TargetName="ctrl" Storyboard.TargetProperty="Opacity" Duration="0:0:0.1" To="0.0"/>
+                        </Storyboard>
+                    </BeginStoryboard>
+                </DataTrigger.ExitActions>
+            </DataTrigger>
+        
         </DataTemplate.Triggers>
     </DataTemplate>
 

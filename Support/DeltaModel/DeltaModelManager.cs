@@ -326,7 +326,10 @@ namespace Clutch.DeltaModel
         public void DeserializeIgnoredValue(DeserializingContext context, Change change, string reason)
         {
             var res = context.Serializer.Deserialize(context.Reader);
-            Log.Warning($"Deserializing ignored value {change.Path}={res} ({change.Type}), reason:{reason}");
+            if (change != null)
+                Log.Warning($"Deserializing ignored value {change.Path}={res} ({change.Type}), reason:{reason}");
+            else
+                Log.Warning($"Deserializing ignored value, reason:{reason}");
         }
 
         public List<Change> ApplyChanges(ModelClient sourceClient, string changesData)

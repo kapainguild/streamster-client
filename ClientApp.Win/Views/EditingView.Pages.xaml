@@ -1,0 +1,251 @@
+﻿<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                    xmlns:models="clr-namespace:Streamster.ClientCore.Models;assembly=Streamster.ClientCore" 
+                    xmlns:materialDesign="http://materialdesigninxaml.net/winfx/xaml/themes"
+                    xmlns:support="clr-namespace:Streamster.ClientApp.Win.Support" 
+                    xmlns:mah="http://metro.mahapps.com/winfx/xaml/controls">
+
+    <ResourceDictionary.MergedDictionaries>
+        <ResourceDictionary Source="Common.xaml"/>
+        <ResourceDictionary Source="EditingView.Styles.xaml"/>
+        <ResourceDictionary Source="EditingView.Effects.xaml"/>
+        <ResourceDictionary Source="EditingView.Zoom.xaml"/>
+    </ResourceDictionary.MergedDictionaries>
+
+    <Style x:Key="AddItemStyle" TargetType="{x:Type HeaderedContentControl}">
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="{x:Type HeaderedContentControl}">
+                    <StackPanel Margin="10,5,8,5" VerticalAlignment="Center">
+
+                        <ContentPresenter ContentSource="Content" HorizontalAlignment="Center">
+                        </ContentPresenter>
+                        <ContentPresenter ContentSource="Header" HorizontalAlignment="Center">
+                        </ContentPresenter>
+                    </StackPanel>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <Style x:Key="ButtonWithText" TargetType="{x:Type HeaderedContentControl}">
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="{x:Type HeaderedContentControl}">
+                    <StackPanel Orientation="Horizontal">
+                        <ContentPresenter ContentSource="Content"/>
+
+                        <ContentPresenter x:Name="text" Margin="3,0,0,0" ContentSource="Header" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                    </StackPanel>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="Header" Value="{x:Null}">
+                            <Setter TargetName="text" Property="Visibility" Value="Collapsed"/>
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <Style x:Key="AddItemButtonStyle" TargetType="{x:Type Button}" BasedOn="{StaticResource EditingButton}">
+        <Setter Property="Padding" Value="5"/>
+        <Setter Property="Margin" Value="5,0,5,10"/>
+        <Setter Property="Width" Value="130"/>
+        <Setter Property="Height" Value="90"/>
+    </Style>
+
+    <DataTemplate DataType="{x:Type models:AddLayerPage}">
+        <Viewbox StretchDirection="DownOnly" HorizontalAlignment="Left" VerticalAlignment="Top">
+            <StackPanel Orientation="Vertical">
+                <StackPanel Orientation="Horizontal">
+                    <Button Command="{Binding Camera, Converter={StaticResource CommandConverter}}" Height="Auto"
+                    Style="{StaticResource AddItemButtonStyle}">
+                        <HeaderedContentControl Style="{StaticResource AddItemStyle}" Header="Web camera">
+                            <materialDesign:PackIcon Kind="Webcam"  Width="36" Height="36"/>
+                        </HeaderedContentControl>
+                    </Button>
+
+                    <Button Command="{Binding Image, Converter={StaticResource CommandConverter}}" Height="Auto"
+                    Style="{StaticResource AddItemButtonStyle}">
+                        <HeaderedContentControl Style="{StaticResource AddItemStyle}" Header="Image">
+                            <materialDesign:PackIcon Kind="Image"  Width="36" Height="36"/>
+                        </HeaderedContentControl>
+                    </Button>
+
+                    <Button Command="{Binding WebPage, Converter={StaticResource CommandConverter}}" Height="Auto"
+                    Style="{StaticResource AddItemButtonStyle}">
+                        <HeaderedContentControl Style="{StaticResource AddItemStyle}" Header="Web page">
+                            <materialDesign:PackIcon Kind="Web"  Width="36" Height="36"/>
+                        </HeaderedContentControl>
+                    </Button>
+
+                </StackPanel>
+                <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
+                    <Button Command="{Binding CaptureDisplay, Converter={StaticResource CommandConverter}}" Height="Auto"
+                    Style="{StaticResource AddItemButtonStyle}">
+                        <HeaderedContentControl Style="{StaticResource AddItemStyle}" Header="Screen capture">
+                            <materialDesign:PackIcon Kind="Monitor"  Width="36" Height="36"/>
+                        </HeaderedContentControl>
+                    </Button>
+
+                    <Button Command="{Binding CaptureWindow, Converter={StaticResource CommandConverter}}" Height="Auto"
+                    Style="{StaticResource AddItemButtonStyle}">
+                        <HeaderedContentControl Style="{StaticResource AddItemStyle}" Header="Window capture">
+                            <materialDesign:PackIcon Kind="WindowMaximize"  Width="36" Height="36"/>
+                        </HeaderedContentControl>
+                    </Button>
+
+                    <Button x:Name="lovense" Command="{Binding Lovense, Converter={StaticResource CommandConverter}}" Height="Auto"
+                                Style="{StaticResource AddItemButtonStyle}">
+                        <HeaderedContentControl Style="{StaticResource AddItemStyle}" Header="Lovense">
+                            <materialDesign:PackIcon Kind="AlphaLBoxOutline"  Width="36" Height="36"/>
+                        </HeaderedContentControl>
+                    </Button>
+                </StackPanel>
+            </StackPanel>
+        </Viewbox>
+        <DataTemplate.Triggers>
+            <DataTrigger Binding="{Binding LovenseVisible}" Value="false">
+                <Setter  TargetName="lovense" Property="Visibility" Value="Collapsed"/>
+            </DataTrigger>
+        </DataTemplate.Triggers>
+    </DataTemplate>
+
+
+    
+    
+    
+
+    <DataTemplate DataType="{x:Type models:EditLayerPage}">
+        <Border x:Name="root" Margin="-30,-15">
+            <Grid>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="*"/>
+                </Grid.RowDefinitions>
+                <Border Margin="-1,0,0,0" Background="#191919" CornerRadius="0,5,0,0" Grid.RowSpan="2"/>
+                <Border x:Name="marker" Margin="0,0,0,8" Background="#aa0000" Grid.Row="0" HorizontalAlignment="Center"
+                        CornerRadius="0,0,10,10">
+                    <TextBlock Margin="10,3" Text="{Binding Item.SourceIssue.Value}" TextTrimming="CharacterEllipsis"/>
+                </Border>
+                <StackPanel Margin="0,0,35,0" Grid.Row="1" Orientation="Horizontal" HorizontalAlignment="Left" VerticalAlignment="Top">
+
+                    <Button x:Name="settings" Style="{StaticResource TabButton}" Command="{Binding ShowSettings, Converter={StaticResource CommandConverter}}">
+                        <HeaderedContentControl Style="{StaticResource ButtonWithText}" Header="Source">
+                            <materialDesign:PackIcon Kind="Cog" Width="20" Height="20"/>
+                        </HeaderedContentControl>
+                    </Button>
+
+                    <Button x:Name="effects" Style="{StaticResource TabButton}" Command="{Binding ShowEffects, Converter={StaticResource CommandConverter}}">
+                        <HeaderedContentControl Style="{StaticResource ButtonWithText}" Header="Effects">
+                            <materialDesign:PackIcon x:Name="effectsIcon" Margin="0,-1,0,1" Kind="AutoFix" Width="20" Height="20"/>
+                        </HeaderedContentControl>
+                    </Button>
+
+                    <Button x:Name="zoom" Style="{StaticResource TabButton}" Command="{Binding ShowZoom, Converter={StaticResource CommandConverter}}">
+                        <HeaderedContentControl Style="{StaticResource ButtonWithText}" Header="Zoom">
+                            <materialDesign:PackIcon x:Name="zoomIcon" Margin="0,0,-2,0" Kind="Magnify" Width="22" Height="22"/>
+                        </HeaderedContentControl>
+                    </Button>
+
+                    <Border Background="#252525" Width="1" Margin="20,7,20,7"/>
+
+
+                    <Button Margin="0,0,0,0" Command="{Binding Effects.ToggleHFlip, Converter={StaticResource CommandConverter}}"
+                        Style="{StaticResource TabActionButton}"
+                            ToolTip="Flip horizontally">
+                        <HeaderedContentControl x:Name="hflipItem" Style="{StaticResource ButtonWithText}" Header="Flip">
+                            <materialDesign:PackIcon Margin="0,0,1,0" x:Name="hflip" Kind="ReflectHorizontal" RenderTransformOrigin="0.5,0.5"  Width="20" Height="20"/>
+
+                        </HeaderedContentControl>
+                    </Button>
+
+                    <Button IsEnabled="{Binding Item.MoveUp.CanExecute.Value}" Command="{Binding Item.MoveUp.Execute, Converter={StaticResource CommandConverter}}"
+                        Style="{StaticResource TabActionButton}"
+                            ToolTip="Level up or bring the source to front">
+                        <HeaderedContentControl x:Name="upItem" Style="{StaticResource ButtonWithText}" Header="Up">
+                            <materialDesign:PackIcon Kind="ArrowUp" Width="20" Height="20"/>
+                        </HeaderedContentControl>
+                    </Button>
+
+                    <Button IsEnabled="{Binding Item.MoveDown.CanExecute.Value}" Command="{Binding Item.MoveDown.Execute, Converter={StaticResource CommandConverter}}"
+                        Style="{StaticResource TabActionButton}"
+                            ToolTip="Level down or bring the source back">
+                        <HeaderedContentControl x:Name="downItem" Style="{StaticResource ButtonWithText}" Header="Down">
+                            <materialDesign:PackIcon Kind="ArrowDown" Width="24" Height="24"/>
+                        </HeaderedContentControl>
+                    </Button>
+
+                    <Button x:Name="maximize" IsEnabled="{Binding Item.Maximize.CanExecute.Value}" Command="{Binding Item.Maximize.Execute, Converter={StaticResource CommandConverter}}"
+                            ToolTip="Expand the source to fit canvas"
+                        Style="{StaticResource TabActionButton}">
+                        <HeaderedContentControl x:Name="maximizeItem" Style="{StaticResource ButtonWithText}" Header="Maximize">
+                            <materialDesign:PackIcon Kind="Fullscreen"  Width="22" Height="22"/>
+                        </HeaderedContentControl>
+                    </Button>
+
+
+
+                </StackPanel>
+
+                <mah:TransitioningContentControl Grid.Row="2" x:Name="transition" Transition="Normal" Margin="20,10" Focusable="False" Content="{Binding SubPageContent.Value}"/>
+            </Grid>
+        </Border>
+        <DataTemplate.Triggers>
+
+            <DataTrigger Binding="{Binding (support:ResponsiveHost.Calculation).Values.EditingTabsOnlyIcons, ElementName=root}" Value="True">
+                <Setter TargetName="hflipItem" Property="Header" Value="{x:Null}"/>
+                <Setter TargetName="upItem" Property="Header" Value="{x:Null}"/>
+                <Setter TargetName="downItem" Property="Header" Value="{x:Null}"/>
+                <Setter TargetName="maximizeItem" Property="Header" Value="{x:Null}"/>
+            </DataTrigger>
+
+            <DataTrigger Binding="{Binding (support:ResponsiveHost.Calculation).Values.EditingTabsHideMaximize, ElementName=root}" Value="True">
+                <Setter TargetName="maximize" Property="Visibility" Value="Collapsed"/>
+            </DataTrigger>
+
+
+
+            <DataTrigger Binding="{Binding Effects.HFlip.Value}" Value="True">
+                <Setter TargetName="hflip" Property="Foreground" Value="#55dd66"/>
+                <Setter TargetName="hflip" Property="RenderTransform" >
+                    <Setter.Value>
+                        <ScaleTransform ScaleX="-1"/>
+                    </Setter.Value>
+                </Setter>
+            </DataTrigger>
+
+            <DataTrigger Binding="{Binding Effects.AnyActive.Value}" Value="True">
+                <Setter TargetName="effectsIcon" Property="Foreground" Value="#55dd66"/>
+            </DataTrigger>
+
+            <DataTrigger Binding="{Binding Item.Zoom.HasZoom.Value}" Value="True">
+                <Setter TargetName="zoomIcon" Property="Foreground" Value="#55dd66"/>
+            </DataTrigger>
+
+            <DataTrigger Binding="{Binding MoveType.Value}" Value="Right">
+                <Setter TargetName="transition" Property="Transition" Value="Right"/>
+            </DataTrigger>
+            <DataTrigger Binding="{Binding MoveType.Value}" Value="Left">
+                <Setter TargetName="transition" Property="Transition" Value="Left"/>
+            </DataTrigger>
+            
+            <DataTrigger Binding="{Binding Item.SourceIssue.Value}" Value="{x:Null}">
+                <Setter TargetName="marker" Property="Visibility" Value="Collapsed"/>
+            </DataTrigger>
+
+            <DataTrigger Binding="{Binding SubPage.Value}" Value="Settings">
+                <Setter TargetName="settings" Property="IsDefault" Value="True"/>
+            </DataTrigger>
+            <DataTrigger Binding="{Binding SubPage.Value}" Value="Effects">
+                <Setter TargetName="effects" Property="IsDefault" Value="True"/>
+            </DataTrigger>
+            <DataTrigger Binding="{Binding SubPage.Value}" Value="Zoom">
+                <Setter TargetName="zoom" Property="IsDefault" Value="True"/>
+            </DataTrigger>
+            
+        </DataTemplate.Triggers>
+    </DataTemplate>
+
+</ResourceDictionary>

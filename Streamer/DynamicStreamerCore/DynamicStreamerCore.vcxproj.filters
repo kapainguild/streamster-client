@@ -1,0 +1,150 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="Source Files">
+      <UniqueIdentifier>{4FC737F1-C7A5-4376-A066-2A32D752A2FF}</UniqueIdentifier>
+      <Extensions>cpp;c;cc;cxx;c++;cppm;ixx;def;odl;idl;hpj;bat;asm;asmx</Extensions>
+    </Filter>
+    <Filter Include="Header Files">
+      <UniqueIdentifier>{93995380-89BD-4b04-88EB-625FBE52EBFB}</UniqueIdentifier>
+      <Extensions>h;hh;hpp;hxx;h++;hm;inl;inc;ipp;xsd</Extensions>
+    </Filter>
+    <Filter Include="Resource Files">
+      <UniqueIdentifier>{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}</UniqueIdentifier>
+      <Extensions>rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tiff;tif;png;wav;mfcribbon-ms</Extensions>
+    </Filter>
+    <Filter Include="QSV">
+      <UniqueIdentifier>{d4de902d-560b-4ecd-babb-066c98d5abe9}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="QSV\libmfx">
+      <UniqueIdentifier>{d914b702-f8af-44d1-b309-b8e9183ced08}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="framework.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="pch.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="InputContext.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="DecoderContext.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Common.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="FilterContext.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="EncoderContext.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="OutputContext.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="StreamerConstants.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="VideoBlenderContext.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="QSV\common_directx11.h">
+      <Filter>QSV</Filter>
+    </ClInclude>
+    <ClInclude Include="QSV\common_utils.h">
+      <Filter>QSV</Filter>
+    </ClInclude>
+    <ClInclude Include="QSV\QSV_Encoder.h">
+      <Filter>QSV</Filter>
+    </ClInclude>
+    <ClInclude Include="QSV\QSV_Encoder_Internal.h">
+      <Filter>QSV</Filter>
+    </ClInclude>
+    <ClInclude Include="EncoderContextQsvDx.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="dllmain.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="pch.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="InputContext.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="DecoderContext.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Common.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="FilterContext.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="EncoderContext.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="OutputContext.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="VideoBlenderContext.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="QSV\common_directx11.cpp">
+      <Filter>QSV</Filter>
+    </ClCompile>
+    <ClCompile Include="QSV\common_utils.cpp">
+      <Filter>QSV</Filter>
+    </ClCompile>
+    <ClCompile Include="QSV\common_utils_windows.cpp">
+      <Filter>QSV</Filter>
+    </ClCompile>
+    <ClCompile Include="QSV\QSV_Encoder.cpp">
+      <Filter>QSV</Filter>
+    </ClCompile>
+    <ClCompile Include="QSV\QSV_Encoder_Internal.cpp">
+      <Filter>QSV</Filter>
+    </ClCompile>
+    <ClCompile Include="QSV\libmfx\src\main.cpp">
+      <Filter>QSV\libmfx</Filter>
+    </ClCompile>
+    <ClCompile Include="QSV\libmfx\src\mfx_critical_section.cpp">
+      <Filter>QSV\libmfx</Filter>
+    </ClCompile>
+    <ClCompile Include="QSV\libmfx\src\mfx_dispatcher.cpp">
+      <Filter>QSV\libmfx</Filter>
+    </ClCompile>
+    <ClCompile Include="QSV\libmfx\src\mfx_dispatcher_log.cpp">
+      <Filter>QSV\libmfx</Filter>
+    </ClCompile>
+    <ClCompile Include="QSV\libmfx\src\mfx_dxva2_device.cpp">
+      <Filter>QSV\libmfx</Filter>
+    </ClCompile>
+    <ClCompile Include="QSV\libmfx\src\mfx_function_table.cpp">
+      <Filter>QSV\libmfx</Filter>
+    </ClCompile>
+    <ClCompile Include="QSV\libmfx\src\mfx_library_iterator.cpp">
+      <Filter>QSV\libmfx</Filter>
+    </ClCompile>
+    <ClCompile Include="QSV\libmfx\src\mfx_load_dll.cpp">
+      <Filter>QSV\libmfx</Filter>
+    </ClCompile>
+    <ClCompile Include="QSV\libmfx\src\mfx_load_plugin.cpp">
+      <Filter>QSV\libmfx</Filter>
+    </ClCompile>
+    <ClCompile Include="QSV\libmfx\src\mfx_plugin_hive.cpp">
+      <Filter>QSV\libmfx</Filter>
+    </ClCompile>
+    <ClCompile Include="QSV\libmfx\src\mfx_win_reg_key.cpp">
+      <Filter>QSV\libmfx</Filter>
+    </ClCompile>
+    <ClCompile Include="EncoderContextQsvDx.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+  </ItemGroup>
+</Project>

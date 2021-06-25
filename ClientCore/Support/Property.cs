@@ -42,6 +42,8 @@ namespace Streamster.ClientCore
             }
         }
 
+        protected void RaisePropertyChanged(string propertyName) => PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
+
         public void SetValueAsMethod(T value)
         {
             Value = value;

@@ -1,0 +1,220 @@
+﻿<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                    xmlns:models="clr-namespace:Streamster.ClientCore.Models;assembly=Streamster.ClientCore"
+                    xmlns:support="clr-namespace:Streamster.ClientApp.Win.Support" 
+                    xmlns:materialDesign="http://materialdesigninxaml.net/winfx/xaml/themes" 
+                    xmlns:mah="http://metro.mahapps.com/winfx/xaml/controls">
+
+    <ResourceDictionary.MergedDictionaries>
+        <ResourceDictionary Source="Common.xaml"/>
+        <ResourceDictionary Source="/MahApps.Metro;component/Themes/TransitioningContentControl.xaml"/>
+        <ResourceDictionary Source="EditingView.Pages.xaml"/>
+        <ResourceDictionary Source="EditingView.Device.xaml"/>
+        <ResourceDictionary Source="EditingView.WebBrowser.xaml"/>
+        <ResourceDictionary Source="EditingView.Capture.xaml"/>
+        <ResourceDictionary Source="EditingView.Lovense.xaml"/>
+        <ResourceDictionary Source="EditingView.Image.xaml"/>
+    </ResourceDictionary.MergedDictionaries>
+
+   
+
+    <DataTemplate x:Key="BackgroundOfEditing" DataType="{x:Type models:SceneEditingModel}">
+        <Button x:Name="root" OverridesDefaultStyle="True" Visibility="Collapsed" Opacity="0.0" Height="Auto"
+                Command="{Binding Close, Converter={StaticResource CommandConverter}}" Cursor="{x:Null}">
+            <Button.Template>
+                <ControlTemplate>
+                    <Border x:Name="root" Background="Black" />
+                </ControlTemplate>
+            </Button.Template>
+        </Button>
+        <DataTemplate.Triggers>
+            <DataTrigger Binding="{Binding EditingModeDelayedVisibility.Value}" Value="True">
+                <Setter TargetName="root" Property="Visibility" Value="Visible"/>
+            </DataTrigger>
+            <DataTrigger Binding="{Binding EditingMode.Value}" Value="True">
+                <DataTrigger.EnterActions>
+                    <BeginStoryboard>
+                        <Storyboard>
+                            <DoubleAnimation Storyboard.TargetName="root" Storyboard.TargetProperty="Opacity" Duration="0:0:0.3" To="0.75"/>
+                        </Storyboard>
+                    </BeginStoryboard>
+                </DataTrigger.EnterActions>
+
+                <DataTrigger.ExitActions>
+                    <BeginStoryboard>
+                        <Storyboard>
+                            <DoubleAnimation Storyboard.TargetName="root" Storyboard.TargetProperty="Opacity" Duration="0:0:0.3" To="0.0"/>
+                        </Storyboard>
+                    </BeginStoryboard>
+                </DataTrigger.ExitActions>
+            </DataTrigger>
+        </DataTemplate.Triggers>
+        
+    </DataTemplate>
+
+    <Style x:Key="SceneItemButtonStyle" TargetType="Button" BasedOn="{StaticResource EditingButton}">
+        <Setter Property="Margin" Value="0,0"/>
+        <Setter Property="MinHeight" Value="32"/>
+        <Setter Property="Width" Value="260"/>
+        <Setter Property="HorizontalContentAlignment" Value="Left"/>
+    </Style>
+
+    <DataTemplate x:Key="SceneItemLeft" DataType="{x:Type models:SceneItemModel}">
+        <Button x:Name="root" 
+                Style="{StaticResource SceneItemButtonStyle}"
+                IsDefault="{Binding IsSelected.Value}"
+                Command="{Binding Select, Converter={StaticResource CommandConverter}}"
+                Padding="0"
+                HorizontalContentAlignment="Stretch">
+            <DockPanel Margin="0,0,2,0">
+                <Border x:Name="marker" Width="3" DockPanel.Dock="Left" Background="Red"/>
+                <Button x:Name="delete" DockPanel.Dock="Right" Style="{StaticResource MaterialDesignIconForegroundButton}"
+                                        Width="30" Height="30" MinWidth="30"
+                                        ToolTip="Remove level"
+                        Command="{Binding Delete, Converter={StaticResource CommandConverter}}"
+                                        Margin="0">
+                    <materialDesign:PackIcon Kind="TrashCanOutline" Height="24" Width="24" Foreground="#b0b0b0"/>
+                </Button>
+                
+                <ToggleButton x:Name="showHidePreview" DockPanel.Dock="Right" Style="{StaticResource EditingToggleButton}"
+                                      Width="30" Height="30" MinWidth="30"
+                                        ToolTip="Show/hide level"
+                                        Margin="0"
+                                        IsChecked="{Binding Model.Visible}">
+                    <materialDesign:PackIcon Kind="EyeOff" Height="24" Width="24" Foreground="#FF6600"/>
+                    <materialDesign:ToggleButtonAssist.OnContent>
+                        <materialDesign:PackIcon Kind="EyeOutline" Height="24" Width="24" Foreground="#b0b0b0"/>
+                    </materialDesign:ToggleButtonAssist.OnContent>
+                </ToggleButton>
+                
+                <DockPanel Margin="3,0,0,0">
+                    <materialDesign:PackIcon x:Name="icon" DockPanel.Dock="Left" Kind="CircleDouble" Width="24" Height="24" VerticalAlignment="Center"/>
+                    <TextBlock Margin="8,0,0,0" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" Text="{Binding Name.Value}"/>
+                </DockPanel>
+
+            </DockPanel>
+        </Button>
+        <DataTemplate.Triggers>
+            <DataTrigger Binding="{Binding SourceIssue.Value}" Value="{x:Null}">
+                <Setter TargetName="marker" Property="Background" Value="Transparent"/>
+            </DataTrigger>
+            
+            <DataTrigger Binding="{Binding Type}" Value="WebPage">
+                <Setter TargetName="icon" Property="Kind" Value="Web"/>
+            </DataTrigger>
+            <DataTrigger Binding="{Binding Type}" Value="Image">
+                <Setter TargetName="icon" Property="Kind" Value="Image"/>
+            </DataTrigger>
+            <DataTrigger Binding="{Binding Type}" Value="ScreenCapture">
+                <Setter TargetName="icon" Property="Kind" Value="MonitorScreenshot"/>
+            </DataTrigger>
+            <DataTrigger Binding="{Binding Type}" Value="WindowCapture">
+                <Setter TargetName="icon" Property="Kind" Value="WindowMaximize"/>
+            </DataTrigger>
+            <DataTrigger Binding="{Binding Type}" Value="Lovense">
+                <Setter TargetName="icon" Property="Kind" Value="AlphaLCircleOutline"/>
+            </DataTrigger>
+
+        </DataTemplate.Triggers>
+    </DataTemplate>
+
+    <DataTemplate x:Key="MainEditing" DataType="{x:Type models:SceneEditingModel}">
+        <Border Margin="45,0" x:Name="root" Background="#202020" Visibility="Collapsed" Opacity="0.0" CornerRadius="5">
+            <DockPanel>
+                <Border CornerRadius="5,0,0,5" Background="#191919"  DockPanel.Dock="Left" >
+                    <Border x:Name="left" HorizontalAlignment="Left" support:Behaviors.DoubleValue="-1.0" VerticalAlignment="Top">
+                        <Border.RenderTransform>
+                            <TranslateTransform X="0">
+                                <TranslateTransform.Y>
+                                    <MultiBinding Converter="{StaticResource MultiplyConverter}">
+                                        <Binding Path="ActualHeight" ElementName="left"/>
+                                        <Binding Path="(support:Behaviors.DoubleValue)" ElementName="left" />
+                                    </MultiBinding>
+                                </TranslateTransform.Y>
+                            </TranslateTransform>
+                        </Border.RenderTransform>
+
+                        <DockPanel Margin="8,8,6,10">
+                            <Button DockPanel.Dock="Top" x:Name="addLayer" Command="{Binding AddLayer, Converter={StaticResource CommandConverter}}" 
+                                    IsDefault="{Binding AddLayerSelected.Value}"
+                                    HorizontalContentAlignment="Center"
+                                    Margin="0,0,0,6"
+                                    HorizontalAlignment="Center"
+                                    Style="{StaticResource SceneItemButtonStyle}"
+                                    materialDesign:ButtonAssist.CornerRadius="14"
+                                    MinHeight="0"
+                                    Padding="4,2,7,2"
+                                    Width="Auto">
+                                <StackPanel Margin="0,0" Orientation="Horizontal">
+                                    <materialDesign:PackIcon Kind="Plus" Width="24" Height="24"/>
+                                    <TextBlock Margin="5,0" Text="Add layer" VerticalAlignment="Center"/>
+                                </StackPanel>
+                            </Button>
+                            <ScrollViewer HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto">
+                                <ItemsControl ItemsSource="{Binding Items}" ItemTemplate="{StaticResource SceneItemLeft}"/>
+                            </ScrollViewer>
+                        </DockPanel>
+
+                    </Border>
+                </Border>
+                <Grid>
+                    <mah:TransitioningContentControl Margin="30,15" x:Name="transition" Transition="Up" Content="{Binding MainContent.Value}"/>
+
+                    <TextBlock Margin="0,30" x:Name="expandMessage" FontWeight="Normal" Text="Resize application to get full editing experience" Visibility="Collapsed" VerticalAlignment="Center" HorizontalAlignment="Center" TextWrapping="WrapWithOverflow" TextTrimming="CharacterEllipsis"
+                               TextAlignment="Center"/>
+                    
+                    <Button x:Name="close" Margin="0" HorizontalAlignment="Right" VerticalAlignment="Top" Style="{StaticResource MaterialDesignFlatButton}" 
+                        Command="{Binding Close, Converter={StaticResource CommandConverter}}"
+                        ToolTip="Stop editing" Padding="5,0" materialDesign:ButtonAssist.CornerRadius="15">
+                        <materialDesign:PackIcon Kind="Close" Foreground="White" Width="24" Height="24"/>
+                    </Button>
+
+                </Grid>
+            </DockPanel>
+        </Border>
+        <DataTemplate.Triggers>
+
+            <DataTrigger Binding="{Binding (support:ResponsiveHost.Calculation).Values.EditingTooSmall, ElementName=root}" Value="True">
+                <Setter TargetName="expandMessage" Property="Visibility" Value="Visible"/>
+                <Setter TargetName="transition" Property="Visibility" Value="Collapsed"/>
+            </DataTrigger>
+
+            <DataTrigger Binding="{Binding MoveType.Value}" Value="Up">
+                <Setter TargetName="transition" Property="Transition" Value="Up"/>
+            </DataTrigger>
+
+            <DataTrigger Binding="{Binding MoveType.Value}" Value="Down">
+                <Setter TargetName="transition" Property="Transition" Value="Down"/>
+            </DataTrigger>
+
+            <DataTrigger Binding="{Binding MoveType.Value}" Value="Right">
+                <Setter TargetName="transition" Property="Transition" Value="Left"/>
+            </DataTrigger>
+
+
+            <DataTrigger Binding="{Binding EditingModeDelayedVisibility.Value}" Value="True">
+                <Setter TargetName="root" Property="Visibility" Value="Visible"/>
+            </DataTrigger>
+            <DataTrigger Binding="{Binding EditingMode.Value}" Value="True">
+                <DataTrigger.EnterActions>
+                    <BeginStoryboard>
+                        <Storyboard>
+                            <DoubleAnimation Storyboard.TargetName="root" Storyboard.TargetProperty="Opacity" Duration="0:0:0.3" To="1"/>
+                            <DoubleAnimation Storyboard.TargetName="left" Storyboard.TargetProperty="(support:Behaviors.DoubleValue)" Duration="0:0:0.2" To="0.0"/>
+                        </Storyboard>
+                    </BeginStoryboard>
+                </DataTrigger.EnterActions>
+
+                <DataTrigger.ExitActions>
+                    <BeginStoryboard>
+                        <Storyboard>
+                            <DoubleAnimation Storyboard.TargetName="root" Storyboard.TargetProperty="Opacity" Duration="0:0:0.3" To="0.0"/>
+                            <DoubleAnimation Storyboard.TargetName="left" Storyboard.TargetProperty="(support:Behaviors.DoubleValue)" Duration="0:0:0.2" To="-1.0"/>
+                        </Storyboard>
+                    </BeginStoryboard>
+                </DataTrigger.ExitActions>
+            </DataTrigger>
+        </DataTemplate.Triggers>
+    </DataTemplate>
+
+</ResourceDictionary>

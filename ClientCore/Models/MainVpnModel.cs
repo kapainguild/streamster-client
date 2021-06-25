@@ -78,7 +78,7 @@ namespace Streamster.ClientCore.Models
         private void SwitchOn()
         {
             _coreData.ThisDevice.VpnState = VpnState.Connecting;
-            _coreData.ThisDevice.KPIs.Vpn.State = VpnState.Connecting;
+            _coreData.ThisDevice.KPIs.Vpn.State = IndicatorState.Warning;
         }
 
         private void OnStateChanged(VpnRuntimeState runtimeState)
@@ -99,7 +99,13 @@ namespace Streamster.ClientCore.Models
 
             _coreData.ThisDevice.VpnServerIpAddress = runtimeState.ServerIpAddress;
             _coreData.ThisDevice.VpnState = state;
-            _coreData.ThisDevice.KPIs.Vpn.State = state;
+            _coreData.ThisDevice.KPIs.Vpn.State = state switch
+            {
+                VpnState.Connecting => IndicatorState.Warning,
+                VpnState.Reconnecting => IndicatorState.Error,
+                VpnState.Connected => IndicatorState.Ok,
+                _ => IndicatorState.Disabled,
+            };
 
             _coreData.ThisDevice.KPIs.Vpn.Sent = runtimeState.SentKbs;
             _coreData.ThisDevice.KPIs.Vpn.Received = runtimeState.ReceivedKbs;

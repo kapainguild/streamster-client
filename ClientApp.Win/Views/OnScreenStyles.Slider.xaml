@@ -127,12 +127,10 @@
                     <RowDefinition Height="Auto" MinHeight="{TemplateBinding MinHeight}"/>
                     <RowDefinition Height="Auto"/>
                 </Grid.RowDefinitions>
-                <TickBar x:Name="TopTick" Fill="White" Height="4" Margin="0,0,0,2" Placement="Top" Grid.Row="0" Visibility="Collapsed"/>
-                <TickBar x:Name="BottomTick" Fill="White" Height="4" Margin="0,2,0,0" Placement="Bottom" Grid.Row="2" Visibility="Collapsed"/>
                 <Canvas Margin="0,7,0,0" Grid.Row="1" >
-                    <Rectangle x:Name="PART_SelectionRange" Fill="{DynamicResource PrimaryHueMidBrush}" Height="4.0" Visibility="Hidden" />
+                    <Rectangle x:Name="PART_SelectionRange" Fill="Green" Margin="-1,0" Height="4.0" Visibility="Hidden" />
                 </Canvas>
-                <Border Margin="0,5,0,4" Grid.Row="1" Background="White" HorizontalAlignment="Center" Width="1"/>
+                <Border x:Name="tick" Margin="0,5,0,4" Grid.Row="1" Background="White" HorizontalAlignment="Center" Width="1" Visibility="Collapsed"/>
                 <Track x:Name="PART_Track" Grid.Row="1" OpacityMask="{x:Null}">
                     <Track.DecreaseRepeatButton>
                         <RepeatButton Margin="0,0,0,0" Command="{x:Static Slider.DecreaseLarge}" Style="{StaticResource OnScreenHorizontalTrackRepeatButton}" />
@@ -149,15 +147,8 @@
             </Grid>
         </Border>
         <ControlTemplate.Triggers>
-            <Trigger Property="TickPlacement" Value="TopLeft">
-                <Setter Property="Visibility" TargetName="TopTick" Value="Visible"/>
-            </Trigger>
-            <Trigger Property="TickPlacement" Value="BottomRight">
-                <Setter Property="Visibility" TargetName="BottomTick" Value="Visible"/>
-            </Trigger>
             <Trigger Property="TickPlacement" Value="Both">
-                <Setter Property="Visibility" TargetName="TopTick" Value="Visible"/>
-                <Setter Property="Visibility" TargetName="BottomTick" Value="Visible"/>
+                <Setter Property="Visibility" TargetName="tick" Value="Visible"/>
             </Trigger>
             <Trigger Property="IsSelectionRangeEnabled" Value="true">
                 <Setter Property="Visibility" TargetName="PART_SelectionRange" Value="Visible"/>

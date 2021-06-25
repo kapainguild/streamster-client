@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Streamster.ClientCore.Models;
+using System;
 using System.Collections.Generic;
 using System.Text;
 using System.Windows;
@@ -12,8 +13,8 @@ namespace Streamster.ClientApp.Win.Support
             DependencyProperty.RegisterAttached("Calculation", typeof(ResponsiveHostCalculation), typeof(ResponsiveHost), 
                 new FrameworkPropertyMetadata(null, FrameworkPropertyMetadataOptions.Inherits));
 
-        public static readonly DependencyProperty DisplayVideoHiddenProperty =
-            DependencyProperty.Register("DisplayVideoHidden", typeof(bool), typeof(ResponsiveHost), new FrameworkPropertyMetadata(false, FrameworkPropertyMetadataOptions.AffectsMeasure));
+        public static readonly DependencyProperty LayoutTypeProperty =
+            DependencyProperty.Register("LayoutType", typeof(LayoutType), typeof(ResponsiveHost), new FrameworkPropertyMetadata(LayoutType.Standart, FrameworkPropertyMetadataOptions.AffectsMeasure));
 
         public static readonly DependencyProperty ChannelCountProperty =
             DependencyProperty.Register("ChannelCount", typeof(int), typeof(ResponsiveHost), new FrameworkPropertyMetadata(0, FrameworkPropertyMetadataOptions.AffectsMeasure));
@@ -21,10 +22,10 @@ namespace Streamster.ClientApp.Win.Support
         public static ResponsiveHostCalculation GetCalculation(DependencyObject element) => (ResponsiveHostCalculation)element?.GetValue(CalculationProperty);
         public static void SetCalculation(DependencyObject element, ResponsiveHostCalculation value) => element?.SetValue(CalculationProperty, value);
 
-        public bool DisplayVideoHidden
+        public LayoutType LayoutType
         {
-            get => (bool)GetValue(DisplayVideoHiddenProperty);
-            set => SetValue(DisplayVideoHiddenProperty, value);
+            get => (LayoutType)GetValue(LayoutTypeProperty);
+            set => SetValue(LayoutTypeProperty, value);
         }
 
         public int ChannelCount
@@ -46,7 +47,7 @@ namespace Streamster.ClientApp.Win.Support
 
         protected override Size MeasureOverride(Size constraint)
         {
-            var sizes = Snap(Calculate(constraint));
+            var sizes = Snap(AddDerivedValues(Calculate(constraint)));
             var values = Calculate(sizes, constraint);
 
             SetCalculation(this, new ResponsiveHostCalculation
@@ -58,20 +59,51 @@ namespace Streamster.ClientApp.Win.Support
             return base.MeasureOverride(constraint);
         }
 
+        private ResponsiveHostSizes AddDerivedValues(ResponsiveHostSizes sizes)
+        {
+            var main = sizes.main;
+            if (main.Width > 0)
+            {
+                if (main.X != sizes.screenArea.X)
+                {
+                    // horizontal layout
+                    sizes.editing = new Rect(main.X, main.Y + 30, main.Width, main.Height - 30); 
+                }
+                else
+                {
+                    sizes.editing = new Rect(sizes.screen.X, main.Y, sizes.screen.Width, Math.Min(main.Height - 4, 300));
+                }
+            }
+            return sizes;
+        }
+
         private ResponsiveHostValues Calculate(ResponsiveHostSizes sizes, Size constraint)
         {
+            bool rightTwoColumns = sizes.screenSideRight.Width > 105;
             var res = new ResponsiveHostValues
             {
                 HideBitrateTitle = sizes.main.Width < 500,
-                HideBitrate = sizes.main.Width < 300,
+                HideBitrate = sizes.main.Width < 300 || LayoutType == LayoutType.ScreenAndIndicators,
                 IndicatorsHorizontal = sizes.screenSideLeft.Height < HorizontalIndicatorHeight + 1,
-                RightHideInfo = sizes.screenSideLeft.Height < 230 && sizes.screenSideLeft.Width < WideRightWidth - 1,
+                RightTwoColumns = rightTwoColumns,
+                RightHideSettings = rightTwoColumns ?
+                                        sizes.screenSideRight.Height < 250 :
+                                        sizes.screenSideRight.Height < 310,
+                RightHideInfo = rightTwoColumns ?
+                                        sizes.screenSideRight.Height < 250 :
+                                        sizes.screenSideRight.Height < 360,
+                RightHideSliders = sizes.screenSideRight.Height < 250,
                 MainAreaCaptionMargin = sizes.main.Top < HeaderHeight,
-                ScreenFilterHidden = sizes.screen.Width < 615,
-                ScreenFpsHidden = sizes.screen.Width < 515,
-                ScreenResolutionHidden = sizes.screen.Width < 415,
-                HidePromo = constraint.Width < 500 || constraint.Height < 500
+                ScreenSourcesHidden = sizes.screen.Width < 415,
+                ScreenFpsHidden = sizes.screen.Width < 615,
+                ScreenResolutionHidden = sizes.screen.Width < 545,
+                EditingTooSmall = sizes.editing.Width < 690 || sizes.editing.Height < 170,
+
+                EditingTabsHideMaximize = sizes.editing.Width > 860 && sizes.editing.Width < 957,
+                EditingTabsOnlyIcons = sizes.editing.Width <= 860
             };
+
+            res.HidePromo = constraint.Width < 500 || constraint.Height < 500 || sizes.main.Height < 150 || res.HideBitrate;
 
             if (ChannelCount > 0)
             {
@@ -109,13 +141,13 @@ namespace Streamster.ClientApp.Win.Support
                 {
                     res.ChannelWidth = 238;
 
-                    if (mainWidth * mainHeight < 100000)
+                    if (mainWidth * mainHeight < 100000 || mainHeight < 80)
                     {
                         res.ChannelWidth = 104;
                         for (int q = 0; q < 25; q++)
                         {
                             res.ChannelWidth -= 2;
-                            if (ChannelFits(res.ChannelWidth + 12, res.ChannelWidth + 12, mainWidth, mainHeight, count))
+                            if (ChannelFits(res.ChannelWidth + 14, res.ChannelWidth + 14, mainWidth, mainHeight, count))
                                 break;
                         }
                         res.ChannelTemplate = 1;
@@ -137,9 +169,7 @@ namespace Streamster.ClientApp.Win.Support
 
         private ResponsiveHostSizes Calculate(Size a)
         {
-            bool norrow = a.Width < 450;
-
-            if (DisplayVideoHidden)
+            if (LayoutType == LayoutType.NoScreen)
             {
                 bool rightButtonsVisible = a.Width >= 450 && a.Height >= 450;
 
@@ -166,7 +196,63 @@ namespace Streamster.ClientApp.Win.Support
                     };
                 }
             }
+            else if (LayoutType == LayoutType.ScreenOnly)
+            {
+                return PlaceScreenOnly(a);
+            }
+            else if (LayoutType == LayoutType.ScreenAndIndicators)
+            {
+                int minimumMain = 95;
+                var remainingHeight = a.Height - minimumMain - HorizontalIndicatorHeight;
 
+                var width = remainingHeight * ScreenRatio;
+
+                if (width > a.Width) // tall, small width
+                {
+                    var screenHeight = a.Width / ScreenRatio;
+                    var marginY = (remainingHeight - screenHeight) / 2;
+                    return new ResponsiveHostSizes
+                    {
+                        screen = new Rect(0, marginY, a.Width, screenHeight),
+                        screenArea = new Rect(0, 0, a.Width, remainingHeight),
+                        screenSideLeft = new Rect(0, remainingHeight, a.Width, HorizontalIndicatorHeight),
+                        main = new Rect(0, remainingHeight + HorizontalIndicatorHeight, a.Width, minimumMain),
+                    };
+                }
+                else
+                {
+                    // it is rather wide
+                    var screenHeight = a.Height - minimumMain;
+                    var screenWidth = a.Width - 2 * VerticalIndicatorWidth;
+
+                    if (screenWidth / screenHeight > ScreenRatio)
+                    {
+                        var leftRightWidth = (a.Width - screenHeight * ScreenRatio) / 2;
+                        return new ResponsiveHostSizes
+                        {
+                            screen = new Rect(leftRightWidth, 0, screenHeight * ScreenRatio, screenHeight),
+                            screenArea = new Rect(0, 0, a.Width, screenHeight),
+                            screenSideLeft = new Rect(0, 0, leftRightWidth, screenHeight),
+                            screenSideRight = new Rect(leftRightWidth + screenHeight * ScreenRatio, 0, leftRightWidth, screenHeight),
+                            main = new Rect(0, screenHeight, a.Width, minimumMain),
+                        };
+                    }
+                    else
+                    {
+                        var marginY = (screenHeight - screenWidth / ScreenRatio) / 2;
+                        return new ResponsiveHostSizes
+                        {
+                            screen = new Rect(VerticalIndicatorWidth, marginY, screenWidth, screenWidth / ScreenRatio),
+                            screenArea = new Rect(0, 0, a.Width, screenHeight),
+                            screenSideLeft = new Rect(0, 0, VerticalIndicatorWidth, screenHeight),
+                            screenSideRight = new Rect(VerticalIndicatorWidth + screenWidth, 0, VerticalIndicatorWidth, screenHeight),
+                            main = new Rect(0, screenHeight, a.Width, minimumMain),
+                        };
+                    }
+                }
+            }
+
+            bool norrow = a.Width < 450;
             if (norrow)
             {
                 var screenHeight = a.Width / ScreenRatio;
@@ -247,9 +333,11 @@ namespace Streamster.ClientApp.Win.Support
 
                 double mainHeight = remainingForMain;
 
-                if (remainingForMain < MainAreaToScreenRatio * a.Height)
+                var idealForMain = Math.Min(MainAreaToScreenRatio * a.Height, 310);
+
+                if (remainingForMain < idealForMain)
                 {
-                    mainHeight = MainAreaToScreenRatio * a.Height;
+                    mainHeight = idealForMain;
                     screenHeight = a.Height - mainHeight;
                     screenWidth = screenHeight * ScreenRatio;
                     screenSideWidth = (a.Width - screenWidth) / 2;
@@ -306,7 +394,9 @@ namespace Streamster.ClientApp.Win.Support
             screen = Snap(s.screen),
             screenArea = Snap(s.screenArea),
             screenSideLeft = Snap(s.screenSideLeft),
-            screenSideRight = Snap(s.screenSideRight)
+            screenSideRight = Snap(s.screenSideRight),
+            editing = Snap(s.editing)
+
         };
 
         private Rect Snap(Rect r)
@@ -342,9 +432,15 @@ namespace Streamster.ClientApp.Win.Support
 
         public bool RightHideInfo { get; set; }
 
+        public bool RightHideSettings { get; set; }
+
+        public bool RightHideSliders { get; set; }
+
+        public bool RightTwoColumns { get; set; }
+
         public bool MainAreaCaptionMargin { get; set; }
 
-        public bool ScreenFilterHidden { get; internal set; }
+        public bool ScreenSourcesHidden { get; set; }
 
         public bool ScreenFpsHidden { get; internal set; }
 
@@ -355,6 +451,12 @@ namespace Streamster.ClientApp.Win.Support
         public double ChannelWidth { get; internal set; }
 
         public bool HidePromo { get; set; }
+
+        public bool EditingTooSmall { get; set; }
+
+        public bool EditingTabsHideMaximize { get; set; }
+
+        public bool EditingTabsOnlyIcons { get; set; }
     }
 
     public class ResponsiveHostSizes
@@ -364,5 +466,6 @@ namespace Streamster.ClientApp.Win.Support
         public Rect main;
         public Rect screenSideLeft;
         public Rect screenSideRight;
+        public Rect editing;
     }
 }

@@ -42,6 +42,8 @@ namespace Streamster.ClientCore.Models
 
         public Property<bool> Connected { get; } = new Property<bool>();
 
+        public string Version { get; }
+
         public NotificationModel Notifications => _notificationService.Model;
 
         public LoginModel(RootModel root, MainModel main, UpdateModel updateModel, 
@@ -66,6 +68,8 @@ namespace Streamster.ClientCore.Models
             UserName = s.UserName;
             Password = s.Password;
             UserRegistered = s.UserRegistered;
+
+            Version = ClientVersionHelper.GetVersion();
 
             DoLogin = async () => await LoginAsync(true);
             DoAnonymousLogin = async () => await LoginAsync(false);

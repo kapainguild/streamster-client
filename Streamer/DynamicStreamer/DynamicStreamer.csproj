@@ -1,0 +1,68 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>netcoreapp3.1</TargetFramework>
+    <LangVersion>9.0</LangVersion>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|AnyCPU'">
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <None Include="..\DynamicStreamerCore\bin\x64\$(Configuration)\DynamicStreamerCore.dll" Link="DynamicStreamerCore.dll" Visible="False">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Include="..\..\Support\ffmpeg_bin\avcodec-58.dll" Link="avcodec-58.dll" Visible="False">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Include="..\..\Support\ffmpeg_bin\avdevice-58.dll" Link="avdevice-58.dll" Visible="False">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Include="..\..\Support\ffmpeg_bin\avfilter-7.dll" Link="avfilter-7.dll" Visible="False">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Include="..\..\Support\ffmpeg_bin\avformat-58.dll" Link="avformat-58.dll" Visible="False">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Include="..\..\Support\ffmpeg_bin\avutil-56.dll" Link="avutil-56.dll" Visible="False">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Include="..\..\Support\ffmpeg_bin\swresample-3.dll" Link="swresample-3.dll" Visible="False">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Include="..\..\Support\ffmpeg_bin\swscale-5.dll" Link="swscale-5.dll" Visible="False">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Include="..\..\Support\ffmpeg_bin\postproc-55.dll" Link="postproc-55.dll" Visible="False">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Serilog" Version="2.10.0" />
+    <PackageReference Include="SharpDX.D3DCompiler" Version="4.2.0" />
+    <PackageReference Include="SharpDX.Direct2D1" Version="4.2.0" />
+    <PackageReference Include="SharpDX.Direct3D11" Version="4.2.0" />
+    <PackageReference Include="SharpDX.Direct3D9" Version="4.2.0" />
+    <PackageReference Include="SharpDX.Mathematics" Version="4.2.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\DynamicStreamer.Cef\DynamicStreamer.Cef.csproj" />
+    <ProjectReference Include="..\DynamicStreamer.Extension\DynamicStreamer.Extension.csproj" />
+    <ProjectReference Include="..\DynamicStreamer.Screen\DynamicStreamer.Screen.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Folder Include="LUTs\" />
+    <EmbeddedResource Include="Shaders\**\*.*" />
+    <EmbeddedResource Include="LUTs\**\*.*" />
+    
+  </ItemGroup>
+
+</Project>

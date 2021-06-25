@@ -12,10 +12,12 @@ namespace Streamster.ClientData
         public static string LoadBalancerFiles_Versions = "versions";
         public static string LoadBalancerFiles_Targets = "targets";
 
-#if DEBUG_
+#if DEBUG
         public static string[] LoadBalancerServers = new[] { "localhost" };
+        //public static string[] LoadBalancerServers = new[] { "fi3.streamster.io" };
 #else
         public static string[] LoadBalancerServers = new[] { "fi1.streamster.io", "de2.streamster.io", "mo1.streamster.io" };
+        //public static string[] LoadBalancerServers = new[] { "fi3.streamster.io" };
 #endif
 
         public static string AnonymousGrandType = "ano";

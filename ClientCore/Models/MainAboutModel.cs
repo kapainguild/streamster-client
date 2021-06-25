@@ -1,6 +1,7 @@
 ﻿using Serilog;
 using Streamster.ClientCore.Cross;
 using Streamster.ClientCore.Services;
+using Streamster.ClientData;
 using System;
 using System.IO;
 using System.Linq;
@@ -32,7 +33,7 @@ namespace Streamster.ClientCore.Models
             _idService = idService;
             CopyToClipboard = () => DoCopyToClipboard();
 
-            Version = GetVersion();
+            Version = ClientVersionHelper.GetVersion();
 
             var assembly = Assembly.GetExecutingAssembly();
             using (Stream stream = assembly.GetManifestResourceStream("Streamster.ClientCore.LICENSE.txt"))
@@ -67,7 +68,7 @@ namespace Streamster.ClientCore.Models
                     new SystemInfoItem { Name = "OS", Value = System.Runtime.InteropServices.RuntimeInformation.OSDescription},
                     new SystemInfoItem { Name = "Start time UTC", Value = DateTime.UtcNow.ToString()},
                     new SystemInfoItem { Name = "Server", Value = _connectionService.ConnectionServer.Split(':')[0]},
-                    new SystemInfoItem { Name = "App version", Value = GetVersion() },
+                    new SystemInfoItem { Name = "App version", Value = ClientVersionHelper.GetVersion() },
                     new SystemInfoItem { Name = "OBS version", Value =  obs },
                     new SystemInfoItem { Name = "OBS Cam version", Value =  obsCam }
                 }.Where(s => s.Value != null).ToArray();
@@ -79,12 +80,6 @@ namespace Streamster.ClientCore.Models
             {
                 Log.Error(e, "Failed to get system info");
             }
-        }
-
-        private string GetVersion()
-        {
-            var v = Assembly.GetExecutingAssembly().GetName().Version;
-            return $"{v.Major}.{v.Minor}.{v.Build}";
         }
     }
 

@@ -1,4 +1,5 @@
-﻿using Streamster.ClientData.Model;
+﻿using Streamster.ClientCore.Support;
+using Streamster.ClientData.Model;
 using System.Collections.Generic;
 using System.Linq;
 
@@ -15,15 +16,13 @@ namespace Streamster.ClientCore.Models
 
         public IndicatorModelCpu Cpu { get; } = new IndicatorModelCpu() { Name = "CPU load" };
 
-        public IndicatorModelInput Input { get; } = new IndicatorModelInput() { Name = "Audio-video input state" };
-
         public IndicatorModelEncoder Encoder { get; } = new IndicatorModelEncoder() { Name = "Encoder load" };
 
         public IndicatorModelCloudOut CloudOut { get; } = new IndicatorModelCloudOut() { Name = "Stream to cloud state" };
 
         public IndicatorModelCloudOut CloudIn { get; } = new IndicatorModelCloudIn() { Name = "Stream from cloud state" };
 
-        public IndicatorModelRestream Restream { get; } = new IndicatorModelRestream() { Name = "Stream from cloud state" };
+        public IndicatorModelRestream Restream { get; } = new IndicatorModelRestream() { Name = "Restreaming state" };
 
         public IndicatorModelVpn Vpn { get; } = new IndicatorModelVpn();
     }
@@ -42,7 +41,7 @@ namespace Streamster.ClientCore.Models
 
         public virtual void Reset()
         {
-            State.Value = IndicatorState.Unknown;
+            State.Value = IndicatorState.Disabled;
             Value.Value = "";
             DetailedDescription.Value = "Status unknown";
             ChartModel.Clear();
@@ -68,25 +67,19 @@ namespace Streamster.ClientCore.Models
     {
         public Property<ProcessLoad[]> Processes { get; } = new Property<ProcessLoad[]>();
 
-        public AverageIntValue AverageCpu { get; } = new AverageIntValue(3, false);
-
         public override void Reset()
         {
             base.Reset();
             Processes.Value = null;
-            AverageCpu.Clear();
         }
     }
 
     public class IndicatorModelEncoder : IndicatorModelBase
     {
+        public ChartModel OutputFps { get; } = new ChartModel();
     }
 
     public class IndicatorModelInput : IndicatorModelBase
-    {
-    }
-
-    public class IndicatorModelCloudIn : IndicatorModelCloudOut
     {
     }
 
@@ -105,93 +98,14 @@ namespace Streamster.ClientCore.Models
     {
         public Property<string> SmallValue { get; } = new Property<string>();
 
-        public AverageIntValue AverageBitrate { get; } = new AverageIntValue(3, true);
-
         public override void Reset()
         {
             base.Reset();
             SmallValue.Value = null;
-            AverageBitrate.Clear();
         }
     }
 
-    public class AverageIntValue
+    public class IndicatorModelCloudIn : IndicatorModelCloudOut
     {
-        private readonly int _count;
-        private readonly bool _optimistic;
-        private LinkedList<int> _values = new LinkedList<int>();
-
-        public AverageIntValue(int count, bool optimistic)
-        {
-            _count = count;
-            _optimistic = optimistic;
-        }
-
-        public int AddValue(int value)
-        {
-            _values.AddLast(value);
-            if (_values.Count > _count)
-            {
-                _values.RemoveFirst();
-            }
-            return GetAverage();
-        }
-
-        public bool Any() => _values.Count > 0;
-
-        public int GetAverage()
-        {
-            if (_optimistic)
-            {
-                var threshold = (int)(_values.Last.Value * 0.75);
-                int sum = 0;
-                int count = 0;
-                var next = _values.Last;
-                while (next != null && next.Value >= threshold)
-                {
-                    sum += next.Value;
-                    count++;
-                    next = next.Previous;
-                }
-                return sum / count;
-
-            }
-            else return (int)_values.Average();
-        }
-
-        public bool TryGetAverage(out int ave)
-        {
-            if (Any())
-            {
-                ave = GetAverage();
-                return true;
-            }
-            ave = 0;
-            return false;
-        }
-
-        public bool TryGetLast(out int last)
-        {
-            if (Any())
-            {
-                last = _values.Last();
-                return true;
-            }
-            last = 0;
-            return false;
-        }
-
-        public void Clear() => _values.Clear();
     }
-
-
-
-    public enum IndicatorState
-    {
-        Unknown,
-        Ok,
-        Warning,
-        Error
-    }
-
 }

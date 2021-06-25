@@ -2,7 +2,7 @@
                     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
                     xmlns:models="clr-namespace:Streamster.ClientCore.Models;assembly=Streamster.ClientCore"
                     xmlns:support="clr-namespace:Streamster.ClientApp.Win.Support"
-                    xmlns:materialDesign="http://materialdesigninxaml.net/winfx/xaml/themes">
+                    xmlns:materialDesign="http://materialdesigninxaml.net/winfx/xaml/themes" xmlns:controls="clr-namespace:Streamster.ClientApp.Win.Controls">
     <ResourceDictionary.MergedDictionaries>
         <ResourceDictionary Source="BitrateSlider.xaml"/>
     </ResourceDictionary.MergedDictionaries>
@@ -46,7 +46,7 @@
         
     </Style>
 
-    <DataTemplate x:Key="MainViewControls" DataType="{x:Type models:MainStreamerModel}">
+    <DataTemplate x:Key="MainViewControls" DataType="{x:Type models:StreamSettingsModel}">
         <Grid Margin="10,10,10,0" x:Name="root" MaxWidth="700" Background="Transparent">
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="*"/>
@@ -55,9 +55,10 @@
                 <ColumnDefinition Width="Auto"/>
             </Grid.ColumnDefinitions>
             <Border x:Name="bitratePanel" Margin="0,0,0,0" BorderBrush="#808080" Background="#151515" BorderThickness="0" CornerRadius="8">
-                <DockPanel>
-                    <TextBlock x:Name="bitrate" DockPanel.Dock="Left" Margin="10,0,0,0" Text="Bitrate" FontWeight="Normal" FontSize="12" Foreground="#808080" VerticalAlignment="Center"/>
-                    <Slider  Margin="8,7,30,0" Grid.Column="1" Minimum="{Binding MinBitrate}" Maximum="{Binding MaxBitrate}"
+                <controls:ActivatingControl>
+                    <DockPanel>
+                        <TextBlock x:Name="bitrate" DockPanel.Dock="Left" Margin="10,0,0,0" Text="Bitrate" FontWeight="Normal" FontSize="12" Foreground="#808080" VerticalAlignment="Center"/>
+                        <Slider  Margin="8,7,30,0" Grid.Column="1" Minimum="{Binding MinBitrate}" Maximum="{Binding MaxBitrate}"
                                             Value="{Binding CoreData.Settings.Bitrate, Delay=500}"
                                             x:Name="slider"
                                             IsSelectionRangeEnabled="True"
@@ -66,7 +67,8 @@
                                             SelectionStart="{Binding MinBitrate, Mode=OneWay}" SelectionEnd="{Binding ActualBitrate.Value}"
                                             Style="{StaticResource BitrateSlider}"
                                             ToolTip="Move the slider to change bitrate value"/>
-                </DockPanel>
+                    </DockPanel>
+                </controls:ActivatingControl>
             </Border>
 
             <ToggleButton x:Name="startVpn" Margin="10,0,0,0" Grid.Column="1" Style="{StaticResource ControlToggle}"
@@ -103,6 +105,10 @@
 
         <DataTemplate.Triggers>
 
+            <DataTrigger Binding="{Binding CoreData.Settings.StreamingToCloudStarted}" Value="True">
+                <Setter TargetName="startStreaming" Property="ToolTip" Value="Stop streaming to cloud"/>
+            </DataTrigger>
+
             <DataTrigger Binding="{Binding Vpn.IsEnabled}" Value="True">
                 <Setter TargetName="startVpn" Property="Visibility" Value="Visible"/>
             </DataTrigger>
@@ -117,7 +123,13 @@
             <DataTrigger Binding="{Binding ActualBitrateState.Value}" Value="Warning">
                 <Setter TargetName="slider" Property="Background" Value="Orange"></Setter>
             </DataTrigger>
+            <DataTrigger Binding="{Binding ActualBitrateState.Value}" Value="Warning2">
+                <Setter TargetName="slider" Property="Background" Value="Red"></Setter>
+            </DataTrigger>
             <DataTrigger Binding="{Binding ActualBitrateState.Value}" Value="Error">
+                <Setter TargetName="slider" Property="Background" Value="Red"></Setter>
+            </DataTrigger>
+            <DataTrigger Binding="{Binding ActualBitrateState.Value}" Value="Error2">
                 <Setter TargetName="slider" Property="Background" Value="Red"></Setter>
             </DataTrigger>
 
@@ -130,28 +142,6 @@
 
             <DataTrigger Binding="{Binding (support:ResponsiveHost.Calculation).Values.HideBitrate, ElementName=root}" Value="True">
                 <Setter TargetName="root" Property="Visibility" Value="Collapsed"/>
-            </DataTrigger>
-
-            <DataTrigger Binding="{Binding IsMouseOver, ElementName=bitratePanel}" Value="True">
-                <DataTrigger.EnterActions>
-                    <BeginStoryboard>
-                        <Storyboard>
-                            <BooleanAnimationUsingKeyFrames Storyboard.TargetName="slider" Storyboard.TargetProperty="(support:Behaviors.IsActivated)">
-                                <DiscreteBooleanKeyFrame Value="True" KeyTime="0:0:0.10"/>
-                            </BooleanAnimationUsingKeyFrames>
-                        </Storyboard>
-                    </BeginStoryboard>
-                </DataTrigger.EnterActions>
-
-                <DataTrigger.ExitActions>
-                    <BeginStoryboard>
-                        <Storyboard>
-                            <BooleanAnimationUsingKeyFrames Storyboard.TargetName="slider" Storyboard.TargetProperty="(support:Behaviors.IsActivated)">
-                                <DiscreteBooleanKeyFrame Value="False" KeyTime="0:0:5"/>
-                            </BooleanAnimationUsingKeyFrames>
-                        </Storyboard>
-                    </BeginStoryboard>
-                </DataTrigger.ExitActions>
             </DataTrigger>
         </DataTemplate.Triggers>
 

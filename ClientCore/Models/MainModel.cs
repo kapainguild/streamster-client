@@ -20,6 +20,7 @@ namespace Streamster.ClientCore.Models
         private readonly LocalSettingsService _localSettingsService;
         private readonly IUpdateManager _updateManager;
         private readonly IAppResources _appResources;
+        private readonly ResourceService _resourceService;
         private readonly ModelClient _serverClient;
         private readonly IWindowStateManager _windowStateManager;
         private bool _firstPatchReceived;
@@ -34,17 +35,22 @@ namespace Streamster.ClientCore.Models
 
         public RootModel Root { get; }
 
+        public CoreData CoreData => _coreData;
+
         public MainTargetsModel Targets { get; }
 
         public MainSettingsModel Settings { get; }
-
+        public SourcesModel Sources { get; }
+        public StreamSettingsModel StreamSettings { get; }
         public MainStreamerModel Streamer { get; }
 
         public MainIndicatorsModel Indicators { get; }
-
+        public MainVpnModel Vpn { get; }
         public MainAboutModel About { get; }
-
+        public AudioModel Audio { get; }
         public TransientMessageModel TransientMessage { get; }
+
+        public SceneEditingModel SceneEditing { get; }
 
         public Property<bool> Loaded { get; } = new Property<bool>();
 
@@ -55,9 +61,13 @@ namespace Streamster.ClientCore.Models
         public MainModel(RootModel root,
             MainTargetsModel targets,
             MainSettingsModel settings,
+            SourcesModel sources,
+            StreamSettingsModel streamSettings,
             MainStreamerModel streamer,
             MainIndicatorsModel indicators,
+            MainVpnModel vpn,
             MainAboutModel about,
+            AudioModel audio,
             HubConnectionService hubConnectionService,
             IWindowStateManager windowStateManager,
             IAppEnvironment environment,
@@ -66,14 +76,20 @@ namespace Streamster.ClientCore.Models
             LocalSettingsService localSettingsService,
             IUpdateManager updateManager,
             TransientMessageModel transientMessageModel,
-            IAppResources appResources)
+            IAppResources appResources,
+            SceneEditingModel sceneEditingModel,
+            ResourceService resourceService)
         {
             Root = root;
             Targets = targets;
             Settings = settings;
+            Sources = sources;
+            StreamSettings = streamSettings;
             Streamer = streamer;
             Indicators = indicators;
+            Vpn = vpn;
             About = about;
+            Audio = audio;
             _hubConnectionService = hubConnectionService;
             _windowStateManager = windowStateManager;
             _environment = environment;
@@ -83,6 +99,8 @@ namespace Streamster.ClientCore.Models
             _updateManager = updateManager;
             TransientMessage = transientMessageModel;
             _appResources = appResources;
+            SceneEditing = sceneEditingModel;
+            _resourceService = resourceService;
             _serverClient = new ModelClient { Filter = new FilterConfigurator(true).Build() };
             _coreData.GetManager().Register(_serverClient);
             _serverClient.SerializeAndClearChanges();
@@ -100,7 +118,8 @@ namespace Streamster.ClientCore.Models
         private async Task PrepareAsync()
         {
             await TaskHelper.GoToPool().ConfigureAwait(false);
-            await Streamer.PrepareAsync();
+            Streamer.Prepare();
+            await Sources.PrepareAsync();
         }
 
         internal async Task StartAsync()
@@ -108,7 +127,7 @@ namespace Streamster.ClientCore.Models
             _onPatchSubscription?.Dispose();
             _firstPatchTcs = new TaskCompletionSource<bool>();
             var connection = _hubConnectionService.CreateConnection(OnConnectionChanged);
-            _onPatchSubscription = connection.On<ProtocolJsonPatchPayload>(nameof(IConnectionHubClient.JsonPatch), p => OnPatch(p));
+            _onPatchSubscription = connection.On<ProtocolJsonPatchPayload>(nameof(IConnectionHubClient.JsonPatch), p => OnPatchOnMainThread(p));
 
             Log.Information("Connecting to hub");
             await _hubConnectionService.StartConnection();
@@ -141,15 +160,22 @@ namespace Streamster.ClientCore.Models
 
         private async Task InitializeAfterFirstPatchAsync()
         {
+            _resourceService.Start();
             Targets.Start();
-            await Streamer.StartAsync();
+            Sources.Start();
+            SceneEditing.Start();
+            StreamSettings.Start();
+            await Vpn.StartAsync();
+            Streamer.Start();
             Settings.Start();
             About.Start();
             _stateLoggerService.Start();
+            Audio.Start();
         }
 
         public async Task DisplayAsync(Task readyToDisplay, ClientVersion[] upperVersions, string appUpdatePath)
         {
+            Exception failed = null;
             try
             {
                 Log.Information("Waiting for first patch");
@@ -172,8 +198,16 @@ namespace Streamster.ClientCore.Models
             }
             catch (Exception e)
             {
-                await _hubConnectionService.ReleaseConnection(); // TODO??
-                throw new ConnectionServiceException("Application failed to initialize. Please contact administrator.", e);
+                failed = e;
+            }
+
+            if (failed != null)
+            {
+                Log.Error(failed, "Startup failure");
+
+                await Task.Delay(1050); 
+                await _hubConnectionService.ReleaseConnection();
+                throw new ConnectionServiceException("Application failed to initialize. Please contact administrator.", failed);
             }
         }
 
@@ -182,11 +216,13 @@ namespace Streamster.ClientCore.Models
             var (currentVersionInfo, currentVersionString) = ClientVersionHelper.GetCurrent(upperVersions);
 
             bool simulateUpdate = false;
-            string custom = "3.2.0";
+            string custom = "4.0.1";
 
             if (_localSettingsService.Settings.LastRunVerion != currentVersionString || simulateUpdate)
             {
-                if ((_localSettingsService.Settings.NotFirstInstall || _localSettingsService.NoSettingsFileAtLoad == false) && string.IsNullOrEmpty(_appResources.AppData.Domain) || simulateUpdate)
+                if ((_localSettingsService.Settings.NotFirstInstall || _localSettingsService.NoSettingsFileAtLoad == false) && 
+                    _localSettingsService.Settings.LastRunVerion != "4.0.0" &&
+                    string.IsNullOrEmpty(_appResources.AppData.Domain) || simulateUpdate)
                 {
                     string[] standard = string.IsNullOrWhiteSpace(currentVersionInfo?.WhatsNew) ? null :
                         currentVersionInfo.WhatsNew.Split(';').Where(s => !string.IsNullOrWhiteSpace(s)).Select(s => "\u2022 " + s.Trim()).ToArray();
@@ -216,19 +252,27 @@ namespace Streamster.ClientCore.Models
             }
         }
 
-        private Task OnPatch(ProtocolJsonPatchPayload payload)
+        private async Task OnPatchOnMainThread(ProtocolJsonPatchPayload payload)
         {
-            _coreData.RunOnMainThread(() =>
+            if (SynchronizationContext.Current == null)
             {
-                Log.Debug($"{{---{payload.Changes}");
-                if (_firstPatchReceived)
-                    _coreData.GetManager().ApplyChanges(_serverClient, payload.Changes);
-                else if (payload.Reset)
-                    TaskHelper.RunUnawaited(() => OnInitialPatch(payload), "OnPatchMainThread");
-                else
-                    Log.Warning("Fake initial patch");
-            });
-            return Task.CompletedTask;
+                // we are on working thread
+                _coreData.RunOnMainThread(() => { _ = OnPatch(payload); });
+
+            }
+            else
+                await OnPatch(payload);
+        }
+        
+        private async Task OnPatch(ProtocolJsonPatchPayload payload)
+        {
+            Log.Debug($"{{---{payload.Changes}");
+            if (_firstPatchReceived)
+                _coreData.GetManager().ApplyChanges(_serverClient, payload.Changes);
+            else if (payload.Reset)
+                await OnInitialPatch(payload);
+            else
+                Log.Warning("Fake initial patch");
         }
 
         private async Task OnInitialPatch(ProtocolJsonPatchPayload payload)
@@ -238,6 +282,7 @@ namespace Streamster.ClientCore.Models
                 Log.Information($"Initializing with first patch ({payload.Changes?.Length})");
                 await _prepareTask;
 
+                Log.Information("Applying changes"); 
                 // we want to initialize everything in background thread
                 _coreData.GetManager().ApplyChanges(_serverClient, payload.Changes);
                 ProcessSubscriptions();
@@ -255,6 +300,7 @@ namespace Streamster.ClientCore.Models
             }
             catch (Exception e)
             {
+                Log.Error(e, "OnInitialPatch failed");
                 _firstPatchTcs.TrySetException(e);
             }
         }
@@ -268,6 +314,9 @@ namespace Streamster.ClientCore.Models
                 if (SynchronizationContext.Current == null)
                     throw new InvalidOperationException("Change is called on none UI thread");
 #endif
+                if (SynchronizationContext.Current == null)
+                    Log.Warning("ProcessLocalChange from none UI thread");
+
                 if (!_sendInProgress)
                 {
                     _sendInProgress = true;
@@ -324,6 +373,8 @@ namespace Streamster.ClientCore.Models
                     if (SynchronizationContext.Current == null)
                         throw new InvalidOperationException("Change is called on none UI thread");
 #endif
+                    if (SynchronizationContext.Current == null)
+                        Log.Warning("ProcessLocalOrRemoteChange from none UI thread");
 
                     // collect a set of changes
                     await Task.Delay(10);

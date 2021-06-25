@@ -70,23 +70,36 @@
                     </StackPanel>
                 </Border>
 
-                <TextBlock Style="{StaticResource GroupTitle}" Text="Inputs"/>
+                <TextBlock Style="{StaticResource GroupTitle}" Text="Rendering"/>
 
                 <Border Style="{StaticResource GroupBorderStyle}">
                     <StackPanel Orientation="Vertical">
                         <DockPanel>
-                            <ToggleButton Margin="0,0,8,0" DockPanel.Dock="Right" VerticalAlignment="Center" Style="{StaticResource MaterialDesignSwitchToggleButton}"
-                                          IsChecked="{Binding EnableCameraStatusCheck.Value}"/>
-                            <HeaderedContentControl Header="Enable camera status check" 
-                                                Content="Enhanced camera status check during selection of camera. May be switched off if there are issues with camera selection"
+                            <ComboBox Margin="0,0,8,0" DockPanel.Dock="Right" VerticalAlignment="Top" BorderThickness="0"
+                                      ItemsSource="{Binding RendererTypes}" SelectedItem="{Binding CurrentRendererType.Value}" DisplayMemberPath="DisplayName">
+                            </ComboBox>
+                            <HeaderedContentControl Header="Type of renderer" 
+                                                Content="Configured option may impact performance"
                                                 Style="{StaticResource MaterialDesignHeaderedContentControl}"/>
 
                         </DockPanel>
+                        <Border x:Name="hwAdapter1" Background="{DynamicResource MaterialDesignDivider}" Height="1" SnapsToDevicePixels="True" Visibility="Collapsed" />
+                        <DockPanel x:Name="hwAdapter2" Visibility="Collapsed" >
+                            <ComboBox Margin="0,0,8,0" DockPanel.Dock="Right" VerticalAlignment="Top" BorderThickness="0" MaxWidth="210" MinWidth="90"
+                                      ItemsSource="{Binding HardwareAdapters}" SelectedItem="{Binding HardwareAdapter.Value}">
+                            </ComboBox>
+                            <HeaderedContentControl Header="Hardware adapter" 
+                                                Content="Select hardware adapter to be used for rendering"
+                                                Style="{StaticResource MaterialDesignHeaderedContentControl}"/>
+
+                        </DockPanel>
+                        <Border Background="{DynamicResource MaterialDesignDivider}" Height="1" SnapsToDevicePixels="True" />
                         <DockPanel>
-                            <ToggleButton x:Name="enableVideoPreview" ToolTipService.ShowOnDisabled="True"  Margin="0,0,8,0" DockPanel.Dock="Right" VerticalAlignment="Center" Style="{StaticResource MaterialDesignSwitchToggleButton}"
-                                          IsChecked="{Binding EnableVideoPreview.Value}"/>
-                            <HeaderedContentControl Header="Enable camera preview on selection" 
-                                                Content="Display video preview while selecting video source"
+                            <ComboBox Margin="0,0,8,0" DockPanel.Dock="Right" VerticalAlignment="Top" BorderThickness="0"
+                                      ItemsSource="{Binding BlenderTypes}" SelectedItem="{Binding CurrentBlenderType.Value}" DisplayMemberPath="DisplayName">
+                            </ComboBox>
+                            <HeaderedContentControl Header="Type of blender" 
+                                                Content="Determines engine to be used for blending (scaling). Linear is the most performant"
                                                 Style="{StaticResource MaterialDesignHeaderedContentControl}"/>
 
                         </DockPanel>
@@ -159,6 +172,28 @@
                                                 Style="{StaticResource MaterialDesignHeaderedContentControl}"/>
 
                         </DockPanel>
+
+                        <Border Background="{DynamicResource MaterialDesignDivider}" Height="1" SnapsToDevicePixels="True" />
+                        <DockPanel>
+                            <ToggleButton Margin="0,0,8,0" DockPanel.Dock="Right" VerticalAlignment="Center" Style="{StaticResource MaterialDesignSwitchToggleButton}"
+                                          x:Name="nalHdr" ToolTipService.ShowOnDisabled="True" 
+                                          IsChecked="{Binding PreferNalHdr.Value}"/>
+                            <HeaderedContentControl Header="Aggressive CBR" 
+                                                Content="Provides more smooth bitrate, but bitrate changes are handled poorly"
+                                                Style="{StaticResource MaterialDesignHeaderedContentControl}"/>
+
+                        </DockPanel>
+
+                        <Border Background="{DynamicResource MaterialDesignDivider}" Height="1" SnapsToDevicePixels="True" />
+                        <DockPanel>
+                            <ToggleButton Margin="0,0,8,0" DockPanel.Dock="Right" VerticalAlignment="Center" Style="{StaticResource MaterialDesignSwitchToggleButton}"
+                                          x:Name="qsvn12" ToolTipService.ShowOnDisabled="True" 
+                                          IsChecked="{Binding EnableQsvNv12Optimization.Value}"/>
+                            <HeaderedContentControl Header="Enable QSV-N12 optimization" 
+                                                Content="On Intel chipset, provides better performance, but can be less stable"
+                                                Style="{StaticResource MaterialDesignHeaderedContentControl}"/>
+
+                        </DockPanel>
                     </StackPanel>
                 </Border>
 
@@ -192,22 +227,29 @@
         </ScrollViewer>
 
         <DataTemplate.Triggers>
+
+            <DataTrigger Binding="{Binding CurrentRendererType.Value.Value}" Value="HardwareSpecific">
+                <Setter TargetName="hwAdapter1" Property="Visibility" Value="Visible"/>
+                <Setter TargetName="hwAdapter2" Property="Visibility" Value="Visible"/>
+            </DataTrigger>
+            
+            
             <DataTrigger Binding="{Binding UserHasVpn}" Value="False">
                 <Setter TargetName="vpnTitle" Property="Visibility" Value="Collapsed"/>
                 <Setter TargetName="vpnContent" Property="Visibility" Value="Collapsed"/>
             </DataTrigger>
             
-            <DataTrigger Binding="{Binding MainStreamerModel.ChangeStreamParamsDisabled.Value}" Value="True">
+            <DataTrigger Binding="{Binding StreamSettings.ChangeStreamParamsDisabled.Value}" Value="True">
                 <Setter TargetName="encoderQuality" Property="IsEnabled" Value="False"/>
                 <Setter TargetName="encoderQuality" Property="ToolTip" Value="Encoder quality cannot be changed during Restreaming or Recording"/>
                 <Setter TargetName="encoderType" Property="IsEnabled" Value="False"/>
                 <Setter TargetName="encoderType" Property="ToolTip" Value="Encoder type cannot be changed during Restreaming or Recording"/>
+                <Setter TargetName="nalHdr" Property="IsEnabled" Value="False"/> 
+                <Setter TargetName="nalHdr" Property="ToolTip" Value="The option cannot be changed during Restreaming or Recording"/>
+                <Setter TargetName="qsvn12" Property="IsEnabled" Value="False"/>
+                <Setter TargetName="qsvn12" Property="ToolTip" Value="The option cannot be changed during Restreaming or Recording"/>
             </DataTrigger>
 
-            <DataTrigger Binding="{Binding EnableCameraStatusCheck.Value}" Value="False">
-                <Setter TargetName="enableVideoPreview" Property="IsEnabled" Value="False"/>
-                <Setter TargetName="enableVideoPreview" Property="ToolTip" Value="Video preview can be changed only if camera status check is enabled"/>
-            </DataTrigger>
         </DataTemplate.Triggers>
         
     </DataTemplate>

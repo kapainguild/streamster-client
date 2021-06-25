@@ -1,4 +1,5 @@
 ﻿using Streamster.ClientCore.Models;
+using Streamster.ClientData.Model;
 using System.Windows;
 using System.Windows.Controls;
 

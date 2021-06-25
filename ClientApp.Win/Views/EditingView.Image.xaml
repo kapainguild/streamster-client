@@ -1,0 +1,89 @@
+﻿<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                    xmlns:models="clr-namespace:Streamster.ClientCore.Models;assembly=Streamster.ClientCore" 
+                    xmlns:materialDesign="http://materialdesigninxaml.net/winfx/xaml/themes">
+    <ResourceDictionary.MergedDictionaries>
+        <ResourceDictionary Source="Common.xaml"/>
+        <ResourceDictionary Source="EditingView.Styles.xaml"/>
+    </ResourceDictionary.MergedDictionaries>
+
+    <DataTemplate DataType="{x:Type models:ImageModel}">
+        <Button Margin="0,0,5,0" x:Name="button" Command="{Binding Select, Converter={StaticResource CommandConverter}}"
+                BorderThickness="0"
+                MinHeight="80"
+                Padding="0"
+                RenderTransformOrigin="0.5, 0.5" Background="Transparent">
+            <Button.RenderTransform>
+                <ScaleTransform x:Name="scale" ScaleX="1" ScaleY="1"/>
+            </Button.RenderTransform>
+            <Border  Width="100" Height="80" Background="Black">
+                <Grid>
+                    <Image Source="{Binding Data, Converter={StaticResource ImageConverter}}"/>
+                    <Border x:Name="borderMouseOver" BorderThickness="4" BorderBrush="{DynamicResource PrimaryHueMidBrush}" Visibility="Collapsed"/>
+                </Grid>
+            </Border>
+        </Button>
+        <DataTemplate.Triggers>
+            <DataTrigger Binding="{Binding IsMouseOver, ElementName=button}" Value="True">
+                <Setter TargetName="borderMouseOver" Property="Visibility" Value="Visible"/>
+            </DataTrigger>
+        </DataTemplate.Triggers>
+    </DataTemplate>
+
+    <DataTemplate DataType="{x:Type models:ImagePage}">
+        <Grid Margin="0,0,0,0" >
+
+            <DockPanel VerticalAlignment="Top">
+                <Button DockPanel.Dock="Bottom" Margin="0,10,0,0" Content="Select on PC" HorizontalAlignment="Left" Command="{Binding AddFile, Converter={StaticResource OpenFileCommandConverter}, ConverterParameter='Image files (*.png, *.jpg)|*.png;*.jpg'}"/>
+                <Viewbox HorizontalAlignment="Left" Stretch="Uniform" StretchDirection="DownOnly">
+                    <StackPanel Orientation="Horizontal">
+                        <DockPanel x:Name="current" VerticalAlignment="Top" Margin="0,0,15,0">
+                            <TextBlock DockPanel.Dock="Top" Text="Current"/>
+                            <Grid Margin="0,5,0,0" Background="Black" Width="100" Height="80">
+                                <Image x:Name="currentImage" Source="{Binding Current.Value.Data, Converter={StaticResource ImageConverter}}"/>
+                                <TextBlock x:Name="notFound" Text="Not found" VerticalAlignment="Center" HorizontalAlignment="Center" Visibility="Collapsed"/>
+                            </Grid>
+                        </DockPanel>
+
+                        <DockPanel x:Name="recent" >
+                            <TextBlock DockPanel.Dock="Top" Text="Recent"/>
+                            <ItemsControl Margin="0,5,0,0" ItemsSource="{Binding Recent.Value}">
+                                <ItemsControl.ItemsPanel>
+                                    <ItemsPanelTemplate>
+                                        <StackPanel Orientation="Horizontal"/>
+                                    </ItemsPanelTemplate>
+                                </ItemsControl.ItemsPanel>
+                            </ItemsControl>
+                        </DockPanel>
+
+                    </StackPanel>
+                </Viewbox>
+            </DockPanel>
+            <Border x:Name="message" Margin="-5" Background="#202020">
+                <TextBlock  Foreground="#FFAA55"  FontSize="16" HorizontalAlignment="Center" VerticalAlignment="Center" TextWrapping="Wrap" 
+                   TextAlignment="Center"
+                   TextTrimming="CharacterEllipsis" Text="{Binding Message.Value}"/>
+            </Border>
+        </Grid>
+        
+        <DataTemplate.Triggers>
+            <DataTrigger Binding="{Binding Current.Value}" Value="{x:Null}">
+                <Setter TargetName="notFound" Property="Visibility" Value="Visible"/>
+                <Setter TargetName="currentImage" Property="Visibility" Value="Collapsed"/>
+            </DataTrigger>
+
+            <DataTrigger Binding="{Binding Message.Value}" Value="{x:Null}">
+                <Setter TargetName="message" Property="Visibility" Value="Collapsed"/>
+            </DataTrigger>
+
+            <DataTrigger Binding="{Binding Recent.Value.Count}" Value="0">
+                <Setter TargetName="recent" Property="Visibility" Value="Collapsed"/>
+            </DataTrigger>
+
+            <DataTrigger Binding="{Binding Editing}" Value="False">
+                <Setter TargetName="current" Property="Visibility" Value="Collapsed"/>
+            </DataTrigger>
+        </DataTemplate.Triggers>
+    </DataTemplate>
+
+</ResourceDictionary>

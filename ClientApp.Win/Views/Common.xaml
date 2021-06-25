@@ -18,6 +18,12 @@
 
     <support:CloseDialogCommandConverter x:Key="CloseDialogCommandConverter"/>
     <support:DelayedCloseDialogCommandConverter x:Key="DelayedCloseDialogCommandConverter"/>
+    <support:MultiplyConverter x:Key="MultiplyConverter"/>
+    <support:OpenFileCommandConverter x:Key="OpenFileCommandConverter"/>
+    <support:OpenLutCommandConverter x:Key="OpenLutCommandConverter"/>
+    <support:Minimum0 x:Key="Minimum0"/>
+    <support:Maximum0 x:Key="Maximum0"/>
+    
 
     <support:ImageConverter x:Key="ImageConverter"/>
 

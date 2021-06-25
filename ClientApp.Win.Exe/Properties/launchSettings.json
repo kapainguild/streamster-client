@@ -2,7 +2,7 @@
   "profiles": {
     "ClientApp.Win": {
       "commandName": "Project",
-      "nativeDebugging": false
+      "nativeDebugging": true
     }
   }
 }

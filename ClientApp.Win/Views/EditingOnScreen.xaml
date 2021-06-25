@@ -1,0 +1,122 @@
+﻿<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                    xmlns:models="clr-namespace:Streamster.ClientCore.Models;assembly=Streamster.ClientCore"
+                    xmlns:support="clr-namespace:Streamster.ClientApp.Win.Support" 
+                    xmlns:materialDesign="http://materialdesigninxaml.net/winfx/xaml/themes" xmlns:controls="clr-namespace:Streamster.ClientApp.Win.Controls" >
+
+
+    <Style TargetType="{x:Type controls:SceneItemResizeThumb}">
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="{x:Type controls:SceneItemResizeThumb}">
+                    <Border x:Name="root" Width="10" Height="10" CornerRadius="100" 
+                                    BorderBrush="#aa0022" 
+                                    BorderThickness="1" Background="#aa0022">
+
+                    </Border>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsDragging" Value="True">
+                            <Setter TargetName="root" Property="Background" Value="#ffaaee"/>
+                        </Trigger>
+
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter TargetName="root" Property="Background" Value="#ff55aa"/>
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+
+    </Style>
+
+    <DataTemplate x:Key="SceneItemTop" DataType="{x:Type models:SceneItemModel}">
+        <controls:SceneItemControl x:Name="root" Rect="{Binding Rect.Value}" IsThumbsEnabled="{Binding IsSelected.Value}">
+            <controls:SceneItemControl.Content>
+                <Border x:Name="content" BorderBrush="{x:Null}" BorderThickness="2" Margin="-1" >
+                </Border>
+            </controls:SceneItemControl.Content>
+        </controls:SceneItemControl>
+
+        <DataTemplate.Triggers>
+            <DataTrigger Binding="{Binding IsMouseOver.Value}" Value="True">
+                <Setter TargetName="content" Property="BorderBrush" Value="#660066"/>
+            </DataTrigger>
+            <DataTrigger Binding="{Binding IsSelected.Value}" Value="True">
+                <Setter TargetName="content" Property="BorderBrush" Value="#aa0022"/>
+            </DataTrigger>
+        </DataTemplate.Triggers>
+    </DataTemplate>
+
+    <DataTemplate x:Key="SceneItemBottom" DataType="{x:Type models:SceneItemModel}">
+        <Border x:Name="root"/>
+        <DataTemplate.Triggers>
+            <DataTrigger Binding="{Binding IsSelected.Value}" Value="True">
+                <Setter TargetName="root" Property="Background" Value="#332222"/>
+            </DataTrigger>
+        </DataTemplate.Triggers>
+    </DataTemplate>
+
+    <Style x:Key="EditorStyle" TargetType="{x:Type controls:SceneEditor}" >
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="{x:Type controls:SceneEditor}">
+                    <ContentPresenter x:Name="PART_Content" VerticalAlignment="Top" HorizontalAlignment="Center"/>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <DataTemplate x:Key="EditingOnScreen" DataType="{x:Type models:MainModel}">
+
+        <controls:SceneEditor x:Name="root" Margin="0" Style="{StaticResource EditorStyle}">
+            <Grid VerticalAlignment="Top">
+                <Border Margin="-400" x:Name="CatcherOfMouseEventOutside" Background="Transparent" />
+                <ItemsControl ItemsSource="{Binding SceneEditing.Items}" ItemTemplate="{StaticResource SceneItemBottom}">
+                    <ItemsControl.ItemsPanel>
+                        <ItemsPanelTemplate>
+                            <controls:SceneCanvas/>
+                        </ItemsPanelTemplate>
+                    </ItemsControl.ItemsPanel>
+                    <ItemsControl.ItemContainerStyle>
+                        <Style TargetType="ContentPresenter">
+                            <Setter Property="controls:SceneCanvas.Rect" Value="{Binding Rect.Value}" />
+                        </Style>
+                    </ItemsControl.ItemContainerStyle>
+                </ItemsControl>
+
+                <controls:DirectXPresenter VerticalAlignment="Top" x:Name="Preview" Stretch="Uniform" DataContext="{Binding Streamer.ScreenRenderer}" RenderOptions.BitmapScalingMode="LowQuality" />
+
+                <ItemsControl ItemsSource="{Binding SceneEditing.Items}" ItemTemplate="{StaticResource SceneItemTop}">
+                    <ItemsControl.ItemsPanel>
+                        <ItemsPanelTemplate>
+                            <Grid/>
+                        </ItemsPanelTemplate>
+                    </ItemsControl.ItemsPanel>
+                </ItemsControl>
+            </Grid>
+        </controls:SceneEditor>
+
+        <DataTemplate.Triggers>
+            <DataTrigger Binding="{Binding SceneEditing.EditingMode.Value}" Value="True">
+                <DataTrigger.EnterActions>
+                    <BeginStoryboard>
+                        <Storyboard>
+                            <ThicknessAnimation Storyboard.TargetName="root" Storyboard.TargetProperty="Margin" Duration="0:0:0.3" To="45,37,45,0"/>
+                        </Storyboard>
+                    </BeginStoryboard>
+                </DataTrigger.EnterActions>
+
+                <DataTrigger.ExitActions>
+                    <BeginStoryboard>
+                        <Storyboard>
+                            <ThicknessAnimation Storyboard.TargetName="root" Storyboard.TargetProperty="Margin" Duration="0:0:0.3" To="0"/>
+                        </Storyboard>
+                    </BeginStoryboard>
+                </DataTrigger.ExitActions>
+            </DataTrigger>
+        </DataTemplate.Triggers>
+    </DataTemplate>
+    
+    
+
+</ResourceDictionary>

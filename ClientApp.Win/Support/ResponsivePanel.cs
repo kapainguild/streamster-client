@@ -23,6 +23,8 @@ namespace Streamster.ClientApp.Win.Support
             Get(ResponsiveType.ScreenLeftSide).Measure(r.screenSideLeft.Size);
             Get(ResponsiveType.ScreenRightSide).Measure(r.screenSideRight.Size);
             Get(ResponsiveType.MainArea).Measure(r.main.Size);
+            Get(ResponsiveType.MainEditing).Measure(r.main.Size);
+            Get(ResponsiveType.Editing).Measure(r.editing.Size);
 
             return a;
         }
@@ -36,6 +38,9 @@ namespace Streamster.ClientApp.Win.Support
             Get(ResponsiveType.ScreenRightSide).Arrange(r.screenSideRight);
             Get(ResponsiveType.Screen).Arrange(r.screen);
             Get(ResponsiveType.MainArea).Arrange(r.main);
+            Get(ResponsiveType.MainEditing).Arrange(r.main);
+            Get(ResponsiveType.Editing).Arrange(r.editing);
+            
 
             return a;
         }
@@ -60,6 +65,8 @@ namespace Streamster.ClientApp.Win.Support
         ScreenLeftSide,
         ScreenArea,
         MainArea,
+        Editing,
+        MainEditing,
         Notifications,
     }
 }

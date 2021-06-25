@@ -6,32 +6,71 @@ namespace Streamster.ClientCore.Cross
 {
     public interface ILocalVideoSourceManager
     {
-        void Start(Action<IVideoSource> videoDeviceChanged, Action<IVideoSource, VideoInputPreview> previewAvailable);
-
-        void StartObservation();
-
-        void StopObservation();
-
-        Task<IVideoSource[]> RetrieveSourcesListAsync();
-
-        Task<IVideoSource> GetUpdatedVideoSourceAsync(string videoDeviceId);
-
-        void SetRunningSource(string videoDeviceId);
+        Task<LocalVideoSource[]> GetVideoSourcesAsync();
     }
 
-    public interface IBaseSource
+    public class LocalSource
     {
-        string Id { get; }
+        public string Id { get; set; }
 
-        string Name { get; }
+        public string Name { get; set; }
 
-        InputState State { get; }
+        public InputDeviceState State { get; set; }
 
-        InputType Type { get; }
+        public InputDeviceType Type { get; set; }
     }
 
-    public interface IVideoSource : IBaseSource
+    public class LocalVideoSource : LocalSource
     {
-        VideoInputCapability[] Capabilities { get; }
+        public LocalVideoSourceCapability[] Capabilities { get; set; }
+    }
+
+    public class LocalVideoSourceCapability
+    {
+        public int W { get; set; }
+        public int H { get; set; }
+        public double MinF { get; set; }
+        public double MaxF { get; set; }
+        public LocalVideoSourceCapabilityFormat Fmt { get; set; }
+
+        public override bool Equals(object obj)
+        {
+            return obj is LocalVideoSourceCapability capability &&
+                   W == capability.W &&
+                   H == capability.H &&
+                   MinF == capability.MinF &&
+                   MaxF == capability.MaxF &&
+                   Fmt == capability.Fmt;
+        }
+
+        public override int GetHashCode() => W + H + (int)Fmt;
+
+        public override string ToString() => $"{GetFormatStr(Fmt)}.{W}x{H}x{MinF}-{MaxF}";
+
+        private string GetFormatStr(LocalVideoSourceCapabilityFormat fmt)
+        {
+            switch (fmt)
+            {
+                case LocalVideoSourceCapabilityFormat.Raw: return "R";
+                case LocalVideoSourceCapabilityFormat.Empty: return "E";
+                case LocalVideoSourceCapabilityFormat.MJpeg:  return "J";
+                case LocalVideoSourceCapabilityFormat.Unknown: return "?";
+                case LocalVideoSourceCapabilityFormat.H264: return "H264";
+                case LocalVideoSourceCapabilityFormat.I420: return "I420";
+                case LocalVideoSourceCapabilityFormat.NV12: return "NV12";
+            }
+            return "??";
+        }
+    }
+
+    public enum LocalVideoSourceCapabilityFormat
+    {
+        Raw = 0,
+        Empty = 1,
+        MJpeg = 2,
+        Unknown = 3,
+        H264 = 4,
+        I420 = 5,
+        NV12 = 6
     }
 }

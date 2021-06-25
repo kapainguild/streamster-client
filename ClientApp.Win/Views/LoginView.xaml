@@ -125,6 +125,9 @@
                 </Grid>
                 <ContentControl Height="60" VerticalAlignment="Bottom" Focusable="False" Content="{Binding Notifications}"/>
 
+                <TextBlock FontSize="9" FontWeight="Normal" Margin="4,4" Text="{Binding Version}" VerticalAlignment="Bottom" HorizontalAlignment="Right"
+                           Foreground="#01223D"/>
+
                 <Border x:Name="caption" Height="30" VerticalAlignment="Top">
                     <ContentControl HorizontalAlignment="Right" Focusable="False" Content="{Binding Root.WindowStateManager.Model}"/>
                 </Border>

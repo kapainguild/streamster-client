@@ -76,6 +76,14 @@ namespace Streamster.ClientCore
             Settings = Root.Settings;
 
             // precreated data
+            var ds = ThisDevice.DeviceSettings;
+            if (Equals(ds, null))
+            {
+                ds = Create<IDeviceSettings>();
+                ds.DisableTopMost = TopMostModeConverter.GetDisableTopMost(TopMostMode.Manual);
+                ds.TopMostExtendedMode = TopMostModeConverter.GetTopMostExtendedMode(TopMostMode.Manual);
+                ThisDevice.DeviceSettings = ds;
+            }
             _manager.GetOrCreate(() => ThisDevice.DeviceSettings, v => ThisDevice.DeviceSettings = v);
             _manager.GetOrCreate(() => ThisDevice.KPIs, v => ThisDevice.KPIs = v);
             _manager.GetOrCreate(() => ThisDevice.KPIs.Cpu, v => ThisDevice.KPIs.Cpu = v);
@@ -98,15 +106,15 @@ namespace Streamster.ClientCore
                 c.HasLocal((s, m, p) => new ChannelModel(s, p.Get<IAppEnvironment>(), p.Get<CoreData>(), p.Get<MainTargetsModel>()));
             });
 
-            builder.Config<IVideoInput>(c =>
-            {
-                c.HasLocal((s, m, p) => new LocalVideoInputModel(s, this, p.Get<MainSourcesModel>(), p.Get<LocalSettingsService>()));
-            });
+            //builder.Config<IVideoInput>(c =>
+            //{
+            //    c.HasLocal((s, m, p) => new LocalVideoInputModel(s, this, p.Get<MainSourcesModel>(), p.Get<LocalSettingsService>()));
+            //});
 
-            builder.Config<IAudioInput>(c =>
-            {
-                c.HasLocal((s, m, p) => new LocalAudioInputModel(s, this, p.Get<MainSourcesModel>()));
-            });
+            //builder.Config<IAudioInput>(c =>
+            //{
+            //    c.HasLocal((s, m, p) => new LocalAudioInputModel(s, this, p.Get<MainSourcesModel>()));
+            //});
 
             builder.Config<ISettings>(c =>
             {
@@ -118,11 +126,7 @@ namespace Streamster.ClientCore
 
             builder.Config<IIndicatorCloudIn>(c => { c.Property(s => s.Bitrate).DontCompareBeforeSet(); });
             builder.Config<IIndicatorCloudOut>(c => { c.Property(s => s.Bitrate).DontCompareBeforeSet(); });
-            builder.Config<IIndicatorEncoder>(c => 
-            { 
-                c.Property(s => s.InputFps).DontCompareBeforeSet();
-                c.Property(s => s.QueueSize).DontCompareBeforeSet();
-            });
+            builder.Config<IIndicatorEncoder>(c => c.Property(s => s.Data).DontCompareBeforeSet());
 
             builder.Config<IIndicatorVpn>(c => { c.Property(s => s.Sent).DontCompareBeforeSet(); });
             builder.Config<IIndicatorVpn>(c => { c.Property(s => s.Received).DontCompareBeforeSet(); });

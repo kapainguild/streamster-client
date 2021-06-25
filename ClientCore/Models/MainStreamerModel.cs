@@ -1,9 +1,19 @@
-﻿using Serilog;
-using Streamster.ClientCore.Logging;
+﻿using Clutch.DeltaModel;
+using DynamicStreamer;
+using DynamicStreamer.Contexts;
+using DynamicStreamer.Extensions;
+using DynamicStreamer.Extensions.DesktopAudio;
+using DynamicStreamer.Extensions.ScreenCapture;
+using DynamicStreamer.Extensions.WebBrowser;
+using DynamicStreamer.Nodes;
+using DynamicStreamer.Queues;
+using DynamicStreamer.Screen;
+using Serilog;
+using Streamster.ClientCore.Cross;
 using Streamster.ClientCore.Services;
+using Streamster.ClientCore.Support;
 using Streamster.ClientData;
 using Streamster.ClientData.Model;
-using Streamster.DynamicStreamerWrapper;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -12,375 +22,487 @@ using System.Threading.Tasks;
 
 namespace Streamster.ClientCore.Models
 {
-    public class MainStreamerModel
+    public class MainStreamerModel : IAsyncDisposable
     {
-        private const string Eq = "^";
-        private const string Sep = "`";
+        public const string OutputNameRecording = "Recording";
+        public const string OutputNameStreamToCloud = "ToCloud";
+        public static string StatStreamToCloud = $"X{OutputNameStreamToCloud}.";
+        private readonly CoreData _coreData;
+        private readonly SourcesModel _sources;
+        private readonly ResourceService _resourceService;
+        private readonly IAppEnvironment _appEnvironment;
+        private readonly IWindowStateManager _windowStateManager;
+        private readonly AudioModel _audioModel;
+        private readonly StreamerHealthCheck _healthCheck;
+        private HardwareEncoderCheck _hardwareEncoderCheck;
+        private ClientStreamer _mainStreamer;
+        private ClientStreamer _receiverStreamer;
 
+        private string _currentRecordingPath;
+        
+        private StreamerRebuildContext _lastRebuildContext;
 
-        private readonly ConnectionService _connectionService;
-        private readonly RootModel _rootModel;
-        private readonly LogService _logService;
-        private readonly TransientMessageModel _transientMessage;
-        private Streamer _dynamicStreamer = null;
-        private DynamicStreamerState _dynamicStreamerState;
-
-        private Streamer _receiverStreamer = null;
-        private string _receiverStreamerState = null;
-        private bool _statisticsStarted;
-        private bool _promoIsShown;
-        private int _vpnMessage = -1;
-
-        private StreamerLogger _streamerLogger = new StreamerLogger("**");
-
-
-
-        public Resolution[] Resolutions { get; } = new Resolution[]
-        {
-            new Resolution(3840, 2160),
-            new Resolution(2560, 1440),
-            new Resolution(1920, 1080),
-            new Resolution(1280, 720),
-            new Resolution(960, 720),
-            new Resolution(960, 540),
-            new Resolution(640, 360),
-        };
-
-        public int[] FpsList { get; } = new[] { 60, 30, 25, 20, 15, 10 };
-
-        public int MinBitrate { get; } = 800;
-
-        public int MaxBitrate { get; set; }
-
-        public Property<int> ActualBitrate { get; } = new Property<int>();
-
-        public Property<IndicatorState> ActualBitrateState { get; } = new Property<IndicatorState>();
-
-        public CoreData CoreData { get; }
-
-        public MainFiltersModel Filters { get; }
+        private StreamerCachingLogger _streamerLogger = new StreamerCachingLogger("**");
 
         public ScreenRendererModel ScreenRenderer { get; }
 
-        public MainSourcesModel VideoSource { get; }
 
-        public MainVpnModel Vpn { get; }
-
-        public Action<object> SelectResolution { get; }
-
-        public Action<object> SelectFps { get; }
-
-        public Property<string> Promo { get; } = new Property<string>();
-
-        public Property<string> PromoUrl { get; } = new Property<string>();
-
-        public Property<bool> ChangeStreamParamsDisabled { get; } = new Property<bool>();
-
-        public MainStreamerModel(CoreData coreData, MainFiltersModel filters, 
+        public MainStreamerModel(CoreData coreData, 
             ScreenRendererModel screenRenderer, 
-            ConnectionService connectionService, 
-            MainSourcesModel videoSource,
-            RootModel rootModel, 
-            LogService logService, 
-            MainVpnModel vpnModel,
-            TransientMessageModel transientMessage)
+            SourcesModel sources,
+            ResourceService resourceService,
+            IAppEnvironment appEnvironment,
+            IWindowStateManager windowStateManager,
+            AudioModel audioModel)
         {
-            CoreData = coreData;
-            Filters = filters;
+            _coreData = coreData;
+            _sources = sources;
+            _resourceService = resourceService;
+            _appEnvironment = appEnvironment;
+            _windowStateManager = windowStateManager;
+            _audioModel = audioModel;
             ScreenRenderer = screenRenderer;
-            _connectionService = connectionService;
-            VideoSource = videoSource;
-            _rootModel = rootModel;
-            _logService = logService;
-            Vpn = vpnModel;
-            _transientMessage = transientMessage;
-            SelectResolution = o => CoreData.Settings.Resolution = (Resolution)o;
-            SelectFps = o => CoreData.Settings.Fps = (int)o;
 
-            SetActualBitrate(0, IndicatorState.Unknown);
+            _healthCheck = new StreamerHealthCheck(coreData);
+
+            Core.InitOnMain();
         }
 
-        public async Task PrepareAsync()
+        public void Prepare()
         {
-            _dynamicStreamer = new Streamer(_streamerLogger);
-            _dynamicStreamerState = new DynamicStreamerState();
-            await VideoSource.PrepareAsync(this);
+            // this also loads all ffmpeg dlls (av-)
+            Core.Init((severity, pattern, message, exception) =>
+            {
+                //if (message.Contains("Queue input is backward in time"))
+                //{
+                //    int q = 0;
+                //}
+                _streamerLogger.Write(severity, pattern, message, exception);
+            });
+
+            _hardwareEncoderCheck = new HardwareEncoderCheck();
+            _hardwareEncoderCheck.Start();
         }
 
-        internal async Task StartAsync()
+        internal void Start()
         {
-            MaxBitrate = _connectionService.Claims.MaxBitrate;
-            if (CoreData.Settings.StreamingToCloud == StreamingToCloudBehavior.AppStart)
-                CoreData.Settings.StreamingToCloudStarted = true;
+            if (_coreData.Settings.StreamingToCloud == StreamingToCloudBehavior.AppStart)
+                _coreData.Settings.StreamingToCloudStarted = true;
 
-            CoreData.Subscriptions.SubscribeForProperties<ISettings>(s => s.Resolution, (i, c, p) => RefreshStreamer());
-            CoreData.Subscriptions.SubscribeForProperties<ISettings>(s => s.Fps, (i, c, p) => RefreshStreamer());
-            CoreData.Subscriptions.SubscribeForProperties<ISettings>(s => s.SelectedVideo, (i, c, p) => RefreshStreamer());
-            CoreData.Subscriptions.SubscribeForProperties<ISettings>(s => s.SelectedAudio, (i, c, p) => RefreshStreamer());
-            CoreData.Subscriptions.SubscribeForProperties<ISettings>(s => s.Bitrate, (i, c, p) =>
+            _coreData.Subscriptions.SubscribeForProperties<IChannel>(s => s.IsOn, (i, c, p) =>
             {
-                RefreshStreamer();
-                RefreshPromo();
-            });
-            CoreData.Subscriptions.SubscribeForProperties<ISettings>(s => s.EncoderType, (i, c, p) => RefreshStreamer());
-            CoreData.Subscriptions.SubscribeForProperties<ISettings>(s => s.EncoderQuality, (i, c, p) => RefreshStreamer());
-            CoreData.Subscriptions.SubscribeForProperties<ISettings>(s => s.StreamingToCloudStarted, (i, c, p) => RefreshStreamer());
-            CoreData.Subscriptions.SubscribeForProperties<ISettings>(s => s.NoStreamWithoutVpn, (i, c, p) => RefreshStreamer());
-            CoreData.Subscriptions.SubscribeForProperties<ISettings>(s => s.IsRecordingRequested, (i, c, p) =>
-            {
-                RefreshControls();
-                RefreshStreamer();
+                if (_coreData.Settings.StreamingToCloud == StreamingToCloudBehavior.FirstChannel && i.IsOn && _coreData.Root.Channels.Values.Count(e => e.IsOn) == 1)
+                    _coreData.Settings.StreamingToCloudStarted = true;
             });
 
-            CoreData.Subscriptions.SubscribeForProperties<IVideoInput>(s => s.Filters, (i, c, p) => RefreshStreamer());
-            CoreData.Subscriptions.SubscribeForProperties<IIngest>(s => s.Data, (i, c, p) => RefreshStreamer());
-            CoreData.Subscriptions.SubscribeForProperties<IDevice>(s => s.AssignedOutgest, (i, c, p) => RefreshStreamer());
-            CoreData.Subscriptions.SubscribeForProperties<IDevice>(s => s.VpnState, (i, c, p) => RefreshStreamer());
-            CoreData.Subscriptions.SubscribeForProperties<IDevice>(s => s.VpnServerIpAddress, (i, c, p) => RefreshStreamer());
-            CoreData.Subscriptions.SubscribeForProperties<IChannel>(s => s.IsOn, (i, c, p) =>
-            {
-                RefreshControls();
-                if (CoreData.Settings.StreamingToCloud == StreamingToCloudBehavior.FirstChannel && i.IsOn && CoreData.Root.Channels.Values.Count(e => e.IsOn) == 1)
-                    CoreData.Settings.StreamingToCloudStarted = true;
-            });
+            _coreData.Subscriptions.SubscribeForProperties<ISettings>(s => s.Resolution, RefreshStreamer);
+            _coreData.Subscriptions.SubscribeForProperties<ISettings>(s => s.Fps, RefreshStreamer);
+            _coreData.Subscriptions.SubscribeForProperties<ISettings>(s => s.Bitrate, RefreshStreamer);
+            _coreData.Subscriptions.SubscribeForProperties<ISettings>(s => s.EncoderType, RefreshStreamer);
+            _coreData.Subscriptions.SubscribeForProperties<ISettings>(s => s.EncoderQuality, RefreshStreamer);
+            _coreData.Subscriptions.SubscribeForProperties<ISettings>(s => s.StreamingToCloudStarted, RefreshStreamer);
+            _coreData.Subscriptions.SubscribeForProperties<ISettings>(s => s.NoStreamWithoutVpn, RefreshStreamer);
+            _coreData.Subscriptions.SubscribeForProperties<ISettings>(s => s.IsRecordingRequested, RefreshStreamer);
+            _coreData.Subscriptions.SubscribeForProperties<ISettings>(s => s.SelectedScene, RefreshStreamer);
+            _coreData.Subscriptions.SubscribeForProperties<ISettings>(s => s.PreferNalHdr, RefreshStreamer);
+            _coreData.Subscriptions.SubscribeForProperties<ISettings>(s => s.DisableQsvNv12Optimization, RefreshStreamer);
 
-            VideoSource.Start();
-            ScreenRenderer.SetStreamer(_dynamicStreamer, true);
-            ScreenRenderer.Start();
+            _coreData.Subscriptions.SubscribeForProperties<IDeviceSettings>(s => s.RendererType, RefreshStreamer);
+            _coreData.Subscriptions.SubscribeForProperties<IDeviceSettings>(s => s.BlenderType, RefreshStreamer);
+            _coreData.Subscriptions.SubscribeForProperties<IDeviceSettings>(s => s.RendererAdapter, RefreshStreamer);
 
-            await Vpn.StartAsync();
+            _coreData.Subscriptions.SubscribeForAnyProperty<ISceneItem>((i, c, _, _) => RefreshStreamer());
+            _coreData.Subscriptions.SubscribeForAnyProperty<ISceneAudio>((i, c, _, _) => RefreshStreamer());
 
-            RefreshPromo();
+            _coreData.Subscriptions.SubscribeForProperties<IIngest>(s => s.Data, RefreshStreamer);
+            _coreData.Subscriptions.SubscribeForProperties<IDevice>(s => s.AssignedOutgest, RefreshStreamer);
+            _coreData.Subscriptions.SubscribeForProperties<IDevice>(s => s.VpnState, RefreshStreamer);
+            _coreData.Subscriptions.SubscribeForProperties<IDevice>(s => s.VpnServerIpAddress, RefreshStreamer);
+
+            ScreenRenderer.OnChanged = () => RefreshStreamer();
+
             RefreshStreamer();
+
+            TaskHelper.RunUnawaited(CollectStatisticsRoutine(), "CollectStatistics");
         }
 
-        private void RefreshControls()
-        {
-            ChangeStreamParamsDisabled.Value = CoreData.Settings.IsRecordingRequested || CoreData.Root.Channels.Values.Any(s => s.IsOn);
-        }
-
-        private void RefreshPromo()
-        {
-            if (!_promoIsShown && CoreData.Settings.Bitrate == MaxBitrate && MaxBitrate < 16000)
-            {
-                _promoIsShown = true;
-                Promo.Value = MaxBitrate == 4000 ? "Get more bitrate after registration" : "Upgate you plan to get more bitrate";
-                PromoUrl.Value = MaxBitrate == 4000 ? _rootModel.AppData.RegisterUrl : _rootModel.AppData.PricingUrl;
-                TaskHelper.RunUnawaited(async () =>
-                {
-                    await Task.Delay(8000);
-                    Promo.Value = null;
-                }, "Show promo");
-            }
-        }
+        private void RefreshStreamer<T>(T i, ChangeType c, string p) => RefreshStreamer();
 
         public void RefreshStreamer()
         {
-            if (!VideoSource.IsReady())
+            var settings = _coreData.Root.Settings;
+
+            if (settings.SelectedScene == null || !_coreData.Root.Scenes.TryGetValue(settings.SelectedScene, out var scene))
             {
-                Log.Warning("Video source is not yet ready");
+                Log.Warning($"Bad scene '{settings.SelectedScene}'");
                 return;
-            }
-
-            var settings = CoreData.Root.Settings;
-
-            if (settings.SelectedVideo == null || !CoreData.Root.VideoInputs.TryGetValue(settings.SelectedVideo, out var videoInput))
-            {
-                Log.Warning($"Bad video source '{settings.SelectedVideo}'");
-                return;
-            }
-
-            if (videoInput.Capabilities?.Caps == null || videoInput.Capabilities.Caps.Length == 0)
-            {
-                Log.Warning($"Bad video capabilities '{settings.SelectedVideo}'");
-                return;
-            }
-
-            if (settings.SelectedAudio == null || !CoreData.Root.AudioInputs.TryGetValue(settings.SelectedAudio, out var audioInput))
-            {
-                Log.Warning($"Bad audio source '{settings.SelectedAudio}'");
-                return;
-            }
-
-            if (!_statisticsStarted)
-            {
-                _statisticsStarted = true;
-                TaskHelper.RunUnawaited(CollectStatisticsRoutine(), "CollectStatistics");
             }
 
             // shutdown
-            if (videoInput.Owner == CoreData.ThisDeviceId)
+            if (scene.Owner == _coreData.ThisDeviceId)
             {
-                if (CoreData.ThisDevice.RequireOutgest)
+                if (_coreData.ThisDevice.RequireOutgest)
                 {
                     Log.Information("Withdrawing outgest");
-                    CoreData.ThisDevice.RequireOutgest = false;
+                    _coreData.ThisDevice.RequireOutgest = false;
                 }
 
-                if (_receiverStreamerState != null)
+                if (_receiverStreamer != null)
                 {
-                    Log.Information("Closing outgest streamer");
-                    ScreenRenderer.SetStreamer(null, true);
-                    _receiverStreamer.Shutdown();
+                    ShutdownStreamer(_receiverStreamer, "receiving streamer");
                     _receiverStreamer = null;
-                    _receiverStreamerState = null;
                 }
             }
             else
             {
                 
-                if (_dynamicStreamerState != null)
+                if (_mainStreamer != null)
                 {
-                    ScreenRenderer.SetStreamer(null, false);
-                    _dynamicStreamer.Shutdown();
-                    _dynamicStreamer = null;
-                    _dynamicStreamerState = null;
+                    ShutdownStreamer(_mainStreamer, "main streamer");
+                    _mainStreamer = null;
                 }
             }
 
             // start
-            if (videoInput.Owner == CoreData.ThisDeviceId)
+            if (scene.Owner == _coreData.ThisDeviceId)
             {
-                if (_dynamicStreamerState == null)
-                    _dynamicStreamerState = new DynamicStreamerState();
+                if (_mainStreamer == null)
+                    _mainStreamer = new ClientStreamer("main", _hardwareEncoderCheck);
 
-                if (_dynamicStreamer == null)
+                _mainStreamer.StartUpdate(RebuildMainStreamerConfig(scene, _mainStreamer.GetDxFailureCounter()));
+            }
+            else
+            {
+                if (!_coreData.ThisDevice.RequireOutgest)
                 {
-                    _dynamicStreamer = new Streamer(_streamerLogger);
-                    ScreenRenderer.SetStreamer(_dynamicStreamer, true);
+                    Log.Information("Requesting outgest");
+                    _coreData.ThisDevice.RequireOutgestType = RequireOutgestType.Tcp;
+                    _coreData.ThisDevice.RequireOutgest = true;
                 }
 
-                var filterSpec = Filters.GetFiltersSpec(videoInput.Filters);
-                var resolution = settings.Resolution;
-                var fps = settings.Fps;
-                var capability = FindBestCapability(videoInput, fps, resolution, filterSpec);
-                var inputFps = GetInputFps(capability, fps);
+                if (_receiverStreamer == null)
+                    _receiverStreamer = new ClientStreamer("main", _hardwareEncoderCheck);
 
-                //input
-                var inputConfig = GetInputConfig(videoInput.Name, capability, inputFps, audioInput.Name);
-                string inputHash = $"{inputConfig.input}, {inputConfig.options}, {fps}, {resolution}";
-                if (inputHash != _dynamicStreamerState.Input)
+                _receiverStreamer.StartUpdate(GetReceiverStreamerConfig(_receiverStreamer.GetDxFailureCounter()));
+            }
+        }
+
+        private void ShutdownStreamer(ClientStreamer streamer, string info)
+        {
+            Log.Information($"Shutting down: {info}");
+            streamer.StopFrameProcessing();
+            streamer.BlockingUpdate(new ClientStreamerConfig(null, null, null, null, null, null, 0.0, Disposing: true));
+            streamer.Dispose();
+            Log.Information($"Shut down: {info}");
+        }
+
+        private ClientStreamerConfig GetReceiverStreamerConfig(int dxFailureCounter)
+        {
+            var outgestId = _coreData.ThisDevice.AssignedOutgest;
+            VideoInputTrunkConfig[] inputs = new VideoInputTrunkConfig[0];
+            if (outgestId != null && _coreData.Root.Outgests.TryGetValue(outgestId, out var outgest))
+            {
+                var outgestUrl = GetIngestOutgestUrl(outgest.Data.Output);
+                inputs = new[] { new VideoInputTrunkConfig("0", new VideoInputConfigFull(
+                    new InputSetup(outgest.Data.Type, outgestUrl, outgest.Data.Options, null, null, null, 2)), 
+                    null, PositionRect.Full, PositionRect.Full, true, 0) };
+            }
+
+            return new ClientStreamerConfig(
+                    inputs,
+                    new AudioInputTrunkConfig[0],
+                    RebuildVideoEncoder(0, true),
+                    RebuildVideoRenderOptions(dxFailureCounter),
+                    new AudioEncoderTrunkConfig(0, 0, 0.0, null),
+                    new OutputTrunkConfig[0],
+                    BitrateDrcRatio: 1.0,
+                    Disposing: false
+                );
+        }
+
+        private ClientStreamerConfig RebuildMainStreamerConfig(IScene scene, int dxFailureCounter)
+        {
+            int bitrate = _coreData.Settings.Bitrate;
+            int audioBitrate = Math.Max(Math.Min(bitrate / 14, 224), 50); // 50..224
+            int videoBitrate = bitrate - audioBitrate;
+
+            var rebuildContext = new StreamerRebuildContext();
+
+            var result = new ClientStreamerConfig
+            (
+                scene.Items.Select(s => RebuildSceneVideo(s.Key, s.Value, rebuildContext)).ToArray(),
+                scene.Audios.Select(s => RebuildSceneAudio(s.Key, s.Value, rebuildContext)).Where(s => s != null).ToArray(),
+
+                RebuildVideoEncoder(videoBitrate, false),
+                RebuildVideoRenderOptions(dxFailureCounter), 
+                RebuildAudioEncoder(audioBitrate),
+                new[] { RebuildStreamingOutput(), RebuildRecordingOutput() }.Where(s => s != null).ToArray(),
+
+                BitrateDrcRatio: 1.0,
+                Disposing: false
+            );
+
+            _lastRebuildContext = rebuildContext;
+            return result;
+        }
+
+        private OutputTrunkConfig RebuildStreamingOutput()
+        {
+            var ingest = _coreData.Root.Ingests.Values.FirstOrDefault();
+            bool startStream = ShouldStartStream();
+
+            if (startStream && ingest != null)
+            {
+                var ingestUrl = GetIngestOutgestUrl(ingest.Data.Output);
+
+                return new OutputTrunkConfig(OutputNameStreamToCloud, new OutputSetup { 
+                    Type = ingest.Data.Type, 
+                    Output = ingestUrl, 
+                    Options = ingest.Data.Options 
+                }, true);
+            }
+            return null;
+        }
+
+        private OutputTrunkConfig RebuildRecordingOutput()
+        {
+            if (_coreData.Settings.IsRecordingRequested)
+            {
+                if (MainSettingsModel.IsValidRecordingPath(_coreData.ThisDevice.DeviceSettings.RecordingsPath))
                 {
-                    Log.Information($"Input Init('{inputHash}')");
-                    _dynamicStreamer.SetInput("dshow", inputConfig.input, inputConfig.options, fps, resolution.Width, resolution.Height);
-                    _dynamicStreamerState.Input = inputHash;
-                    _dynamicStreamerState.InputFps = inputFps;
+                    var now = DateTime.Now;
+                    _currentRecordingPath ??= Path.Combine(_coreData.ThisDevice.DeviceSettings.RecordingsPath, now.ToString("yyy_MM_dd__HH_mm_ss") + ".flv");
+                    string output = _currentRecordingPath;
+                    return new OutputTrunkConfig(OutputNameRecording, new OutputSetup
+                    {
+                        Type = "flv",
+                        Output = output,
+                        Options = ""
+                    }, true);
                 }
+                else Log.Warning($"Bad folder for recorrding: {_coreData.ThisDevice.DeviceSettings.RecordingsPath}");
+            }
+            else
+                _currentRecordingPath = null;
+            return null;
+        }
 
-                // filter
-                string filterConfig = GetFilterConfig(fps, inputFps, capability, resolution, filterSpec);
-                if (filterConfig != _dynamicStreamerState.Filter)
+        private AudioEncoderTrunkConfig RebuildAudioEncoder(int audioBitrate)
+        {
+            return new AudioEncoderTrunkConfig(audioBitrate, 44100, 0.0, d => OnAudioFrame(null, d));
+        }
+
+        private VideoRenderOptions RebuildVideoRenderOptions(int dxFailureCounter)
+        {
+            return new VideoRenderOptions(ModelToStreamerTranslator.Translate(_coreData.ThisDevice.DeviceSettings.RendererType), _coreData.ThisDevice.DeviceSettings.RendererAdapter, _windowStateManager.WindowHandle, true, dxFailureCounter);
+        }
+
+        private VideoEncoderTrunkConfig RebuildVideoEncoder(int videoBitrate, bool receiverMode)
+        {
+            Action<FrameOutputData> onUiFrame = null;
+            if (ScreenRenderer.IsEnabled.Value)
+                onUiFrame = ScreenRenderer.OnFrame;
+
+            var settings = _coreData.Settings;
+            var resolution = settings.Resolution;
+            return new VideoEncoderTrunkConfig(receiverMode, new EncoderSpec { width = resolution.Width, height = resolution.Height, Quality = ModelToStreamerTranslator.Translate(settings.EncoderQuality) },
+                                                ModelToStreamerTranslator.Translate(settings.EncoderType),
+                                                ModelToStreamerTranslator.Translate(settings.EncoderQuality),
+                                                settings.PreferNalHdr,
+                                                !settings.DisableQsvNv12Optimization,
+                                                videoBitrate,
+                                                settings.Fps,
+                                                ModelToStreamerTranslator.Translate(_coreData.ThisDevice.DeviceSettings.BlenderType), 
+                                                null, //CreateVideoFilter(VideoFilterAll.Value), - no global filter supported so far
+                                                onUiFrame,
+                                                new FixedFrameData(nameof(StaticResources.Background), StaticResources.Background, SingleFrameType.Png),
+                                                new FixedFrameData(nameof(StaticResources.NoSignal), StaticResources.NoSignal, SingleFrameType.Png));
+        }
+
+        private AudioInputTrunkConfig RebuildSceneAudio(string id, ISceneAudio s, StreamerRebuildContext rebuildContext)
+        {
+            rebuildContext.SetAudioSource(id, s.Source);
+            var level = s.Muted ? -1000.0 : s.Volume;
+
+            if (s.Source == null)
+            {
+                rebuildContext.AddAudio(id, InputIssueDesc.NoAudioSelected);
+                Log.Warning($"Audio source is null for '{id}'");
+                return null;
+            }
+            else if (s.Source.DesktopAudio)
+            {
+                return new AudioInputTrunkConfig(id, new InputSetup(DesktopAudioContext.Name, String.Empty), level, f => OnAudioFrame(id, f));
+            }
+            else if (s.Source.DeviceName != null)
+            {
+                var device = _sources.GetLocalAudioDevice(s.Source.DeviceName);
+                if (device != null)
                 {
-                    Log.Information($"SetFilter('{filterConfig}')");
-                    _dynamicStreamer.SetFilter(filterConfig);
-                    _dynamicStreamerState.Filter = filterConfig;
-                }
-
-                // encoder
-                GetEncoderConfig(settings.Bitrate, fps, out int videoMaxBitrate, out int audioMaxBitrate,
-                                                 out var videoCodec, out var videoOptions, out var videoCodecFallback, out var videoOptionsFallback);
-
-                string encoderHash = $"{videoCodec}, {videoOptions}, {videoMaxBitrate}, {audioMaxBitrate}";
-
-                if (encoderHash != _dynamicStreamerState.Encoder)
-                {
-                    Log.Information($"Encoder Init({encoderHash})");
-                    _dynamicStreamer.SetEncoder(videoCodec, videoOptions, videoCodecFallback, videoOptionsFallback, videoMaxBitrate, "aac", "", audioMaxBitrate);
-                    _dynamicStreamerState.Encoder = encoderHash;
-                }
-
-                // streaming output
-                var ingest = CoreData.Root.Ingests.Values.FirstOrDefault();
-
-                bool startStream = ShouldStartStream();
-
-                if (ingest == null || !startStream) // remove
-                {
-                    if (_dynamicStreamerState.StreamingOutputId != -1)
-                        _dynamicStreamer.RemoveOutput(_dynamicStreamerState.StreamingOutputId);
-                    _dynamicStreamerState.StreamingOutputId = -1;
-                    _dynamicStreamerState.StreamingOutput = string.Empty;
+                    var opts = DShowOptionsSelector.GetAudioOptions(device);
+                    return new AudioInputTrunkConfig(id, new InputSetup("dshow", $"audio={device.Name}", opts), level, f => OnAudioFrame(id, f));
                 }
                 else
                 {
-                    var ingestUrl = GetIngestOutgestUrl(ingest.Data.Output);
-
-                    string ingestHash = $"{ingest.Data.Type}, {ingestUrl}, {ingest.Data.Options}";
-                    if (_dynamicStreamerState.StreamingOutputId == -1) // add
-                    {
-                        Log.Information($"Start Streaming ({ingestHash})");
-                        _dynamicStreamerState.StreamingOutputId = _dynamicStreamer.AddOutput(ingest.Data.Type, ingestUrl, ingest.Data.Options);
-                        _dynamicStreamerState.StreamingOutput = ingestHash;
-                    }
-                    else if (ingestHash != _dynamicStreamerState.StreamingOutput) // update
-                    {
-                        Log.Information($"Update Streaming ({ingestHash})");
-                        _dynamicStreamer.RemoveOutput(_dynamicStreamerState.StreamingOutputId);
-                        _dynamicStreamerState.StreamingOutputId = _dynamicStreamer.AddOutput(ingest.Data.Type, ingestUrl, ingest.Data.Options);
-                        _dynamicStreamerState.StreamingOutput = ingestHash;
-                    }
-                }
-
-                bool recording = CoreData.Settings.IsRecordingRequested;
-
-                if (!recording)
-                {
-                    if (_dynamicStreamerState.RecordingOutputId != -1)
-                        _dynamicStreamer.RemoveOutput(_dynamicStreamerState.RecordingOutputId);
-                    _dynamicStreamerState.RecordingOutputId = -1;
-                }
-                else
-                {
-                    if (_dynamicStreamerState.RecordingOutputId == -1)
-                    {
-                        if (MainSettingsModel.IsValidRecordingPath(CoreData.ThisDevice.DeviceSettings.RecordingsPath))
-                        {
-                            var now = DateTime.Now;
-                            string output = Path.Combine(CoreData.ThisDevice.DeviceSettings.RecordingsPath, now.ToString("yyy_MM_dd__HH_mm_ss") + ".flv");
-                            Log.Information($"Start recording({output})");
-                            _dynamicStreamerState.RecordingOutputId = _dynamicStreamer.AddOutput("flv", output, "");
-                        }
-                    }
+                    rebuildContext.AddAudio(id, InputIssueDesc.AudioRemoved);
+                    Log.Warning($"Audio device not found for '{id}'-{s.Source.DeviceName}");
+                    return null;
                 }
             }
             else
             {
-                if (_vpnMessage != -1)
-                    _transientMessage.Clear(_vpnMessage);
-
-                if (!CoreData.ThisDevice.RequireOutgest)
-                {
-                    Log.Information("Requesting outgest");
-                    CoreData.ThisDevice.RequireOutgest = true;
-                }
-
-                var outgestId = CoreData.ThisDevice.AssignedOutgest;
-                if (outgestId != null && CoreData.Root.Outgests.TryGetValue(outgestId, out var outgest))
-                {
-                    var outgetsUrl = GetIngestOutgestUrl(outgest.Data.Output);
-                    var state = $"{outgest.Data.Type}, {outgetsUrl}, {outgest.Data.Options}";
-                    if (_receiverStreamerState == null)
-                    {
-                        Log.Information($"Connecting to outgest '{state}'");
-                        _receiverStreamer = new Streamer(_streamerLogger);
-                        ScreenRenderer.SetStreamer(_receiverStreamer, false);
-                        _receiverStreamer.SetInput(outgest.Data.Type, outgetsUrl, outgest.Data.Options, 0, 0, 0);
-                        _receiverStreamerState = state;
-                    }
-                    else if (_receiverStreamerState != state)
-                    {
-                        Log.Information($"Updating outgest '{state}'");
-                        _receiverStreamer.SetInput(outgest.Data.Type, outgetsUrl, outgest.Data.Options, 0, 0, 0);
-                        _receiverStreamerState = state;
-                    }
-                }
+                rebuildContext.AddAudio(id, InputIssueDesc.NoAudioSelected);
+                Log.Warning($"Audio source is not specified for '{id}'");
+                return null;
             }
+        }
 
+        private void OnAudioFrame(string id, FrameOutputData data)
+        {
+            _audioModel.OnAudioFrame(id, data);
+            data.Frame.Dispose();
+        }
+
+        private VideoInputTrunkConfig RebuildSceneVideo(string id, ISceneItem s, StreamerRebuildContext rebuildContext)
+        {
+            var input = RebuildInputSource(id, s.Source, s, rebuildContext);
+
+            return new VideoInputTrunkConfig(id, input, RebuildFilters(s.Filters), ModelToStreamerTranslator.Translate(s.Rect), AdjustPtzHFlip(ModelToStreamerTranslator.Translate(s.Ptz), s.Filters), s.Visible, s.ZOrder);
+        }
+
+        private PositionRect AdjustPtzHFlip(PositionRect ptz, SceneItemFilters filters)
+        {
+            if (filters?.Filters != null && filters.Filters.Any(s => s.Type == SceneItemFilterType.HFlip))
+                return new PositionRect(1 - ptz.Width - ptz.Left, ptz.Top, ptz.Width, ptz.Height);
+            return ptz;
+        }
+
+        private VideoInputConfigBase RebuildInputSource(string id, SceneItemSource source, ISceneItem item, StreamerRebuildContext rebuildContext)
+        {
+            rebuildContext.SetVideoSource(id, source);
+            if (source.Device != null)
+                return RebuildInputSource_Device(id, source.Device, item, rebuildContext);
+            else if (source.Image != null)
+                return RebuildInputSource_Image(id, source.Image, rebuildContext);
+            else if (source.Lovense != null)
+                return RebuildInputSource_Lovense(id, rebuildContext);
+            else if (source.Web != null)
+                return RebuildInputSource_Web(id, source.Web, rebuildContext);
+            else if (source.CaptureDisplay != null)
+                return RebuildInputSource_Capture(id, source.CaptureDisplay, false, rebuildContext);
+            else if (source.CaptureWindow != null)
+                return RebuildInputSource_Capture(id, source.CaptureWindow, true, rebuildContext);
+            else
+                return GetFailedInputSource(id, rebuildContext, InputIssueDesc.UnknownTypOfSource, "Video source is unknown");
+        }
+
+        private VideoInputConfigSingleFrame GetFailedInputSource(string id, StreamerRebuildContext rebuildContext, InputIssueDesc reason, string log)
+        {
+            Log.Error($"Bad input source in model: {log}");
+            rebuildContext.AddVideo(id, reason);
+            return new VideoInputConfigSingleFrame(new FixedFrameData(nameof(StaticResources.BadSource), StaticResources.BadSource, SingleFrameType.Png));
+        }
+
+        private VideoInputConfigBase RebuildInputSource_Device(string id, SceneItemSourceDevice device, ISceneItem item, StreamerRebuildContext rebuildContext)
+        {
+            var localDevice = _sources.GetLocalVideoDevice(device.DeviceName);
+            if (localDevice != null)
+            {
+                var options = DShowOptionsSelector.GetVideoOptions(localDevice, _coreData.Settings.Fps, _coreData.Settings.Resolution, item);
+                return new VideoInputConfigFull(new InputSetup(
+                    Type: "dshow",
+                    Input: $"video={device.DeviceName.Name}",
+                    Options: options));
+            }
+            else return GetFailedInputSource(id, rebuildContext, InputIssueDesc.VideoRemoved ,$"Video device '{device?.DeviceName}' not found");
+        }
+
+        private VideoInputConfigBase RebuildInputSource_Image(string id, SceneItemSourceImage image, StreamerRebuildContext rebuildContext)
+        {
+            if (_coreData.Root.Resources.TryGetValue(image.ResourceId, out var resource))
+            {
+                var data = _resourceService.GetResource(image.ResourceId);
+                if (data == null || data.Length == 0)
+                    return GetFailedInputSource(id, rebuildContext, InputIssueDesc.ImageNotFound, $"Resource {image.ResourceId} has no data");
+
+                SingleFrameType type = SingleFrameType.Cube;
+                if (resource.Info.Type == ResourceType.ImageJpeg)
+                    type = SingleFrameType.Jpg;
+                else if (resource.Info.Type == ResourceType.ImagePng)
+                    type = SingleFrameType.Png;
+                else
+                    return GetFailedInputSource(id,rebuildContext, InputIssueDesc.ImageUnknownFormat, $"Resource {image.ResourceId} has Unknown format {resource.Info.Type}");
+
+                return new VideoInputConfigSingleFrame(new FixedFrameData(resource.Info.DataHash, data, type));
+            }
+            else return GetFailedInputSource(id, rebuildContext, InputIssueDesc.ImageNotFound, $"Resource {image.ResourceId} not found");
+        }
+
+        private VideoInputConfigBase RebuildInputSource_Lovense(string id, StreamerRebuildContext rebuildContext)
+        {
+            if (PluginContextSetup.IsLoaded())
+                return new VideoInputConfigFull(new InputSetup(Type: PluginContext.PluginName, Input: "", ObjectInput: GetWebBrowserObjectInput(0, 0))); // h, w set in ClientStreamer
+            else
+                return GetFailedInputSource(id, rebuildContext, InputIssueDesc.PluginIsNotInstalled, $"Lovense plugin is not installed or failed to load");
+        }
+
+        private VideoInputConfigBase RebuildInputSource_Web(string id, SceneItemSourceWeb web, StreamerRebuildContext rebuildContext)
+        {
+            return new VideoInputConfigFull(new InputSetup(Type: WebBrowserContext.Name, Input: web.Url, ObjectInput: GetWebBrowserObjectInput(web.Width, web.Height)));
+        }
+
+
+        private WebBrowserContextSetup GetWebBrowserObjectInput(int width, int height)
+        {
+            return new WebBrowserContextSetup(Path.Combine(_appEnvironment.GetStorageFolder(), "WB"), _coreData.Root.Settings.Fps, width, height);
+        }
+
+        private VideoInputConfigBase RebuildInputSource_Capture(string id, SceneItemSourceCapture capture, bool isWindow, StreamerRebuildContext rebuildContext)
+        {
+            var ci = _sources.GetOrCreateCaptureItem(capture.Source, isWindow);
+
+            if (ci?.Wrapped != null)
+            {
+                var request = new ScreenCaptureRequest
+                {
+                    Id = $"{capture.Source.CaptureId}",
+                    Cursor = capture.CaptureCursor,
+                    InitialSize = ci.Wrapped.Size,
+                    Item = ci.Wrapped,
+                    DebugName = capture.Source.Name
+                };
+                return new VideoInputConfigFull(new InputSetup(Type: ScreenCaptureContext.Name, Input: ci.Prefix + capture.Source.CaptureId,
+                    ObjectInput: request));
+            }
+            else
+                return GetFailedInputSource(id, rebuildContext, InputIssueDesc.CaptureNotFound, $"Capture target '{capture.Source.Name}' not found");
+        }
+
+        private VideoFilterChainDescriptor RebuildFilters(SceneItemFilters filters)
+        {
+            if (filters == null || filters.Filters == null || filters.Filters.Length == 0 || filters.Filters.All(s => !s.Enabled))
+                return null;
+
+            return new VideoFilterChainDescriptor(filters.Filters.Where(s => s.Enabled).Select(s => RebuildFilter(s)).Where(s => s != null).ToArray()); ;
+        }
+
+        private VideoFilterDescriptor RebuildFilter(SceneItemFilter s)
+        {
+            if (s.LutResourceId != null)
+            {
+                var data = _resourceService.GetResource(s.LutResourceId);
+                if (data != null && _coreData.Root.Resources.TryGetValue(s.LutResourceId, out var res))
+                    return new VideoFilterDescriptor(ModelToStreamerTranslator.Translate(s.Type), s.Value, new FixedFrameData(s.LutResourceId, data, res.Info.Type == ResourceType.LutCube ? SingleFrameType.Cube : SingleFrameType.Png));
+                else
+                    return null;
+            }
+            else
+                return new VideoFilterDescriptor(ModelToStreamerTranslator.Translate(s.Type), s.Value, null);
         }
 
         private string GetIngestOutgestUrl(string url)
         {
-            var vpn = CoreData.ThisDevice.VpnServerIpAddress;
+            var vpn = _coreData.ThisDevice.VpnServerIpAddress;
             if (vpn == null)
             {
                 return url;
@@ -395,253 +517,16 @@ namespace Streamster.ClientCore.Models
 
         private bool ShouldStartStream()
         {
-            bool requested = CoreData.Settings.StreamingToCloudStarted;
+            bool requested = _coreData.Settings.StreamingToCloudStarted;
             if (requested)
             {
-                if (CoreData.Settings.NoStreamWithoutVpn)
+                if (_coreData.Settings.NoStreamWithoutVpn && 
+                    _coreData.ThisDevice.VpnState != VpnState.Connected)
                 {
-                    if (CoreData.ThisDevice.VpnState != VpnState.Connected)
-                    {
-                        if (CoreData.ThisDevice.VpnState == VpnState.Idle)
-                            _vpnMessage = _transientMessage.Show("VPN is OFF. Streaming is not possible.", TransientMessageType.Error, false);
-                        else
-                            _vpnMessage = _transientMessage.Show("VPN is ON but not yet connected. Streaming not possible.", TransientMessageType.Error, false);
-                        return false;
-                    }
+                    return false;
                 }
             }
-            if (_vpnMessage != -1)
-                _transientMessage.Clear(_vpnMessage);
             return requested;
-        }
-
-        internal void SetActualBitrate(int ave, IndicatorState state)
-        {
-            if (ave < MinBitrate + 30)
-                ave = MinBitrate + 30;
-
-            ActualBitrate.Value = ave;
-            ActualBitrateState.Value = state;
-        }
-
-        private void GetEncoderConfig(int bitrate, int fps, out int video, out int audio, out string videoCodec, out string videoOptions, out string videoCodecFallback, out string videoOptionsFallback)
-        {
-            video = bitrate;
-            audio = video / 14;
-            if (audio > 224)
-                audio = 224;
-            else if (audio < 50)
-                audio = 50;
-
-            video = video - audio;
-
-            var addition = $"{Sep}g{Eq}{fps * 2}{Sep}keyint_min{Eq}{fps + 1}";
-
-            string encoder = null; 
-            string settings = null; 
-            string fallbackEncoder = null; 
-            string fallbackSettings = null; 
-
-            if (CoreData.Settings.EncoderType == EncoderType.Software)
-            {
-                switch (CoreData.Settings.EncoderQuality)
-                {
-                    case EncoderQuality.Speed:
-                        encoder = "libx264";
-                        settings = $"tune{Eq}zerolatency{Sep}preset{Eq}ultrafast";
-                        break;
-                    case EncoderQuality.Balanced:
-                        encoder = "libx264";
-                        settings = $"tune{Eq}zerolatency{Sep}preset{Eq}superfast";
-                        break;
-                    case EncoderQuality.BalancedQuality:
-                        encoder = "libx264";
-                        settings = $"tune{Eq}zerolatency{Sep}preset{Eq}veryfast";
-                        break;
-                    case EncoderQuality.Quality:
-                        encoder = "libx264";
-                        settings = $"tune{Eq}zerolatency{Sep}preset{Eq}faster";
-                        break;
-                }
-            }
-            else
-            {
-                switch (CoreData.Settings.EncoderQuality)
-                {
-                    case EncoderQuality.Speed:
-                        encoder = "h264_qsv";
-                        settings = $"preset{Eq}fast{Sep}bf{Eq}0{Sep}profile{Eq}main";
-                        fallbackEncoder = "libx264";
-                        fallbackSettings = $"tune{Eq}zerolatency{Sep}preset{Eq}ultrafast";
-                        break;
-                    case EncoderQuality.Balanced:
-                    case EncoderQuality.BalancedQuality:
-                        encoder = "h264_qsv";
-                        settings = $"preset{Eq}medium{Sep}bf{Eq}0{Sep}profile{Eq}main";
-                        fallbackEncoder = "libx264";
-                        fallbackSettings = $"tune{Eq}zerolatency{Sep}preset{Eq}superfast";
-                        break;
-                    case EncoderQuality.Quality:
-                        encoder = "h264_qsv";
-                        settings = $"preset{Eq}slow{Sep}bf{Eq}0{Sep}profile{Eq}main";
-                        fallbackEncoder = "libx264";
-                        fallbackSettings = $"tune{Eq}zerolatency{Sep}preset{Eq}veryfast";
-                        break;
-                }
-            }
-
-            videoCodec = encoder;
-            videoOptions = settings + addition + GetCodecSpecificOption(encoder);
-            videoCodecFallback = fallbackEncoder;
-            videoOptionsFallback = fallbackSettings + addition + GetCodecSpecificOption(fallbackEncoder);
-        }
-
-        private string GetCodecSpecificOption(string encoder)
-        {
-            if (encoder == "libx264")
-                return $"{Sep}x264-params{Eq}filler=true:nal-hrd=cbr:force-cfr=1";
-
-            return "";
-        }
-
-        private string GetFilterConfig(int fps, int inputFps, VideoInputCapability capability, Resolution resolution, FilterSpecs[] filterSpec)
-        {
-            IEnumerable<string> chain = (capability.Fmt == VideoInputCapabilityFormat.MJpeg) ?
-                                            filterSpec.Reverse().Select(s => s.Spec) :
-                                            filterSpec.Select(s => s.Spec);
-
-            if (capability.W != resolution.Width || capability.H != resolution.Height)
-            {
-                var scaleFilter = $"scale={resolution.Width}:{resolution.Height}";
-
-                if (resolution.Width > capability.W)
-                    chain = chain.Concat(new[] { scaleFilter });
-                else
-                    chain = new[] { scaleFilter }.Concat(chain);
-            }
-
-            var fpsFilter = $"fps={fps}";
-            if (inputFps >= fps)
-                chain = new[] { fpsFilter }.Concat(chain);
-            else
-                chain = chain.Concat(new[] { fpsFilter});
-
-            return string.Join(", ", chain);
-        }
-
-        private VideoInputCapability FindBestCapability(IVideoInput videoInput, int fps, Resolution resolution, FilterSpecs[] filterSpec)
-        {
-            bool hasJpegOnlyFilter = filterSpec.Any(s => s.InputFormats.Length == 1 && s.InputFormats[0] == VideoInputCapabilityFormat.MJpeg);
-            bool hasRowOnlyFilter = filterSpec.Any(s => s.InputFormats.Length == 1 && s.InputFormats[0] == VideoInputCapabilityFormat.Raw);
-
-            bool jpeg = hasJpegOnlyFilter;
-
-            var caps = videoInput.Capabilities.Caps.Where(s => s.Fmt != VideoInputCapabilityFormat.H264).ToArray();
-
-            var shortlist = caps.Where(s => s.H == resolution.Height && s.W == resolution.Width && fps >= s.MinF && fps <= s.MaxF).ToList();
-            if (shortlist.Count > 0)
-            {
-                return SelectFirstCapability(shortlist, jpeg);
-            }
-            // no exectly good capability - need to select closest
-
-            var n = videoInput.Name;
-
-            // lets ignore fps, most likely fps is requested higher then supported
-            var scored = caps.Select(c => new { cap = c, score = GetScore(c, jpeg, fps, resolution) }).ToList();
-            var maxScore = scored.Max(s => s.score);
-            var final = scored.First(s => s.score == maxScore);
-
-            Log.Information($"Selecting '{final.cap}' capability by score '{final.score}' for Fps={fps}, Res={resolution}");
-
-            return final.cap;
-        }
-
-        private int GetScore(VideoInputCapability c, bool jpeg, int fps, Resolution resolution)
-        {
-            int score = 0;
-
-            if (fps < c.MinF)
-                score -= (c.MinF - fps);
-            else if (fps > c.MaxF)
-                score -= (fps - c.MaxF) * 2;
-
-            if ((double)resolution.Height / resolution.Width != (double)c.H / c.W)
-                score -= 10;
-
-            double diff = (double)c.W / resolution.Width;
-
-            if (diff < 1.0) //cap lower
-                score -= (int)((1.0 - diff) * 30); // half of width = -15 score
-            else
-                score -= (int)((diff - 1.0) * 15); // twice bigger = -15 score
-
-            if ((c.Fmt == VideoInputCapabilityFormat.MJpeg) != jpeg)
-                score -= 1;
-            
-            return score;
-        }
-
-        private VideoInputCapability SelectFirstCapability(IEnumerable<VideoInputCapability> shortlist, bool jpegInPreference)
-        {
-            if (jpegInPreference)
-            {
-                var cap = shortlist.FirstOrDefault(s => s.Fmt == VideoInputCapabilityFormat.MJpeg);
-                if (cap != null)
-                    return cap;
-            }
-            else
-            {
-                var cap = shortlist.FirstOrDefault(s => s.Fmt != VideoInputCapabilityFormat.MJpeg);
-                if (cap != null)
-                    return cap;
-            }
-            return shortlist.First();
-        }
-
-        public (string input, string options) GetInputConfig(string videoInputName,
-                                        VideoInputCapability capability,
-                                        int inputFps,
-                                        string audioInputName)
-        {
-            string enforceMjpeg = "";
-            if (capability.Fmt == VideoInputCapabilityFormat.MJpeg)
-                enforceMjpeg = $"vcodec{Eq}mjpeg{Sep}";
-
-            int rtbufsize = CaclulateRtBufferSize(capability);
-
-            string fpsOption = $"framerate{Eq}{inputFps}{Sep}";
-
-            return (input: 
-                            $"video={videoInputName}:audio={audioInputName}",
-                    options:
-                            $"video_size{Eq}{capability.W}x{capability.H}{Sep}" +
-                            fpsOption +
-                            $"sample_rate{Eq}44100{Sep}" +
-                            $"channels{Eq}2{Sep}" +
-                            $"audio_buffer_size{Eq}50{Sep}" +
-                            $"fflags{Eq}nobuffer{Sep}" +
-                            enforceMjpeg +
-                            $"rtbufsize{Eq}{rtbufsize}");
-        }
-
-        private int GetInputFps(VideoInputCapability capability, int fps)
-        {
-            if (capability.MinF > fps)
-                return capability.MinF;
-            else if (fps > capability.MaxF)
-                return capability.MaxF;
-            return fps;
-        }
-
-        private int CaclulateRtBufferSize(VideoInputCapability capability)
-        {
-            int width = capability.W < 1024 ? 1024 : capability.W;
-
-            if (capability.Fmt == VideoInputCapabilityFormat.MJpeg) 
-                return width * 4000; // about 70 frames
-            else
-                return width * 40000; // about 27 frames
         }
 
         private async Task CollectStatisticsRoutine()
@@ -657,105 +542,57 @@ namespace Streamster.ClientCore.Models
                     Log.Error(e, "Failed to get statistics");
                 }
 
-                try
-                {
-                    _streamerLogger.Flush().ForEach(s =>
-                    {
-                        if (s.Pattern == null)
-                            Log.Information(_streamerLogger.GetLogMessage(s));
-                        else
-                            Log.Warning(_streamerLogger.GetLogMessage(s));
-                    });
-                }
-                catch (Exception e)
-                {
-                    Log.Error(e, "Failed to process logs");
-                }
                 await Task.Delay(990);
             }
         }
 
         private void CollectStatistics()
         {
-            if (CoreData.ThisDevice == null)
+            if (_coreData.ThisDevice == null)
                 return;
 
-            var kpi = CoreData.ThisDevice.KPIs;
-            if (_receiverStreamer == null)
-            {
-                kpi.CloudIn.Enabled = false;
-            }
-            else
-            {
-                var cloudIn = kpi.CloudIn;
-                cloudIn.Enabled = true;
-                var stat = _receiverStreamer.GetStreamerStatistics();
-                var input = stat.FirstOrDefault(s => s.Id == -1)?.CurrentValues;
-                if (input != null)
-                {
-                    cloudIn.Bitrate = Streamer.GetBitrateFromStatistics(input.Transferred);
-                    cloudIn.Errors = input.Errors;
-                }
-            }
+            var kpi = _coreData.ThisDevice.KPIs;
+            
+            _healthCheck.ProcessReceivier(_receiverStreamer, kpi);
+            _healthCheck.ProcessMain(_mainStreamer, kpi, _lastRebuildContext);
+        }
 
-            if (_dynamicStreamerState == null || _dynamicStreamer == null)
+        public async ValueTask DisposeAsync()
+        {
+            await Task.Run(() =>
             {
-                kpi.CloudOut.Enabled = false;
-                kpi.Encoder.Enabled = false;
-            }
-            else
-            {
-                var stat = _dynamicStreamer.GetStreamerStatistics();
+                if (_mainStreamer != null)
+                    ShutdownStreamer(_mainStreamer, "main streamer");
+                if (_receiverStreamer != null)
+                    ShutdownStreamer(_receiverStreamer, "receiver streamer");
 
-                var encoder = kpi.Encoder;
-                
-                var input = stat.FirstOrDefault(s => s.Id == -1)?.CurrentValues;
-                if (input != null)
-                {
-                    encoder.Enabled = true;
-                    encoder.QueueSize = input.QueueSize;
-                    encoder.InputFps = input.Frames;
-                    encoder.InputErrors = input.Errors;
-                    encoder.InputTargetFps = _dynamicStreamerState.InputFps;
-                }
-                else
-                    encoder.Enabled = false;
-
-                if (_dynamicStreamerState.StreamingOutputId < 0)
-                    kpi.CloudOut.Enabled = false;
-                else
-                {
-                    var cloudOut = kpi.CloudOut;
-                    
-                    var output = stat.FirstOrDefault(s => s.Id == _dynamicStreamerState.StreamingOutputId)?.CurrentValues;
-                    if (output != null)
-                    {
-                        cloudOut.Enabled = true;
-                        cloudOut.Bitrate = Streamer.GetBitrateFromStatistics(output.Transferred);
-                        cloudOut.Drops = output.Drops;
-                        cloudOut.Errors = output.Errors;
-                    }
-                    else
-                        cloudOut.Enabled = false;
-                }
-            }
+                Core.Shutdown();
+            });
         }
     }
 
-    class DynamicStreamerState
+
+    public class StreamerRebuildContext
     {
-        public string Input { get; set; }
+        public Dictionary<string, RebuildInfo> Videos { get; } = new Dictionary<string, RebuildInfo>();
 
-        public string Encoder { get; set; }
+        public Dictionary<string, RebuildInfo> Audios { get; } = new Dictionary<string, RebuildInfo>();
 
-        public string Filter { get; set; }
+        internal void AddVideo(string id, InputIssueDesc reason) => Videos[id].Issue = reason;
 
-        public int StreamingOutputId { get; set; } = -1;
+        internal void AddAudio(string id, InputIssueDesc reason) => Audios[id].Issue = reason;
 
-        public string StreamingOutput { get; set; }
+        internal void SetVideoSource(string id, SceneItemSource source) => Videos[id] = new RebuildInfo { Video = source };
 
-        public int RecordingOutputId { get; set; } = -1;
+        internal void SetAudioSource(string id, SceneAudioSource source) => Audios[id] = new RebuildInfo { Audio = source };
+    }
 
-        public int InputFps { get; set; } = -1;
+    public class RebuildInfo
+    {
+        public SceneItemSource Video { get; set; }
+
+        public SceneAudioSource Audio { get; set; }
+
+        public InputIssueDesc Issue { get; set; } = InputIssueDesc.None;
     }
 }

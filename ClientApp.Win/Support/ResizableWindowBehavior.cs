@@ -36,26 +36,30 @@ namespace Streamster.ClientApp.Win.Support
 
         private static void OnWindowMoveEnabledChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
         {
+            var element = (UIElement)d;
             if (e.NewValue is bool b && b)
             {
-                var element = (UIElement)d;
+                element.MouseDown += Element_MouseDown;
+            }
+            else
+                element.MouseDown -= Element_MouseDown;
 
-                element.MouseDown += (s, e) =>
-                {
-                    if (e.ButtonState == System.Windows.Input.MouseButtonState.Pressed &&
+        }
+
+        private static void Element_MouseDown(object sender, System.Windows.Input.MouseButtonEventArgs e)
+        {
+            if(e.ButtonState == System.Windows.Input.MouseButtonState.Pressed &&
                         e.ChangedButton == System.Windows.Input.MouseButton.Left)
-                    {
-                        try
-                        {
-                            Window parentWindow = Window.GetWindow(d);
-                            parentWindow.DragMove();
-                        }
-                        catch (Exception ex)
-                        {
-                            Log.Error(ex, "Drag move failed");
-                        }
-                    }
-                };
+            {
+                try
+                {
+                    Window parentWindow = Window.GetWindow((DependencyObject) sender);
+                    parentWindow.DragMove();
+                }
+                catch (Exception ex)
+                {
+                    Log.Error(ex, "Drag move failed");
+                }
             }
         }
     }

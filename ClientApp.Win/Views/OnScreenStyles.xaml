@@ -4,15 +4,15 @@
                     xmlns:converters="clr-namespace:MaterialDesignThemes.Wpf.Converters;assembly=MaterialDesignThemes.Wpf"
                     xmlns:controlzEx="clr-namespace:ControlzEx;assembly=MaterialDesignThemes.Wpf">
 
-    <SolidColorBrush x:Key="OnScreenForeground" Color="#BB000000"/>
-    <SolidColorBrush x:Key="OnScreenBackground" Color="#66FFFFFF"/>
+    <SolidColorBrush x:Key="OnScreenForeground" Color="#cc000000"/>
+    <SolidColorBrush x:Key="OnScreenBackground" Color="#99FFFFFF"/>
     <SolidColorBrush x:Key="OnScreenBorder" Color="#88000000"/>
     <SolidColorBrush x:Key="OnScreenForegroundMouseOver" Color="#DD000000"/>
     <SolidColorBrush x:Key="OnScreenBorderMouseOver" Color="#AA000000"/>
-    <SolidColorBrush x:Key="OnScreenBackgroundMouseOver" Color="#AAFFFFFF"/>
+    <SolidColorBrush x:Key="OnScreenBackgroundMouseOver" Color="#AAaaccFF"/>
     <SolidColorBrush x:Key="OnScreenForegroundPressed" Color="#FF000000"/>
     <SolidColorBrush x:Key="OnScreenBorderPressed" Color="#FF000000"/>
-    <SolidColorBrush x:Key="OnScreenBackgroundPressed" Color="#FFFFFFFF"/>
+    <SolidColorBrush x:Key="OnScreenBackgroundPressed" Color="#FFaaBBFF"/>
 
     <SolidColorBrush x:Key="OnScreenBackgroundDisabled" Color="#33FFFFFF"/>
     <SolidColorBrush x:Key="OnScreenBorderDisabled" Color="#66000000"/>
@@ -34,12 +34,12 @@
         <Setter Property="Template">
             <Setter.Value>
                 <ControlTemplate TargetType="{x:Type CheckBox}">
-                    <ControlTemplate.Resources>
+                    <!--<ControlTemplate.Resources>
                         <Style TargetType="{x:Type wpf:PackIcon}" >
                             <Setter Property="Width" Value="22" />
                             <Setter Property="Height" Value="22" />
                         </Style>
-                    </ControlTemplate.Resources>
+                    </ControlTemplate.Resources>-->
                     <Grid ClipToBounds="True">
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="Auto" />
@@ -315,8 +315,8 @@
         <Setter Property="Padding" Value="0"/>
         <Setter Property="wpf:ButtonAssist.CornerRadius" Value="15" />
 
-        <Setter Property="Foreground" Value="{StaticResource OnScreenForegroundMouseOver}" />
-        <Setter Property="Background" Value="{StaticResource OnScreenBackgroundMouseOver}"/>
+        <Setter Property="Foreground" Value="{StaticResource OnScreenForeground}" />
+        <Setter Property="Background" Value="{StaticResource OnScreenBackground}"/>
         <Setter Property="BorderBrush" Value="{StaticResource OnScreenBorderMouseOver}"/>
         <Setter Property="BorderThickness" Value="1"/>
 
@@ -330,7 +330,7 @@
 
         <Setter Property="Template">
             <Setter.Value>
-                <ControlTemplate TargetType="{x:Type ButtonBase}">
+                <ControlTemplate TargetType="{x:Type Button}">
                     <Grid>
                         <Border Background="{TemplateBinding Background}"
                                 x:Name="border" 
@@ -349,9 +349,32 @@
                         </Border>
                     </Grid>
                     <ControlTemplate.Triggers>
+                        <MultiTrigger>
+                            <MultiTrigger.Conditions>
+                                <Condition Property="IsMouseOver" Value="True"/>
+                                <Condition Property="IsDefault" Value="True"/>
+                            </MultiTrigger.Conditions>
+                            <Setter Property="Background" TargetName="border" Value="#AAFF9999" />
+                        </MultiTrigger>
+
+                        <MultiTrigger>
+                            <MultiTrigger.Conditions>
+                                <Condition Property="IsMouseOver" Value="False"/>
+                                <Condition Property="IsDefault" Value="True"/>
+                            </MultiTrigger.Conditions>
+                            <Setter Property="Background" TargetName="border" Value="#AAffaaaa" />
+                        </MultiTrigger>
+
+                        <MultiTrigger>
+                            <MultiTrigger.Conditions>
+                                <Condition Property="IsMouseOver" Value="True"/>
+                                <Condition Property="IsDefault" Value="False"/>
+                            </MultiTrigger.Conditions>
+                            <Setter Property="Background" TargetName="border" Value="{StaticResource OnScreenBackgroundMouseOver}" />
+                        </MultiTrigger>
+
                         <Trigger Property="IsMouseOver" Value="true">
                             <Setter Property="BorderBrush" TargetName="border" Value="{StaticResource OnScreenBorderPressed}" />
-                            <Setter Property="Background" TargetName="border" Value="{StaticResource OnScreenBackgroundPressed}" />
                             <Setter Property="Foreground" Value="{StaticResource OnScreenForegroundPressed}" />
                         </Trigger>
                         <Trigger Property="IsEnabled" Value="false">
@@ -499,5 +522,128 @@
         </Style.Triggers>
     </Style>
 
+
+    <Style x:Key="OnScreenHideShowToggleButton" TargetType="{x:Type ToggleButton}">
+        <Setter Property="Foreground" Value="{StaticResource OnScreenForeground}" />
+        <Setter Property="Background" Value="Transparent"/>
+        <Setter Property="BorderBrush" Value="Transparent"/>
+        <Setter Property="BorderThickness" Value="0"/>
+        <Setter Property="Height" Value="30"/>
+        <Setter Property="MinWidth" Value="30"/>
+        <Setter Property="Padding" Value="0"/>
+        <Setter Property="wpf:ButtonAssist.CornerRadius" Value="20" />
+        <Setter Property="FocusVisualStyle" Value="{x:Null}" />
+        <Setter Property="Cursor" Value="Hand" />
+        <Setter Property="HorizontalContentAlignment" Value="Center" />
+        <Setter Property="VerticalContentAlignment" Value="Center" />
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="{x:Type ToggleButton}">
+                    <Grid>
+                        <VisualStateManager.VisualStateGroups>
+                            <VisualStateGroup x:Name="CommonStates">
+                                <VisualState x:Name="Normal"/>
+                                <VisualState x:Name="Disabled">
+                                    <Storyboard>
+                                        <DoubleAnimation Duration="0" To="0.23" Storyboard.TargetProperty="(UIElement.Opacity)" />
+                                    </Storyboard>
+                                </VisualState>
+                            </VisualStateGroup>
+                            <VisualStateGroup x:Name="CheckStates">
+                                <VisualStateGroup.Transitions>
+                                    <VisualTransition From="*" To="Checked">
+                                        <Storyboard FillBehavior="HoldEnd">
+                                            <DoubleAnimationUsingKeyFrames Duration="0:0:0.2" Storyboard.TargetProperty="ScaleX" Storyboard.TargetName="OffScaleTransform">
+                                                <LinearDoubleKeyFrame Value="1" KeyTime="0:0:0.0" />
+                                                <LinearDoubleKeyFrame Value="0" KeyTime="0:0:0.1" />
+                                            </DoubleAnimationUsingKeyFrames>
+                                            <DoubleAnimationUsingKeyFrames Duration="0:0:0.2" Storyboard.TargetProperty="ScaleX" Storyboard.TargetName="OnScaleTransform">
+                                                <LinearDoubleKeyFrame Value="0" KeyTime="0:0:0.1" />
+                                                <LinearDoubleKeyFrame Value="1" KeyTime="0:0:0.2" />
+                                            </DoubleAnimationUsingKeyFrames>
+                                        </Storyboard>
+                                    </VisualTransition>
+                                    <VisualTransition From="Checked" To="Unchecked">
+                                        <Storyboard FillBehavior="HoldEnd">
+                                            <DoubleAnimationUsingKeyFrames Duration="0:0:0.2" Storyboard.TargetProperty="ScaleX" Storyboard.TargetName="OnScaleTransform">
+                                                <LinearDoubleKeyFrame Value="1" KeyTime="0:0:0.0" />
+                                                <LinearDoubleKeyFrame Value="0" KeyTime="0:0:0.1" />
+                                            </DoubleAnimationUsingKeyFrames>
+                                            <DoubleAnimationUsingKeyFrames Duration="0:0:0.2" Storyboard.TargetProperty="ScaleX" Storyboard.TargetName="OffScaleTransform">
+                                                <LinearDoubleKeyFrame Value="0" KeyTime="0:0:0.1" />
+                                                <LinearDoubleKeyFrame Value="1" KeyTime="0:0:0.2" />
+                                            </DoubleAnimationUsingKeyFrames>
+                                        </Storyboard>
+                                    </VisualTransition>
+                                </VisualStateGroup.Transitions>
+                                <VisualState x:Name="Checked">
+                                    <Storyboard>
+                                        <DoubleAnimation Duration="0" Storyboard.TargetProperty="ScaleX" Storyboard.TargetName="OffScaleTransform"
+                                                         To="0" />
+                                        <DoubleAnimation Duration="0" Storyboard.TargetProperty="ScaleX" Storyboard.TargetName="OnScaleTransform"
+                                                         To="1" />
+                                    </Storyboard>
+                                </VisualState>
+                                <VisualState x:Name="Unchecked">
+                                    <Storyboard>
+                                        <DoubleAnimation Duration="0" Storyboard.TargetProperty="ScaleX" Storyboard.TargetName="OffScaleTransform"
+                                                         To="1" />
+                                        <DoubleAnimation Duration="0" Storyboard.TargetProperty="ScaleX" Storyboard.TargetName="OnScaleTransform"
+                                                         To="0" />
+                                    </Storyboard>
+                                </VisualState>
+                                <VisualState x:Name="Indeterminate">
+                                    <Storyboard>
+                                        <DoubleAnimation Duration="0" To="1" Storyboard.TargetProperty="(UIElement.Opacity)" Storyboard.TargetName="IndeterminateCheck"/>
+                                    </Storyboard>
+                                </VisualState>
+                            </VisualStateGroup>
+                        </VisualStateManager.VisualStateGroups>
+                        <Grid x:Name="OffGrid" RenderTransformOrigin=".5,.5">
+                            <Border Background="{TemplateBinding Background}"
+                                x:Name="border1" 
+                                CornerRadius="{Binding Path=(wpf:ButtonAssist.CornerRadius), RelativeSource={RelativeSource TemplatedParent}}"
+                                BorderBrush="{TemplateBinding BorderBrush}"
+                                BorderThickness="{TemplateBinding BorderThickness}">
+                                <ContentPresenter ContentTemplate="{TemplateBinding ContentTemplate}" Content="{TemplateBinding Content}"
+                                              HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}" VerticalAlignment="{TemplateBinding VerticalContentAlignment}" 
+                                              FlowDirection="LeftToRight"/>
+                            </Border>
+
+                            <Grid.RenderTransform>
+                                <ScaleTransform x:Name="OffScaleTransform" ScaleX="1" ScaleY="1" />
+                            </Grid.RenderTransform>
+                        </Grid>
+                        <Grid x:Name="OnGrid" RenderTransformOrigin=".5,.5" >
+                            <Border Background="{TemplateBinding Background}"
+                                x:Name="border2" 
+                                CornerRadius="{Binding Path=(wpf:ButtonAssist.CornerRadius), RelativeSource={RelativeSource TemplatedParent}}"
+                                BorderBrush="{TemplateBinding BorderBrush}"
+                                BorderThickness="{TemplateBinding BorderThickness}">
+                                <ContentPresenter HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}" VerticalAlignment="{TemplateBinding VerticalContentAlignment}"
+                                              FlowDirection="LeftToRight"
+                                              Content="{Binding RelativeSource={RelativeSource TemplatedParent}, Path=(wpf:ToggleButtonAssist.OnContent)}"
+                                              ContentTemplate="{Binding RelativeSource={RelativeSource TemplatedParent}, Path=(wpf:ToggleButtonAssist.OnContentTemplate)}" />
+                            </Border>
+
+                            <Grid.RenderTransform>
+                                <ScaleTransform x:Name="OnScaleTransform" ScaleX="0" ScaleY="1" />
+                            </Grid.RenderTransform>
+                        </Grid>
+                    </Grid>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsMouseOver" Value="true">
+                            <Setter Property="Foreground" Value="White" />
+                            <Setter Property="Background" TargetName="border1" Value="{DynamicResource PrimaryHueMidBrush}" />
+                            <Setter Property="Background" TargetName="border2" Value="{DynamicResource PrimaryHueMidBrush}" />
+                        </Trigger>
+                        <Trigger Property="IsEnabled" Value="false">
+                            <Setter Property="Opacity" Value="0.23"/>
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
 
 </ResourceDictionary>

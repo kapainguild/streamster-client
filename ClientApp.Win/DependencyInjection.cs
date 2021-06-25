@@ -15,8 +15,8 @@ namespace Streamster.ClientApp.Win
             builder.Add<IWindowStateManager, WindowStateManager>();
             builder.Add<IUpdateManager, UpdateManager>();
             builder.Add<ICpuService, CpuService>();
-            builder.Add<IScreenRenderer, ScreenRenderer>();
             builder.Add<IVpnService, VpnService>();
+            builder.Add<IImageHelper, ImageHelper>();
         }
     }
 }

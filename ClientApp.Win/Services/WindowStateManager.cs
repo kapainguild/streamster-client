@@ -32,6 +32,8 @@ namespace Streamster.ClientApp.Win.Services
 
         public CaptionViewModel Model { get; } = new CaptionViewModel();
 
+        public IntPtr WindowHandle { get; private set; }
+
         public WindowStateManager(CoreData coreData)
         {
             _coreData = coreData;
@@ -74,6 +76,7 @@ namespace Streamster.ClientApp.Win.Services
         internal void SetWindow(Window window)
         {
             _window = window;
+
             window.StateChanged += (s, e) =>
             {
                 if (_started)
@@ -95,6 +98,7 @@ namespace Streamster.ClientApp.Win.Services
             };
             window.LocationChanged += async (s, e) =>
             {
+                InitWindowHandle();
                 if (_started)
                 {
                     await Task.Yield();
@@ -106,6 +110,15 @@ namespace Streamster.ClientApp.Win.Services
             {
                 Create(CaptionButtonType.Close)
             };
+        }
+
+        private void InitWindowHandle()
+        {
+            if (WindowHandle == IntPtr.Zero)
+            {
+                var interopWindow = new WindowInteropHelper(_window);
+                WindowHandle = interopWindow.Handle;
+            }
         }
 
         public void Start()
@@ -195,7 +208,7 @@ namespace Streamster.ClientApp.Win.Services
             }
             else
             {
-                int dx = 965;
+                int dx = 1080;
                 int dy = 786;
 
                 if (dy > wa.Height)

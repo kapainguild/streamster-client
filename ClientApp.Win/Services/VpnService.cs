@@ -198,7 +198,7 @@ namespace Streamster.ClientApp.Win.Services
 
             var id = await DialAsync(vpnData, cancellationToken);
 
-            var info = VpnApi.GetProjectionInfoEx(id);
+            //var info = VpnApi.GetProjectionInfoEx(id);
 
             return id;
         }

@@ -4,57 +4,77 @@
                     xmlns:models="clr-namespace:Streamster.ClientCore.Models;assembly=Streamster.ClientCore"
                     xmlns:support="clr-namespace:Streamster.ClientApp.Win.Support" 
                     xmlns:materialDesign="http://materialdesigninxaml.net/winfx/xaml/themes"
-                    xmlns:controlzEx="clr-namespace:ControlzEx;assembly=MaterialDesignThemes.Wpf">
+                    xmlns:controlzEx="clr-namespace:ControlzEx;assembly=MaterialDesignThemes.Wpf" xmlns:controls="clr-namespace:Streamster.ClientApp.Win.Controls">
     <ResourceDictionary.MergedDictionaries>
         <ResourceDictionary Source="Common.xaml"/>
         <ResourceDictionary Source="OnScreenStyles.xaml"/>
-        <ResourceDictionary Source="MainViewFilters.xaml"/>
+        <ResourceDictionary Source="EditingView.xaml"/>
     </ResourceDictionary.MergedDictionaries>
 
-    <Style TargetType="{x:Type wpf:PopupBox}" x:Key="OnBlackPopupBox">
-        <Setter Property="Background" Value="#252525"/>
-        <Setter Property="Foreground" Value="#0AAAAA"/>
+ 
+    <Style x:Key="AudioVolumeSliderRepeatButtonTransparent" TargetType="{x:Type RepeatButton}">
+        <Setter Property="OverridesDefaultStyle" Value="true"/>
+        <Setter Property="Focusable" Value="false"/>
+        <Setter Property="IsTabStop" Value="false"/>
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="{x:Type RepeatButton}">
+                    <Rectangle Fill="Transparent" Height="{TemplateBinding Height}" Width="{TemplateBinding Width}"/>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+    <ControlTemplate x:Key="AudioVolumeSliderThumbVerticalDefault" TargetType="{x:Type Thumb}">
+        <Border HorizontalAlignment="Center" UseLayoutRounding="True" VerticalAlignment="Center" Width="20" Height="20" Background="Transparent" >
+            <Border x:Name="root" Background="White" Height="6" VerticalAlignment="Center" CornerRadius="3" />
+        </Border>
+        <ControlTemplate.Triggers>
+            <Trigger Property="IsMouseOver" Value="true">
+                <Setter TargetName="root" Property="Background" Value="#55bbFF"/>
+            </Trigger>
+            <Trigger Property="IsDragging" Value="true">
+                <Setter TargetName="root" Property="Background" Value="#1070D0"/>
+            </Trigger>
+        </ControlTemplate.Triggers>
+    </ControlTemplate>
+    <ControlTemplate x:Key="AudioVolumeSliderVertical" TargetType="{x:Type Slider}">
+        <Border x:Name="border" Background="{TemplateBinding Background}" BorderThickness="{TemplateBinding BorderThickness}" BorderBrush="{TemplateBinding BorderBrush}" 
+                    SnapsToDevicePixels="True">
+            <Grid>
+                <Track x:Name="PART_Track" Grid.Column="1">
+                    <Track.DecreaseRepeatButton>
+                        <RepeatButton Command="{x:Static Slider.DecreaseLarge}" Style="{StaticResource AudioVolumeSliderRepeatButtonTransparent}"/>
+                    </Track.DecreaseRepeatButton>
+                    <Track.IncreaseRepeatButton>
+                        <RepeatButton Command="{x:Static Slider.IncreaseLarge}" Style="{StaticResource AudioVolumeSliderRepeatButtonTransparent}"/>
+                    </Track.IncreaseRepeatButton>
+                    <Track.Thumb>
+                        <Thumb x:Name="Thumb" Focusable="False" Height="20" OverridesDefaultStyle="True" Template="{StaticResource AudioVolumeSliderThumbVerticalDefault}"
+                                   VerticalAlignment="Top" Width="20"/>
+                    </Track.Thumb>
+                </Track>
+            </Grid>
+        </Border>
+    </ControlTemplate>
+
+    <Style x:Key="AudioVolumeSlider" TargetType="{x:Type Slider}">
+        <Setter Property="Stylus.IsPressAndHoldEnabled" Value="false"/>
+        <Setter Property="Orientation" Value="Vertical"/>
+        <Setter Property="IsMoveToPointEnabled" Value="True"/>
+        <Setter Property="Template" Value="{StaticResource AudioVolumeSliderVertical}"/>
+    </Style>
+
+    <Style TargetType="{x:Type wpf:PopupBox}" x:Key="AudioMenu">
         <Setter Property="PlacementMode" Value="TopAndAlignCentres" />
         <Setter Property="PopupMode" Value="Click" />
-        <Setter Property="StaysOpen" Value="False" />
         <Setter Property="HorizontalAlignment" Value="Left" />
         <Setter Property="BorderThickness" Value="0"/>
         <Setter Property="Cursor" Value="Hand"/>
-
-        <Setter Property="Height" Value="60" />
-        <Setter Property="Width" Value="40" />
+        <Setter Property="Height" Value="30" />
         <Setter Property="Template">
             <Setter.Value>
                 <ControlTemplate TargetType="{x:Type wpf:PopupBox}">
                     <ControlTemplate.Resources>
-                        <Style TargetType="ToggleButton" x:Key="ToggleButtonStyle">
-                            <Setter Property="Template">
-                                <Setter.Value>
-                                    <ControlTemplate TargetType="ToggleButton">
-                                        <Grid x:Name="RootGrid" Background="{x:Null}">
-                                            <Border Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}" 
-                                                    CornerRadius="0,8,8,0"
-                                                        x:Name="border">
-                                                <ContentPresenter Content="{TemplateBinding Content}" 
-                                                    ContentTemplate="{TemplateBinding ContentTemplate}" 
-                                                    Focusable="False"
-                                                    ContentStringFormat="{TemplateBinding ContentStringFormat}"
-                                                    HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}" 
-                                                    VerticalAlignment="{TemplateBinding VerticalContentAlignment}"
-                                                    Margin="0,0" 
-                                                    SnapsToDevicePixels="{TemplateBinding SnapsToDevicePixels}"/>
-                                            </Border>
-                                        </Grid>
-                                        <ControlTemplate.Triggers>
-                                            <Trigger Property="IsMouseOver" Value="true">
-                                                <Setter Property="Background" TargetName="border" Value="#404040" />
-                                                <Setter Property="Foreground" Value="#FFFFFF" />
-                                            </Trigger>
-                                        </ControlTemplate.Triggers>
-                                    </ControlTemplate>
-                                </Setter.Value>
-                            </Setter>
-                        </Style>
                         <Storyboard x:Key="Open">
                             <DoubleAnimation Storyboard.TargetName="PART_PopupContentControl" Storyboard.TargetProperty="Opacity"
                                              To="1" Duration="0:0:0.1">
@@ -85,18 +105,15 @@
                         </Storyboard>
                     </ControlTemplate.Resources>
                     <Grid>
-                        <ToggleButton x:Name="PART_Toggle" Style="{StaticResource ToggleButtonStyle}" 
+                        <ToggleButton x:Name="PART_Toggle" Style="{StaticResource EditingToggleButton}" 
                                       IsChecked="{Binding RelativeSource={RelativeSource TemplatedParent}, Path=IsPopupOpen, Mode=TwoWay}"                                      
                                       Cursor="Hand"
-                                      Background="{TemplateBinding Background}"
-                                      BorderBrush="{TemplateBinding BorderBrush}"
-                                      Foreground="{TemplateBinding Foreground}"
-                                      IsTabStop="{TemplateBinding IsTabStop}"
-                                      VerticalAlignment="Stretch"
-                                      HorizontalAlignment="Stretch"
                                       ToolTip="{TemplateBinding ToolTip}"
-                                      ToolTipService.Placement="{Binding RelativeSource={RelativeSource FindAncestor, AncestorType=wpf:PopupBox}, Path=(ToolTipService.Placement)}"
-                                      Content="{TemplateBinding ToggleContent}" ContentTemplate="{TemplateBinding ToggleContentTemplate}">
+                                      ToolTipService.Placement="{Binding RelativeSource={RelativeSource FindAncestor, AncestorType=wpf:PopupBox}, Path=(ToolTipService.Placement)}">
+                            <materialDesign:PackIcon Kind="Menu" Height="24" Width="24"/>
+                            <materialDesign:ToggleButtonAssist.OnContent>
+                                <materialDesign:PackIcon Kind="DotsVertical" Height="24" Width="24"/>
+                            </materialDesign:ToggleButtonAssist.OnContent>
                         </ToggleButton>
                         <controlzEx:PopupEx x:Name="PART_Popup" 
                                           IsOpen="False"
@@ -137,145 +154,233 @@
                 </ControlTemplate>
             </Setter.Value>
         </Setter>
-        <Setter Property="ToggleContent" Value="{StaticResource MaterialDesignMultiFloatingActionPopupBoxIcon}" />
-        <Style.Triggers>
-            <Trigger Property="UnfurlOrientation" Value="Horizontal">
-                <Setter Property="ToolTipService.Placement" Value="Custom" />
-            </Trigger>
-        </Style.Triggers>
     </Style>
 
+    <Style x:Key="SoundVolumeDisplayStyle" TargetType="{x:Type ProgressBar}">
+        <Setter Property="Foreground" Value="Red"/>
+        <Setter Property="Background" Value="Gray"/>
+        <Setter Property="BorderBrush" Value="White"/>
+        <Setter Property="Orientation" Value="Vertical"/>
+        <Setter Property="Minimum" Value="-55"/>
+        <Setter Property="Maximum" Value="0"/>
+        <Setter Property="BorderThickness" Value="1"/>
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="{x:Type ProgressBar}">
+                    <Grid x:Name="TemplateRoot">
+                        <Grid.LayoutTransform>
+                            <RotateTransform Angle="-90"/>
+                        </Grid.LayoutTransform>
 
-    <DataTemplate x:Key="AudioInputInPopup" DataType="{x:Type models:LocalAudioInputModel}">
-        <Border x:Name="root">
-
-            <Button x:Name="button" Margin="0,3" Style="{StaticResource OnScreenPopupBoxButton}" HorizontalContentAlignment="Stretch"
-                    Command="{Binding Select, Converter={StaticResource CommandConverter}}">
-                <DockPanel>
-                    <materialDesign:PackIcon Margin="3,0,0,0" DockPanel.Dock="Left" x:Name="type" Kind="Microphone" Height="24" Width="24"/>
-
-                    <Border Margin="5,0" DockPanel.Dock="Right" x:Name="state" Height="20" Width="20">
                         <Grid>
-                            <Border x:Name="stateIcon" CornerRadius="20" Background="Red"/>
-                            <materialDesign:PackIcon Margin="-2" x:Name="running" Kind="PlayCircle" Visibility="Collapsed" Width="24" Height="24" Foreground="#1070D0"/>
-                            <ProgressBar x:Name="unknown" Style="{StaticResource MaterialDesignCircularProgressBar}" Value="0" IsIndeterminate="True" Visibility="Collapsed" />
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="31*"/>
+                                <ColumnDefinition Width="10*"/>
+                                <ColumnDefinition Width="10*"/>
+                            </Grid.ColumnDefinitions>
+                            <Border Background="#003f00" CornerRadius="4,0,0,4"/>
+                            <Border Grid.Column="1" Background="#404000"/>
+                            <Border Grid.Column="2" Background="#470000" CornerRadius="0,4,4,0"/>
                         </Grid>
-                    </Border>
-                    <TextBlock Width="55" x:Name="stateText" FontSize="12" VerticalAlignment="Center" TextAlignment="Right" DockPanel.Dock="Right"/>
-                    <TextBlock VerticalAlignment="Center" Margin="5,0,8,0" Text="{Binding Source.Name}"/>
-                </DockPanel>
+
+                        <Rectangle x:Name="PART_Track"/>
+                        <Grid x:Name="PART_Indicator" ClipToBounds="true" HorizontalAlignment="Left">
+                            <Border x:Name="ind" Margin="2"  Background="{TemplateBinding Background}" CornerRadius="2"/>
+                        </Grid>
+                    </Grid>
+                    <ControlTemplate.Triggers>
+                        <DataTrigger Binding="{Binding VolumeLevel.State.Value}" Value="Ok">
+                            <Setter TargetName="ind" Property="Background" Value="#00ff00"/>
+                        </DataTrigger>
+                        <DataTrigger Binding="{Binding VolumeLevel.State.Value}" Value="Hi">
+                            <Setter TargetName="ind" Property="Background" Value="#cccc00"/>
+                        </DataTrigger>
+                        <DataTrigger Binding="{Binding VolumeLevel.State.Value}" Value="VeryHi">
+                            <Setter TargetName="ind" Property="Background" Value="#ff2022"/>
+                        </DataTrigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <DataTemplate DataType="{x:Type models:AudioSourceModel}">
+        <materialDesign:Badged x:Name="badge" Style="{StaticResource RedBadged}" BadgePlacementMode="Bottom" Margin="15,7,15,7" HorizontalAlignment="Center" >
+            <Button x:Name="button" Content="{Binding Model.Name}" HorizontalAlignment="Center" MinWidth="220" 
+                    Command="{Binding Select, Converter={StaticResource CommandConverter}}"
+                    Style="{StaticResource EditingButton}">
             </Button>
-
-        </Border>
+        </materialDesign:Badged>
         <DataTemplate.Triggers>
-            <DataTrigger Binding="{Binding State.Value}" Value="RemoteDeviceInactive">
-                <Setter TargetName="root" Property="Visibility" Value="Collapsed"/>
+
+            <DataTrigger Binding="{Binding IsSelected.Value}" Value="True">
+                <Setter TargetName="button" Property="IsDefault" Value="True"/>
+                <Setter TargetName="badge" Property="Badge" Value="  Current  "/>
+                <Setter TargetName="badge" Property="BadgeBackground" Value="#0C5932"/>
             </DataTrigger>
 
-            <DataTrigger Binding="{Binding SameOwnerAsVideo.Value}" Value="False">
-                <Setter TargetName="button" Property="Background" Value="{StaticResource OnScreenBackgroundDisabled}"/>
-                <Setter TargetName="button" Property="BorderBrush" Value="{StaticResource OnScreenBorderDisabled}"/>
+            <DataTrigger Binding="{Binding Model.State}" Value="Failed">
+                <Setter TargetName="badge" Property="Badge" Value="  Failing  "/>
+                <Setter TargetName="badge" Property="BadgeBackground" Value="#702020"/>
             </DataTrigger>
 
-            <DataTrigger Binding="{Binding State.Value}" Value="Unknown">
-                <Setter TargetName="unknown" Property="Visibility" Value="Visible"/>
-                <Setter TargetName="stateIcon" Property="Visibility" Value="Collapsed"/>
+            <DataTrigger Binding="{Binding Model.State}" Value="NotStarted">
+                <Setter TargetName="badge" Property="Badge" Value="  Not started  "/>
+                <Setter TargetName="button" Property="IsEnabled" Value="False"/>
+                <Setter TargetName="badge" Property="BadgeBackground" Value="#702020"/>
             </DataTrigger>
 
-            <DataTrigger Binding="{Binding State.Value}" Value="Running">
-                <Setter TargetName="running" Property="Visibility" Value="Visible"/>
-                <Setter TargetName="stateIcon" Property="Visibility" Value="Collapsed"/>
-                <Setter TargetName="stateText" Property="Text" Value="Running"/>
+            <DataTrigger Binding="{Binding Model.State}" Value="Locked">
+                <Setter TargetName="badge" Property="Badge" Value="  Locked  "/>
+                <Setter TargetName="button" Property="IsEnabled" Value="False"/>
+                <Setter TargetName="badge" Property="BadgeBackground" Value="#702020"/>
             </DataTrigger>
 
-            <DataTrigger Binding="{Binding State.Value}" Value="RemoteDeviceOffline">
-                <Setter TargetName="stateText" Property="Text" Value="Offline"/>
-                <Setter TargetName="stateIcon" Property="Background" Value="Orange"/>
-                <Setter TargetName="button" Property="Background" Value="{StaticResource OnScreenBackgroundDisabled}"/>
-                <Setter TargetName="button" Property="BorderBrush" Value="{StaticResource OnScreenBorderDisabled}"/>
-            </DataTrigger>
-
-            <DataTrigger Binding="{Binding State.Value}" Value="Ready">
-                <Setter TargetName="stateIcon" Property="Background" Value="Green"/>
-                <Setter TargetName="stateText" Property="Text" Value="Ready"/>
-            </DataTrigger>
-
-            <DataTrigger Binding="{Binding State.Value}" Value="Failed">
-                <Setter TargetName="stateText" Property="Text" Value="Failed"/>
-            </DataTrigger>
-
-            <DataTrigger Binding="{Binding State.Value}" Value="Removed">
-                <Setter TargetName="stateText" Property="Text" Value="Removed"/>
-                <Setter TargetName="stateIcon" Property="Background" Value="DarkGray"/>
-                <Setter TargetName="button" Property="Background" Value="{StaticResource OnScreenBackgroundDisabled}"/>
-                <Setter TargetName="button" Property="BorderBrush" Value="{StaticResource OnScreenBorderDisabled}"/>
-            </DataTrigger>
-
-            <DataTrigger Binding="{Binding State.Value}" Value="ObsIsNotStarted">
-                <Setter TargetName="stateText" Property="Text" Value="Off"/>
-                <Setter TargetName="button" Property="Background" Value="{StaticResource OnScreenBackgroundDisabled}"/>
-                <Setter TargetName="button" Property="BorderBrush" Value="{StaticResource OnScreenBorderDisabled}"/>
-            </DataTrigger>
-
-            <DataTrigger Binding="{Binding Type}" Value="Virtual">
-                <Setter TargetName="type" Property="Kind" Value="AlphaVCircleOutline"/>
-            </DataTrigger>
-
-            <DataTrigger Binding="{Binding Type}" Value="Remote">
-                <Setter TargetName="type" Property="Kind" Value="ContactlessPaymentCircle"/>
+            <DataTrigger Binding="{Binding Model.State}" Value="Removed">
+                <Setter TargetName="badge" Property="Badge" Value="  Removed  "/>
+                <Setter TargetName="button" Property="IsEnabled" Value="False"/>
+                <Setter TargetName="badge" Property="BadgeBackground" Value="#702020"/>
             </DataTrigger>
         </DataTemplate.Triggers>
     </DataTemplate>
 
-    <DataTemplate x:Key="AudioInputModelInPopup">
-        <Grid>
-            <ContentPresenter Content="{Binding Local}" ContentTemplate="{StaticResource AudioInputInPopup}"/>
-        </Grid>
-    </DataTemplate>
-
-    <DataTemplate x:Key="AudioControl" DataType="{x:Type models:MainStreamerModel}">
-        <materialDesign:PopupBox Margin="0,5,5,25" x:Name="audios"
-                                                         Style="{StaticResource OnBlackPopupBox}"
-                                                         IsPopupOpen="{Binding CoreData.ThisDevice.PreviewAudio, Mode=TwoWay}"
-                                                         PlacementMode="TopAndAlignRightEdges"
-                                                         HorizontalAlignment="Stretch"
-                                                         HorizontalContentAlignment="Stretch">
-            <materialDesign:PopupBox.ToolTip>
-                <StackPanel Orientation="Horizontal">
-                    <TextBlock Text="Audio source: "/>
-                    <TextBlock x:Name="audioSourceValue" Text="{Binding VideoSource.CurrentAudio.Value}"/>
-                </StackPanel>
-            </materialDesign:PopupBox.ToolTip>
-            <materialDesign:PopupBox.ToggleContent>
-                <materialDesign:PackIcon x:Name="icon" Width="24" Height="24" Kind="MicrophoneOutline"/>
-            </materialDesign:PopupBox.ToggleContent>
-            <Grid Margin="0,5">
-                <ItemsControl x:Name="audioList" ItemsSource="{Binding CoreData.Root.AudioInputs.Values}" ItemTemplate="{StaticResource AudioInputModelInPopup}">
-                </ItemsControl>
-                <Border x:Name="audioEmpty"  MaxWidth="290" Background="{StaticResource OnScreenBackground}" BorderThickness="1" CornerRadius="3" BorderBrush="{StaticResource OnScreenBorder}"
-                                                Visibility="Collapsed">
-                    <TextBlock Margin="20,10" Foreground="{StaticResource OnScreenForegroundPressed}" TextWrapping="Wrap" TextAlignment="Center" Text="No audio sources detected on this computer"/>
+    <DataTemplate DataType="{x:Type models:AudioItemModel}">
+        <controls:ActivatingControl x:Name="activating">
+            <Grid>
+                <Border x:Name="background" Background="#151515" Opacity="0"/>
+                <Border x:Name="backgroundIssue" Background="#550000" Visibility="Collapsed"
+                        ToolTip="{Binding InputIssue.Value}"
+                        ToolTipService.Placement="Left"
+                        ToolTipService.ShowDuration="60000"
+                        ToolTipService.InitialShowDelay="0">
+                    <Border.Resources>
+                        <Style TargetType="ToolTip" BasedOn="{StaticResource {x:Type ToolTip}}">
+                            <Setter Property="Background" Value="#aa0000"/>
+                            <Setter Property="Foreground" Value="White"/>
+                            <Setter Property="TextElement.FontSize" Value="14"/>
+                            <Setter Property="Margin" Value="5,0"/>
+                            <Setter Property="VerticalOffset" Value="0"/>
+                        </Style>
+                    </Border.Resources>
                 </Border>
+                <DockPanel Margin="0,5" Width="40">
+                    <wpf:PopupBox x:Name="menu" DockPanel.Dock="Bottom"
+                                  Width="30" Height="30" MinWidth="30"
+                                  Style="{StaticResource AudioMenu}"
+                                  IsPopupOpen="{Binding Parent.SourceSelectionOpened.Value, Mode=TwoWay}"
+                                  HorizontalAlignment="Center"
+                                  ToolTip="Configure source"
+                                  Margin="0">
+                        <Border Background="#202020" BorderThickness="1" BorderBrush="#aaaaaa">
+                            <Grid>
+                                <ItemsControl x:Name="audioSourceList" Margin="0,5" ItemsSource="{Binding Parent.AudioSources}"/>
+                                <TextBlock x:Name="audioSourceListEmpty" Margin="15,10" Text="No audio sources found" Visibility="Collapsed"/>
+                            </Grid>
+                        </Border>
+                    </wpf:PopupBox>
+
+                    <ToggleButton x:Name="mute" DockPanel.Dock="Bottom" Style="{StaticResource EditingToggleButton}"
+                                            Width="30" Height="30" MinWidth="30" Margin="0"
+                                            IsChecked="{Binding Muted.Value}">
+                        <ToggleButton.ToolTip>
+                            <StackPanel Orientation="Horizontal">
+                                <TextBlock x:Name="muteText" Text="Mute "/>
+                                <TextBlock Text="{Binding Name.Value}"/>
+                            </StackPanel>
+                        </ToggleButton.ToolTip>
+                        <materialDesign:PackIcon x:Name="micOn" Kind="Microphone" Height="24" Width="24" Foreground="White"/>
+                        <materialDesign:ToggleButtonAssist.OnContent>
+                            <materialDesign:PackIcon x:Name="micOff"  Kind="MicrophoneOff" Height="24" Width="24" Foreground="#dd7070"/>
+                        </materialDesign:ToggleButtonAssist.OnContent>
+                    </ToggleButton>
+                    <Grid Margin="0,5,0,2" x:Name="ctrl">
+                        <Border x:Name="fakeProgress" Margin="0,3" Width="2" Background="#808080" Visibility="Collapsed" />
+                        <ProgressBar x:Name="progress" Width="8" Style="{StaticResource SoundVolumeDisplayStyle}" Value="{Binding VolumeLevel.Volume.Value}"/>
+                        <Slider Value="{Binding VolumeControl.Value, Delay=150}" Minimum="0" Maximum="1" Margin="0,-5" x:Name="slider" Style="{StaticResource AudioVolumeSlider}"
+                                 ToolTip="{Binding Name.Value}"/>
+                    </Grid>
+                </DockPanel>
             </Grid>
-        </materialDesign:PopupBox>
+        </controls:ActivatingControl>
         <DataTemplate.Triggers>
-            <DataTrigger Binding="{Binding CoreData.Root.AudioInputs.Values.Count}" Value="0">
-                <Setter TargetName="audioList" Property="Visibility" Value="Collapsed"/>
-                <Setter TargetName="audioEmpty" Property="Visibility" Value="Visible"/>
-            </DataTrigger>
-            
-            <DataTrigger Binding="{Binding CoreData.Root.AudioInputs.Values.Count}" Value="0">
-                <Setter TargetName="audioList" Property="Visibility" Value="Collapsed"/>
-                <Setter TargetName="audioEmpty" Property="Visibility" Value="Visible"/>
-                <Setter TargetName="icon" Property="Kind" Value="MicrophoneOff"/>
-                <Setter TargetName="icon" Property="Foreground" Value="Red"/>
+            <DataTrigger Binding="{Binding (support:ResponsiveHost.Calculation).Values.RightHideSliders, ElementName=activating}" Value="True">
+                <Setter TargetName="ctrl" Property="Visibility" Value="Collapsed"/>
             </DataTrigger>
 
-            <DataTrigger Binding="{Binding CoreData.Root.Settings.SelectedAudio}" Value="{x:Null}">
-                <Setter TargetName="icon" Property="Kind" Value="MicrophoneOff"/>
-                <Setter TargetName="icon" Property="Foreground" Value="Red"/>
+            <DataTrigger Binding="{Binding Parent.AudioSources.Count}" Value="0">
+                <Setter TargetName="audioSourceList" Property="Visibility" Value="Collapsed"/>
+                <Setter TargetName="audioSourceListEmpty" Property="Visibility" Value="Visible"/>
+            </DataTrigger>
+
+            <DataTrigger Binding="{Binding IsDesktop}" Value="True">
+                <Setter TargetName="micOn" Property="Kind" Value="VolumeHigh"/>
+                <Setter TargetName="micOff" Property="Kind" Value="VolumeOff"/>
+                <Setter TargetName="menu" Property="Visibility" Value="Collapsed"/>
+                <Setter TargetName="activating" Property="Margin" Value="0,0,0,10"/>
+            </DataTrigger>
+
+            <DataTrigger Binding="{Binding HasInputIssue.Value}" Value="True">
+                <Setter TargetName="backgroundIssue" Property="Visibility" Value="Visible"/>
+                <Setter TargetName="ctrl" Property="Visibility" Value="Collapsed"/>
+            </DataTrigger>
+
+            <DataTrigger Binding="{Binding VolumeLevelAvailable.Value}" Value="False">
+                <Setter TargetName="progress" Property="Visibility" Value="Collapsed"/>
+                <Setter TargetName="fakeProgress" Property="Visibility" Value="Visible"/>
+            </DataTrigger>
+
+            <DataTrigger Binding="{Binding Muted.Value}" Value="True">
+                <Setter TargetName="ctrl" Property="Visibility" Value="Hidden"/>
+                <Setter TargetName="muteText" Property="Text" Value="Unmute "/>
+            </DataTrigger>
+
+            <DataTrigger Binding="{Binding IsActive, ElementName=activating}" Value="True">
+                <DataTrigger.EnterActions>
+                    <BeginStoryboard>
+                        <Storyboard BeginTime="0:0:0.2" >
+                            <DoubleAnimation Storyboard.TargetName="background" Storyboard.TargetProperty="Opacity"     Duration="0:0:0.1" To="1.0"/>
+                            <DoubleAnimation Storyboard.TargetName="slider" Storyboard.TargetProperty="Opacity"         Duration="0:0:0.1" To="1.0"/>
+                            <DoubleAnimation Storyboard.TargetName="mute" Storyboard.TargetProperty="Opacity"           Duration="0:0:0.1" To="1.0"/>
+                            <DoubleAnimation Storyboard.TargetName="menu" Storyboard.TargetProperty="Opacity"           Duration="0:0:0.1" To="1.0"/>
+                            <DoubleAnimation Storyboard.TargetName="progress" Storyboard.TargetProperty="Opacity"       Duration="0:0:0.1" To="1.0"/>
+                            <DoubleAnimation Storyboard.TargetName="fakeProgress" Storyboard.TargetProperty="Opacity"   Duration="0:0:0.1" To="1.0"/>
+                        </Storyboard>
+                    </BeginStoryboard>
+                </DataTrigger.EnterActions>
+
+                <DataTrigger.ExitActions>
+                    <BeginStoryboard>
+                        <Storyboard BeginTime="0:0:4.0">
+                            <DoubleAnimation Storyboard.TargetName="background" Storyboard.TargetProperty="Opacity"     Duration="0:0:0.1" To="0.0"/>
+                            <DoubleAnimation Storyboard.TargetName="slider" Storyboard.TargetProperty="Opacity"         Duration="0:0:0.1" To="0.0"/>
+                            <DoubleAnimation Storyboard.TargetName="mute" Storyboard.TargetProperty="Opacity"           Duration="0:0:0.1" To="0.3"/>
+                            <DoubleAnimation Storyboard.TargetName="progress" Storyboard.TargetProperty="Opacity"       Duration="0:0:0.1" To="0.5"/>
+                            <DoubleAnimation Storyboard.TargetName="menu" Storyboard.TargetProperty="Opacity"           Duration="0:0:0.1" To="0.3"/>
+                            <DoubleAnimation Storyboard.TargetName="fakeProgress" Storyboard.TargetProperty="Opacity"   Duration="0:0:0.1" To="0.0"/>
+                        </Storyboard>
+                    </BeginStoryboard>
+                </DataTrigger.ExitActions>
             </DataTrigger>
         </DataTemplate.Triggers>
+
+    </DataTemplate>
+
+    <DataTemplate x:Key="AudioControl" DataType="{x:Type models:AudioModel}">
+            <Border Margin="10,10,0,10" HorizontalAlignment="Left" MaxHeight="550">
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="*"/>
+                        <RowDefinition Height="0"/>
+                        <RowDefinition Height="*"/>
+                    </Grid.RowDefinitions>
+
+
+                    <ContentControl Margin="0,0,0,10" Content="{Binding Desktop}"/>
+                    <ContentControl Margin="0,-10,0,0" Grid.Row="2" Content="{Binding Mic}"/>
+                </Grid>
+            </Border>
+
+       
     </DataTemplate>
     
 </ResourceDictionary>
