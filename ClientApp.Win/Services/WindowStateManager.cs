@@ -34,12 +34,21 @@ namespace Streamster.ClientApp.Win.Services
 
         public IntPtr WindowHandle { get; private set; }
 
+        public event EventHandler IsMinimizedChanged;
+
         public WindowStateManager(CoreData coreData)
         {
             _coreData = coreData;
 
             _coreData.Subscriptions.SubscribeForProperties<IDeviceSettings>(s => s.DisableTopMost, (s, c, p) => RefreshButtons(true));
             _coreData.Subscriptions.SubscribeForProperties<IDeviceSettings>(s => s.TopMostExtendedMode, (s, c, p) => RefreshButtons(true));
+        }
+
+        public bool IsMinimized()
+        {
+            if (_started && _window != null)
+                return _window.WindowState == WindowState.Minimized;
+            return false;
         }
 
         private void RefreshTopMost()
@@ -83,6 +92,8 @@ namespace Streamster.ClientApp.Win.Services
                 {
                     if (_lastState == AppWindowState.FullScreen && _window.WindowState != WindowState.Minimized)
                         _window.WindowStyle = WindowStyle.SingleBorderWindow;
+
+                    IsMinimizedChanged?.Invoke(this, EventArgs.Empty);
                     RefreshButtons(false);
                 }
             };

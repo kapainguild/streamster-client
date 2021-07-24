@@ -60,7 +60,14 @@ namespace Streamster.ClientCore.Models
             _coreData.Subscriptions.SubscribeForProperties<IDevice>(s => s.PreviewSources, (d, c, p) => RefreshDeviceBasedState());
             _coreData.Subscriptions.SubscribeForProperties<IDevice>(s => s.State, (d, c, p) => RefreshDeviceBasedState());
 
-            _coreData.ThisDevice.ApiContract = ScreenCaptureManager.GetApiContract();
+            try
+            {
+                _coreData.ThisDevice.ApiContract = ScreenCaptureManager.GetApiContract();
+            }
+            catch
+            {
+                _coreData.ThisDevice.ApiContract = -1;
+            }
 
             UpdateModelWithLocalDevice(_videoSources, _coreData.ThisDevice.VideoInputs);
             UpdateModelWithLocalDevice(_audioSources, _coreData.ThisDevice.AudioInputs);

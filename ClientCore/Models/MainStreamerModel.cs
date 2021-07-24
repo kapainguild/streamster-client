@@ -176,6 +176,7 @@ namespace Streamster.ClientCore.Models
                 if (!_coreData.ThisDevice.RequireOutgest)
                 {
                     Log.Information("Requesting outgest");
+                    //_coreData.ThisDevice.RequireOutgestType = RequireOutgestType.Rtmp;
                     _coreData.ThisDevice.RequireOutgestType = RequireOutgestType.Tcp;
                     _coreData.ThisDevice.RequireOutgest = true;
                 }
@@ -203,6 +204,7 @@ namespace Streamster.ClientCore.Models
             if (outgestId != null && _coreData.Root.Outgests.TryGetValue(outgestId, out var outgest))
             {
                 var outgestUrl = GetIngestOutgestUrl(outgest.Data.Output);
+                //outgestUrl = outgestUrl.Replace("60", "66");
                 inputs = new[] { new VideoInputTrunkConfig("0", new VideoInputConfigFull(
                     new InputSetup(outgest.Data.Type, outgestUrl, outgest.Data.Options, null, null, null, 2)), 
                     null, PositionRect.Full, PositionRect.Full, true, 0) };
@@ -278,7 +280,7 @@ namespace Streamster.ClientCore.Models
                         Type = "flv",
                         Output = output,
                         Options = ""
-                    }, true);
+                    }, false);
                 }
                 else Log.Warning($"Bad folder for recorrding: {_coreData.ThisDevice.DeviceSettings.RecordingsPath}");
             }
@@ -294,7 +296,7 @@ namespace Streamster.ClientCore.Models
 
         private VideoRenderOptions RebuildVideoRenderOptions(int dxFailureCounter)
         {
-            return new VideoRenderOptions(ModelToStreamerTranslator.Translate(_coreData.ThisDevice.DeviceSettings.RendererType), _coreData.ThisDevice.DeviceSettings.RendererAdapter, _windowStateManager.WindowHandle, true, dxFailureCounter);
+            return new VideoRenderOptions(ModelToStreamerTranslator.Translate(_coreData.ThisDevice.DeviceSettings.RendererType), _coreData.ThisDevice.DeviceSettings.RendererAdapter, _windowStateManager.WindowHandle, false, dxFailureCounter);
         }
 
         private VideoEncoderTrunkConfig RebuildVideoEncoder(int videoBitrate, bool receiverMode)

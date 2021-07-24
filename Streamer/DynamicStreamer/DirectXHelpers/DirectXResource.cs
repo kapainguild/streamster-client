@@ -56,11 +56,17 @@ namespace DynamicStreamer
 
         public ShaderResourceView GetShaderResourceView()
         {
+            if (Texture2D == null)
+                throw new InvalidOperationException("Texture2D is null");
+
             return new ShaderResourceView(_dx.Device, Texture2D); 
         }
 
         public RenderTargetView GetRenderTargetView()
         {
+            if (Texture2D == null)
+                throw new InvalidOperationException("Texture2D is null");
+
             return new RenderTargetView(_dx.Device, Texture2D);
         }
 

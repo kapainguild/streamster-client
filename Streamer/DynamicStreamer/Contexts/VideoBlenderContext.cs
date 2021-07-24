@@ -377,6 +377,9 @@ namespace DynamicStreamer.Contexts
             var dx = _setup.Dx;
             try
             {
+                if (dx.IsBrokenAndLog("Blender"))
+                    return false;
+
                 var texture = dx.Pool.Get("Blender", DirectXResource.Desc(_setup.Width, _setup.Height, SharpDX.DXGI.Format.B8G8R8A8_UNorm, BindFlags.ShaderResource | BindFlags.RenderTarget, ResourceUsage.Default, ResourceOptionFlags.None));
                 //using 
                 using (var rtv = texture.GetRenderTargetView())

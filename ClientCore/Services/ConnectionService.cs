@@ -22,6 +22,7 @@ namespace Streamster.ClientCore.Services
         private readonly IAppEnvironment _environment;
         private readonly IdService _idService;
         private readonly LogService _logService;
+        private readonly IAppResources _appResources;
         private readonly string _domain;
 
         public string AccessToken { get; private set; }
@@ -37,6 +38,7 @@ namespace Streamster.ClientCore.Services
             _environment = environment;
             _idService = idService;
             _logService = logService;
+            _appResources = appResources;
             _domain = appResources.AppData.Domain;
         }
 
@@ -115,7 +117,7 @@ namespace Streamster.ClientCore.Services
                         ClientId = _environment.GetClientId(),
                         ClientSecret = "xtreamer.id",
 
-                        UserName = credential.UserName,
+                        UserName = _appResources.AppData.UserNamePrefix + credential.UserName,
                         Password = credential.Password,
                         Scope = ClientConstants.ConnectionServerApi,
 

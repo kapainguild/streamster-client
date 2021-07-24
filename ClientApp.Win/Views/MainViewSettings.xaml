@@ -241,13 +241,13 @@
             
             <DataTrigger Binding="{Binding StreamSettings.ChangeStreamParamsDisabled.Value}" Value="True">
                 <Setter TargetName="encoderQuality" Property="IsEnabled" Value="False"/>
-                <Setter TargetName="encoderQuality" Property="ToolTip" Value="Encoder quality cannot be changed during Restreaming or Recording"/>
+                <Setter TargetName="encoderQuality" Property="ToolTip" Value="Encoder quality cannot be changed during Streaming or Recording"/>
                 <Setter TargetName="encoderType" Property="IsEnabled" Value="False"/>
-                <Setter TargetName="encoderType" Property="ToolTip" Value="Encoder type cannot be changed during Restreaming or Recording"/>
-                <Setter TargetName="nalHdr" Property="IsEnabled" Value="False"/> 
-                <Setter TargetName="nalHdr" Property="ToolTip" Value="The option cannot be changed during Restreaming or Recording"/>
+                <Setter TargetName="encoderType" Property="ToolTip" Value="Encoder type cannot be changed during Streaming or Recording"/>
+                <Setter TargetName="nalHdr" Property="IsEnabled" Value="False"/>
+                <Setter TargetName="nalHdr" Property="ToolTip" Value="The option cannot be changed during Streaming or Recording"/>
                 <Setter TargetName="qsvn12" Property="IsEnabled" Value="False"/>
-                <Setter TargetName="qsvn12" Property="ToolTip" Value="The option cannot be changed during Restreaming or Recording"/>
+                <Setter TargetName="qsvn12" Property="ToolTip" Value="The option cannot be changed during Streaming or Recording"/>
             </DataTrigger>
 
         </DataTemplate.Triggers>

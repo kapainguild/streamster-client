@@ -52,6 +52,16 @@ namespace DynamicStreamer
             Nv12Supported = nv12Support.HasFlag(FormatSupport.RenderTarget) && nv12Support.HasFlag(FormatSupport.Texture2D);
         }
 
+        public bool IsBrokenAndLog(string name)
+        {
+            if (IsBroken)
+            {
+                Core.LogInfo($"Frame dropped in {name} as DirectX is broken", "Frame dropped as DirectX is broken");
+                return true;
+            }
+            return false;
+        }
+
         internal DirectXContext AddRef()
         {
             if (Interlocked.Increment(ref _refCount) > 1) // otherwise it means 0 => 1
@@ -97,6 +107,8 @@ namespace DynamicStreamer
 
                 lock (this)
                 {
+                    if (IsBroken)
+                        return;
                     action(Device.ImmediateContext);
                 }
             }

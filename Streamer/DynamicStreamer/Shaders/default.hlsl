@@ -37,7 +37,7 @@ float4 PSDrawBare(VertInOut vert_in) : SV_TARGET
 	return image.Sample(def_sampler, vert_in.uv);
 }
 
-float4 PSDrawAlphaDivide(VertInOut vert_in) : SV_TARGET
+float4 PSDrawAlphaDivide(VertOut vert_in) : SV_TARGET
 {
 	float4 rgba = image.Sample(def_sampler, vert_in.uv);
 	float alpha = rgba.a;

@@ -137,9 +137,11 @@ namespace DynamicStreamer
                     s.Dispose();
                 });
 
-            var anyBitrateControl = c.OutputTrunks.Any(s => s.RequireBitrateControl);
-            if (!anyBitrateControl)
+            var trunkBitrateControl = c.OutputTrunks.FirstOrDefault(s => s.RequireBitrateControl);
+            if (trunkBitrateControl == null)
                 _bitrateController.ShutDown();
+            else
+                _bitrateController.SetId(trunkBitrateControl.Id, c.VideoEncoderTrunk.Bitrate);
 
             return changed;
         }
@@ -196,7 +198,7 @@ namespace DynamicStreamer
                     AudioInputTrunks.Add(trunk);
                 }
 
-                var inputCtx = trunk.Input.PrepareVersion(version, trunk.DecoderQueue, trunkConfig.Setup with { AdjustInputType = AdjustInputType.CurrentTime }, 0);
+                var inputCtx = trunk.Input.PrepareVersion(version, trunk.DecoderQueue, trunkConfig.Setup with { AdjustInputType = AdjustInputType.CurrentTime });
 
                 if (inputCtx != null)
                 {
@@ -401,7 +403,7 @@ namespace DynamicStreamer
                     var trunk = GetOrCreateTrunkDetail(trunkRoot, () => new VideoInputTrunkFull(trunkId, this, () => InputChanged()));
                     UpdateInputFpsQueue(update, trunk, trunkId, fps);
 
-                    var inputCtx = trunk.Input.PrepareVersion(update, trunk.InputFpsLimitQueue, PrepareVideoInputSetup(videoInputConfigFull.Setup, fps, trunk.Input.CurrentContext, c), 0);
+                    var inputCtx = trunk.Input.PrepareVersion(update, trunk.InputFpsLimitQueue, PrepareVideoInputSetup(videoInputConfigFull.Setup, fps, trunk.Input.CurrentContext, c));
                     if (inputCtx != null)
                     {
                         var blenderQueue = new SetSourceIdQueue<Frame>(VideoEncoderTrunk.BlenderQueue, sourceId);
@@ -434,8 +436,19 @@ namespace DynamicStreamer
                                     (v, s) => s.PrepareVersion(v, null, trunk.FilterQueue, new DecoderSetup(DecoderContextFFMpeg.Type, streamProps.CodecProps, null)));
                                 var dc = decoder.Config;
 
+
+                                //[decoder]->[to rgb]->[upload passthru]->[blender]
+                                //UpdateVideoFilterForDirectXUpload(update, trunk, dc, Core.Const.PIX_FMT_BGRA);
+                                //trunk.Filter2.PrepareVersion(update, trunk.Filter2Queue, blenderQueue, new FilterSetup
+                                //{
+                                //    Type = FilterContextDirectXPassThru.Type,
+                                //    DirectXContext = _dx,
+                                //    InputSetups = new[] { new FilterInputSetup(new FilterInputSpec { width = dc.CodecProperties.width, height = dc.CodecProperties.height }) }
+                                //});
+
+
                                 int requiredPixelFormat = decoder.Config.DecoderProperties.pix_fmt;
-                                if (DirectXUploader.IsFormatSupportedForFilterUpload(requiredPixelFormat)) //TODO:NextRelease: maybe converting to PIX_FMT_BGRA an then passthru is faster?
+                                if (DirectXUploader.IsFormatSupportedForFilterUpload(requiredPixelFormat)) 
                                 {
                                     //[decoder]->[null]->[upload]->[blender]
                                     trunk.FilterPool.PrepareVersion(update, 1, trunk.FilterQueue, (v, s) => s.PrepareVersion(v, null, trunk.Filter2Queue, new FilterSetup { Type = FilterContextNull.Type}));
@@ -446,7 +459,7 @@ namespace DynamicStreamer
                                     requiredPixelFormat = Core.Const.PIX_FMT_YUYV422;
                                     UpdateVideoFilterForDirectXUpload(update, trunk, dc, requiredPixelFormat);
                                 }
-                                
+
                                 trunk.Filter2.PrepareVersion(update, trunk.Filter2Queue, blenderQueue, new FilterSetup { Type = FilterContextDirectXUpload.Type, DirectXContext = _dx,
                                     InputSetups = new[] { new FilterInputSetup(new FilterInputSpec { pix_fmt = requiredPixelFormat, width = dc.CodecProperties.width, height = dc.CodecProperties.height }) }});
                             }

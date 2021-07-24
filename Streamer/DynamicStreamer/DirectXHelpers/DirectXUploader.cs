@@ -111,6 +111,9 @@ namespace DynamicStreamer.DirectXHelpers
         {
             try
             {
+                if (_dx.IsBrokenAndLog("Upload"))
+                    return null;
+
                 var source0 = LoadPlane(0, dataPointer);
                 var source1 = LoadPlane(1, dataPointer1);
                 var source2 = LoadPlane(2, dataPointer2);

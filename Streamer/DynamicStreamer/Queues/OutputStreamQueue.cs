@@ -71,15 +71,18 @@ namespace DynamicStreamer.Queues
 
         private bool IsOverloaded()
         {
-            if (_sortingQueueCountsPerId[0] > 12)
+            if (_sortingQueue.Count > 0)
             {
-                Core.LogWarning("OutputQueue lacks audio packets");
-                return true;
-            }
-            else if (_sortingQueueCountsPerId[1] > 40) // may happen on 5 fps
-            {
-                Core.LogWarning("OutputQueue lacks video packets");
-                return true;
+                var first = _sortingQueue.First.Value.Payload.GetPts();
+                var last = _sortingQueue.Last.Value.Payload.GetPts();
+                var delta = last - first;
+
+                // 2 seconds
+                if (delta > 20_000_000 || _sortingQueueCountsPerId[0] > 120 || _sortingQueueCountsPerId[1] > 120)
+                {
+                    Core.LogWarning($"GAP! Pushing packet to Output. QDuration {delta / 10_000}ms, VideoQ = {_sortingQueueCountsPerId[0]}, AudioQ={_sortingQueueCountsPerId[1]}", "GAP! Pushing packet to Output.");
+                    return true;
+                }
             }
             return false;
         }

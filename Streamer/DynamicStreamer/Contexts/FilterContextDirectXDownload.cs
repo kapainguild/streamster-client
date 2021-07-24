@@ -55,7 +55,11 @@ namespace DynamicStreamer.Contexts
         {
             if (_currentFrame == null)
                 _currentFrame = _streamer.FramePool.Rent();
-            _downloader.Download(frame, _currentFrame);
+            if (!_downloader.Download(frame, _currentFrame))
+            {
+                _streamer.FramePool.Back(_currentFrame);
+                _currentFrame = null;
+            }
             return 0;
         }
     }

@@ -133,19 +133,24 @@ namespace DynamicStreamer.DirectXHelpers
             _dx.RemoveRef();
         }
 
-        public void Download(Frame input, Frame output)
+        public bool Download(Frame input, Frame output)
         {
             FramePlaneDesc[] dbs = null;
 
-            //using var _ = new TimeMeasurer("download");
+            if (_dx.IsBrokenAndLog("Downloader"))
+                return false;
 
             _dx.RunOnContext(ctx => _planes.ForEach(p => Render(input.DirectXResourceRef.Instance, p, ctx)), "Download Render");
             _dx.RunOnContext(ctx => dbs = _planes.Select(p => Map(input.DirectXResourceRef.Instance, p, ctx)).ToArray(), "Download Begin");
 
             if (dbs != null)
+            {
                 output.Init(_width, _height, _pixelFormat, input.Properties.Pts, dbs);
 
-            _dx.RunOnContext(ctx => _planes.ForEach(p => Unmap(p, ctx)), "Download End");
+                _dx.RunOnContext(ctx => _planes.ForEach(p => Unmap(p, ctx)), "Download End");
+                return true;
+            }
+            return false;
         }
 
         private void Unmap(DirectXDownloaderPlaneData p, DeviceContext ctx)

@@ -4,6 +4,10 @@
                     xmlns:support="clr-namespace:Streamster.ClientApp.Win.Support" 
                     xmlns:materialDesign="http://materialdesigninxaml.net/winfx/xaml/themes" xmlns:controls="clr-namespace:Streamster.ClientApp.Win.Controls" >
 
+    <ResourceDictionary.MergedDictionaries>
+        <ResourceDictionary Source="Common.xaml"/>
+    </ResourceDictionary.MergedDictionaries>
+
 
     <Style TargetType="{x:Type controls:SceneItemResizeThumb}">
         <Setter Property="Template">
@@ -84,7 +88,13 @@
                     </ItemsControl.ItemContainerStyle>
                 </ItemsControl>
 
-                <controls:DirectXPresenter VerticalAlignment="Top" x:Name="Preview" Stretch="Uniform" DataContext="{Binding Streamer.ScreenRenderer}" RenderOptions.BitmapScalingMode="LowQuality" />
+                <Button HorizontalAlignment="Center"
+                        VerticalAlignment="Center" 
+                        Content="Recover preview"
+                        Style="{StaticResource MaterialDesignOutlinedButton}"
+                        Command="{Binding RecoverCommand, ElementName=Preview, Converter={StaticResource CommandConverter}}"/>
+
+                <controls:DirectXPresenter VerticalAlignment="Top" x:Name="Preview" Stretch="Uniform" IsHitTestVisible="False" DataContext="{Binding Streamer.ScreenRenderer}" RenderOptions.BitmapScalingMode="LowQuality" />
 
                 <ItemsControl ItemsSource="{Binding SceneEditing.Items}" ItemTemplate="{StaticResource SceneItemTop}">
                     <ItemsControl.ItemsPanel>

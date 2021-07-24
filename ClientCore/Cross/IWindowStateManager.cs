@@ -8,5 +8,9 @@ namespace Streamster.ClientCore.Cross
         void Start();
 
         IntPtr WindowHandle { get; }
+
+        bool IsMinimized();
+
+        event EventHandler IsMinimizedChanged;
     }
 }

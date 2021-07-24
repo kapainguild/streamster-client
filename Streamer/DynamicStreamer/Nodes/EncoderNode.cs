@@ -1,5 +1,7 @@
 ﻿
 using DynamicStreamer.Contexts;
+using System.Collections.Generic;
+using System.Linq;
 
 namespace DynamicStreamer.Nodes
 {
@@ -9,6 +11,37 @@ namespace DynamicStreamer.Nodes
 
         public EncoderNode(NodeName name, IStreamerBase controller) : base(name, controller)
         {
+        }
+
+        protected override RefCounted<IEncoderContext> CreateAndOpenContextRef(EncoderSetup setup)
+        {
+            lock (this)
+            {
+                var same = _versions.All(s => setup.EqualsExceptBitrate(s.ContextSetup));
+                bool replace = same && _versions.Count > 0;
+
+                if (!replace)
+                    DisposeVersions();
+                else
+                {
+                    foreach (var version in _versions)
+                    {
+                        version.Context.RemoveRef();
+                        version.Context = null;
+                    }
+                }
+
+                var result = new RefCounted<IEncoderContext>(CreateAndOpenContext(setup));
+
+                if (replace)
+                {
+                    foreach (var version in _versions)
+                    {
+                        version.Context = result.AddRef();
+                    }
+                }
+                return result;
+            }
         }
 
         protected override IEncoderContext CreateAndOpenContext(EncoderSetup config)
@@ -23,51 +56,55 @@ namespace DynamicStreamer.Nodes
         protected override void ProcessData(Data<Frame> data, ContextVersion<IEncoderContext, EncoderSetup, Packet> currentVersion)
         {
             _statisticKeeper.Data.InFrames++; //unsafe, but ok
-            if (currentVersion == null)
-            {
-                Streamer.FramePool.Back(data.Payload);
-                return;
-            }
-            data.Trace?.Received(Name);
-            bool enforceIFrame = false;
 
-            if (_makeIFrameNextPacket == data.Version && currentVersion.ContextSetup.SupportsEnforcingIFrame)
+            lock (this)
             {
-                Core.LogInfo("Trying to enforce IFrame on encoder");
-                _makeIFrameNextPacket = 0;
-                enforceIFrame = true;
-            }
-
-            int writeRes = currentVersion.Context.Instance.Write(data.Payload, enforceIFrame);
-            Streamer.FramePool.Back(data.Payload);
-
-            if (Core.IsFailed(writeRes))
-            {
-                _statisticKeeper.Data.Errors++;
-                Core.LogError($"Write to {Name}: {Core.GetErrorMessage(writeRes)}", "write to node failed");
-                return;
-            }
-
-            while (!currentVersion.IsInterrupted)
-            {
-                var resultPayload = Streamer.PacketPool.Rent();
-                var readRes = currentVersion.Context.Instance.Read(resultPayload);
-                if (readRes == ErrorCodes.TryAgainLater)
+                if (currentVersion == null || currentVersion.Context == null)
                 {
-                    Streamer.PacketPool.Back(resultPayload);
-                    break;
+                    Streamer.FramePool.Back(data.Payload);
+                    return;
                 }
-                else if (Core.IsFailed(readRes))
+                data.Trace?.Received(Name);
+                bool enforceIFrame = false;
+
+                if (_makeIFrameNextPacket == data.Version && currentVersion.ContextSetup.SupportsEnforcingIFrame)
+                {
+                    Core.LogInfo("Trying to enforce IFrame on encoder");
+                    _makeIFrameNextPacket = 0;
+                    enforceIFrame = true;
+                }
+
+                int writeRes = currentVersion.Context.Instance.Write(data.Payload, enforceIFrame);
+                Streamer.FramePool.Back(data.Payload);
+
+                if (Core.IsFailed(writeRes))
                 {
                     _statisticKeeper.Data.Errors++;
-                    Streamer.PacketPool.Back(resultPayload);
-                    Core.LogError($"Read from {Name}: {Core.GetErrorMessage(writeRes)}", "read from node failed");
-                    break;
+                    Core.LogError($"Write to {Name}: {Core.GetErrorMessage(writeRes)}", "write to node failed");
+                    return;
                 }
-                else // success
+
+                while (!currentVersion.IsInterrupted)
                 {
-                    _statisticKeeper.Data.OutFrames++; //unsafe, but ok
-                    currentVersion.OutputQueue.Enqueue(new Data<Packet>(resultPayload, currentVersion.Version, data.SequenceNumber, PayloadTrace.Create(Name, data.Trace)));
+                    var resultPayload = Streamer.PacketPool.Rent();
+                    var readRes = currentVersion.Context.Instance.Read(resultPayload);
+                    if (readRes == ErrorCodes.TryAgainLater)
+                    {
+                        Streamer.PacketPool.Back(resultPayload);
+                        break;
+                    }
+                    else if (Core.IsFailed(readRes))
+                    {
+                        _statisticKeeper.Data.Errors++;
+                        Streamer.PacketPool.Back(resultPayload);
+                        Core.LogError($"Read from {Name}: {Core.GetErrorMessage(writeRes)}", "read from node failed");
+                        break;
+                    }
+                    else // success
+                    {
+                        _statisticKeeper.Data.OutFrames++; //unsafe, but ok
+                        currentVersion.OutputQueue.Enqueue(new Data<Packet>(resultPayload, currentVersion.Version, data.SequenceNumber, PayloadTrace.Create(Name, data.Trace)));
+                    }
                 }
             }
         }

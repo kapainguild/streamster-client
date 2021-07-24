@@ -111,5 +111,17 @@ namespace Streamster.ClientApp.Win
                 Log.Error(e, $"Failed to open url '{url}'");
             }
         }
+
+        public void PreventSleepMode(bool bEnable)
+        {
+            try
+            {
+                SleepHelper.PreventSleepMode(bEnable);
+            }
+            catch (Exception e)
+            {
+                Log.Error(e, $"Failed to PreventSleepMode");
+            }
+        }
     }
 }

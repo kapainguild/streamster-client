@@ -20,6 +20,9 @@ namespace DynamicStreamer.Nodes
             if (config.Type == FilterContextDirectXDownload.Type)
                 return new FilterContextDirectXDownload(Streamer);
 
+            if (config.Type == FilterContextDirectXPassThru.Type)
+                return new FilterContextDirectXPassThru();
+
             if (config.Type == FilterContextDirectXTransform.Type)
                 return new FilterContextDirectXTransform(Streamer);
 

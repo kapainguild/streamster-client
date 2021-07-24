@@ -192,7 +192,7 @@
                                         CornerRadius="3">
                                         <TextBlock Margin="10,5" Foreground="{StaticResource OnScreenForegroundMouseOver}"
                                                 TextWrapping="Wrap"
-                                                Text="Resolution cannot be changed during restreaming or recording"/>
+                                                Text="Resolution cannot be changed during streaming or recording"/>
                                     </Border>
                                 </Grid>
                             </materialDesign:PopupBox>
@@ -217,7 +217,7 @@
                                         CornerRadius="3">
                                         <TextBlock Margin="10,5" Foreground="{StaticResource OnScreenForegroundMouseOver}"
                                                 TextWrapping="Wrap"
-                                                Text="FPS cannot be changed during restreaming or recording"/>
+                                                Text="FPS cannot be changed during streaming or recording"/>
                                     </Border>
                                 </Grid>
                             </materialDesign:PopupBox>

@@ -97,7 +97,7 @@ namespace Streamster.ClientApp.Win.Support
                 ScreenSourcesHidden = sizes.screen.Width < 415,
                 ScreenFpsHidden = sizes.screen.Width < 615,
                 ScreenResolutionHidden = sizes.screen.Width < 545,
-                EditingTooSmall = sizes.editing.Width < 690 || sizes.editing.Height < 170,
+                EditingTooSmall = sizes.editing.Width < 680 || sizes.editing.Height < 150,
 
                 EditingTabsHideMaximize = sizes.editing.Width > 860 && sizes.editing.Width < 957,
                 EditingTabsOnlyIcons = sizes.editing.Width <= 860

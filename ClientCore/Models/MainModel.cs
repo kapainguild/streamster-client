@@ -192,6 +192,8 @@ namespace Streamster.ClientCore.Models
                 // start Fade in animation
                 Loaded.Value = true;
 
+                _environment.PreventSleepMode(true);
+
                 if (upperVersions != null)
                     ProcessNewVersion(upperVersions);
                 TaskHelper.RunUnawaited(_updateManager.Update(appUpdatePath), "UpdateFromMain");
@@ -216,12 +218,13 @@ namespace Streamster.ClientCore.Models
             var (currentVersionInfo, currentVersionString) = ClientVersionHelper.GetCurrent(upperVersions);
 
             bool simulateUpdate = false;
-            string custom = "4.0.1";
+            string custom = "4.0.2";
 
             if (_localSettingsService.Settings.LastRunVerion != currentVersionString || simulateUpdate)
             {
                 if ((_localSettingsService.Settings.NotFirstInstall || _localSettingsService.NoSettingsFileAtLoad == false) && 
                     _localSettingsService.Settings.LastRunVerion != "4.0.0" &&
+                    _localSettingsService.Settings.LastRunVerion != "4.0.1" &&
                     string.IsNullOrEmpty(_appResources.AppData.Domain) || simulateUpdate)
                 {
                     string[] standard = string.IsNullOrWhiteSpace(currentVersionInfo?.WhatsNew) ? null :

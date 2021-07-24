@@ -117,17 +117,25 @@ namespace DynamicStreamer.DirectXHelpers
         private static string GetHwndAdapter(IntPtr mainWindowHandle)
         {
             // based on how we create wpf device
-            var d9 = CreateD3D9Devies(mainWindowHandle);
-            if (d9.d3d9 == null)
-                throw new InvalidOperationException($"Failed to create D3D9 for {mainWindowHandle}");
+            try
+            {
+                var d9 = CreateD3D9Devies(mainWindowHandle);
+                if (d9.d3d9 == null)
+                    throw new InvalidOperationException($"Failed to create D3D9 for {mainWindowHandle}");
 
-            using var a = d9.d3d;
-            using var b = d9.d3d9;
+                using var a = d9.d3d;
+                using var b = d9.d3d9;
 
-            var adapter = a.Adapters.FirstOrDefault()?.Details?.Description;
-            if (adapter == null)
-                throw new InvalidOperationException($"Failed to create D3D9: no adapters");
-            return adapter;
+                var adapter = a.Adapters.FirstOrDefault()?.Details?.Description;
+                if (adapter == null)
+                    throw new InvalidOperationException($"Failed to create D3D9: no adapters");
+                return adapter;
+            }
+            catch (Exception e)
+            {
+                Core.LogError(e, "GetHwndAdapter failed");
+                return "";
+            }
         }
 
         private static (Device, AdapterInfo) CreateDeviceWithAdapter(string name)
@@ -196,6 +204,19 @@ namespace DynamicStreamer.DirectXHelpers
                 d3d?.Dispose();
             }
             return (null, null);
+        }
+
+        public static void Reset(SharpDX.Direct3D9.DeviceEx device, SharpDX.Direct3D9.Direct3DEx direct3d, IntPtr hwnd)
+        {
+            var presentparams = new SharpDX.Direct3D9.PresentParameters
+            {
+                Windowed = true,
+                SwapEffect = SharpDX.Direct3D9.SwapEffect.Discard,
+                DeviceWindowHandle = hwnd,
+                PresentationInterval = SharpDX.Direct3D9.PresentInterval.Default
+            };
+
+            device.Reset(presentparams);
         }
     }
 

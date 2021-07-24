@@ -48,6 +48,9 @@ namespace DynamicStreamer
             if (Type == FilterContextDirectXDownload.Type)
                 return $"dx({inputs}) => {OutputSpec}";
 
+            if (Type == FilterContextDirectXPassThru.Type)
+                return $"rgb =pass=> dx";
+
             if (Type == FilterContextDirectXTransform.Type)
                 return $"dx({inputs}) => dx(nv12)";
 

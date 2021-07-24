@@ -5,6 +5,7 @@ using SharpDX.Direct3D11;
 using SharpDX.DXGI;
 using SharpDX.Mathematics.Interop;
 using System;
+using System.Collections.Concurrent;
 using System.Runtime.InteropServices;
 
 namespace DynamicStreamer.DirectXHelpers
@@ -23,7 +24,6 @@ namespace DynamicStreamer.DirectXHelpers
 
         public bool Blend { get; set; }
     }
-
 
     public class DirectXPipeline<TConstantBuffer> : IDisposable where TConstantBuffer : struct
     {
@@ -47,7 +47,7 @@ namespace DynamicStreamer.DirectXHelpers
         private RawColor4? _debugColor = null;
         private readonly DirectXContext _dx;
 
-
+        private static ConcurrentDictionary<string, CompilationResult> s_compilationCache = new ConcurrentDictionary<string, CompilationResult>();
 
         public DirectXPipeline(DirectXPipelineConfig config, DirectXContext dx)
         {
@@ -55,7 +55,7 @@ namespace DynamicStreamer.DirectXHelpers
             {
                 _dx = dx.AddRef();
 
-                _vertexShaderByteCode = ShaderBytecode.Compile(DirectXHelper.ReadResource(config.VertexShaderFile), config.VertexShaderFunction, dx.VertexProfile, ShaderFlags.None);
+                _vertexShaderByteCode = CompileOrGet(config.VertexShaderFile, config.VertexShaderFunction, dx.VertexProfile); 
                 _vertexShader = new VertexShader(dx.Device, _vertexShaderByteCode);
                 _vertexLayout = new InputLayout(dx.Device, _vertexShaderByteCode, new[]
                 {
@@ -64,7 +64,7 @@ namespace DynamicStreamer.DirectXHelpers
                 });
 
 
-                _pixelShaderByteCode = ShaderBytecode.Compile(DirectXHelper.ReadResource(config.PixelShaderFile), config.PixelShaderFunction, dx.PixelProfile, ShaderFlags.None);
+                _pixelShaderByteCode = CompileOrGet(config.PixelShaderFile, config.PixelShaderFunction, dx.PixelProfile);
                 _pixelShader = new PixelShader(dx.Device, _pixelShaderByteCode);
 
                 //ShaderReflection refl = new ShaderReflection(_pixelShaderByteCode);
@@ -111,6 +111,12 @@ namespace DynamicStreamer.DirectXHelpers
             {
                 _dx.Broken(e);
             }
+        }
+
+        private CompilationResult CompileOrGet(string shaderFile, string shaderFunction, string profile)
+        {
+            var key = $"{shaderFile}::{shaderFunction}::{profile}";
+            return s_compilationCache.GetOrAdd(key, k => ShaderBytecode.Compile(DirectXHelper.ReadResource(shaderFile), shaderFunction, profile, ShaderFlags.None));
         }
 
         public void SetPosition(RectangleF inputLayout, Viewport viewPort, bool hflip = false) 
@@ -226,7 +232,7 @@ namespace DynamicStreamer.DirectXHelpers
                 if (_debugColor != null)
                     ctx.ClearRenderTargetView(renderTargetView, _debugColor.Value);
                 ctx.Draw(4, 0);
-                //ctx.Flush();
+                ctx.Flush();
             }
             catch (Exception e)
             {
@@ -236,11 +242,9 @@ namespace DynamicStreamer.DirectXHelpers
 
         public void Dispose()
         {
-            _vertexShaderByteCode?.Dispose();
             _vertexLayout?.Dispose();
             _vertexShader?.Dispose();
 
-            _pixelShaderByteCode?.Dispose();
             _pixelShader?.Dispose();
             _blendState?.Dispose();
 

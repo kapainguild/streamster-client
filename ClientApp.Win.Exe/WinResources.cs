@@ -7,6 +7,7 @@ namespace Streamster.ClientApp.Win
     {
         public AppData AppData => new AppData
         {
+            UserNamePrefix = "",
             ClientTitle = "Streamster",
             DataFolder = "Streamster.Data",
             Background = "pack://application:,,,/Streamster.ClientApp.Win;component/Assets/Background.png",

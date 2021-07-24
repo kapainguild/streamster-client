@@ -1,6 +1,7 @@
 ﻿using DynamicStreamer.Queues;
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Threading;
 
 namespace DynamicStreamer.Nodes
@@ -17,7 +18,7 @@ namespace DynamicStreamer.Nodes
         private int _locker = 0;
         private bool _toDispose = false;
         protected StatisticKeeper<StatisticDataOfProcessingNode> _statisticKeeper;
-        private readonly LinkedList<ContextVersion<TContext, TContextConfig, TOutput>> _versions = new LinkedList<ContextVersion<TContext, TContextConfig, TOutput>>();
+        protected readonly LinkedList<ContextVersion<TContext, TContextConfig, TOutput>> _versions = new LinkedList<ContextVersion<TContext, TContextConfig, TOutput>>();
         private int _uniqueVersionsLimit = int.MaxValue;
 
         public IStreamerBase Streamer { get; }
@@ -96,6 +97,11 @@ namespace DynamicStreamer.Nodes
                 version.IsInUse = false;
         }
 
+        protected virtual RefCounted<TContext> CreateAndOpenContextRef(TContextConfig setup)
+        {
+            return new RefCounted<TContext>(CreateAndOpenContext(setup));
+        }
+
         public TContext PrepareVersion(UpdateVersionContext update, ISourceQueue<TInput> inputQueue, ITargetQueue<TOutput> outputQueue, TContextConfig setup, Action<TContext, bool> prepareContext = null, int uniqueVersionsLimit = int.MaxValue)
         {
             update.RuntimeConfig.Add(this, setup);
@@ -112,7 +118,7 @@ namespace DynamicStreamer.Nodes
                     Core.LogInfo($"Change {Name}:  >> {setup}");
             }
 
-            var ctx = sameConfig ? last.Context.AddRef() : new RefCounted<TContext>(CreateAndOpenContext(setup));
+            var ctx = sameConfig ? last.Context.AddRef() : CreateAndOpenContextRef(setup);
             ContextVersion<TContext, TContextConfig, TOutput> pending = new ContextVersion<TContext, TContextConfig, TOutput>
             {
                 Version = update.Version,
@@ -213,17 +219,22 @@ namespace DynamicStreamer.Nodes
         {
             _toDispose = true;
             if (TryAllocate())
-                DoDispose();
+                DisposeVersions();
             else
                 Streamer.AddPendingDisposal(Dispose);
         }
 
-        private void DoDispose()
+        protected void DisposeVersions()
         {
-            foreach (var s in _versions)
-                s.Dispose();
+            List<ContextVersion<TContext, TContextConfig, TOutput>> toDispose = null;
+            lock (this)
+            {
+                toDispose = _versions.ToList();
+                _versions.Clear();
+            }
 
-            _versions.Clear();
+            foreach (var s in toDispose)
+                s.Dispose();
         }
 
         protected abstract void ProcessData(Data<TInput> data, ContextVersion<TContext, TContextConfig, TOutput> currentContext);

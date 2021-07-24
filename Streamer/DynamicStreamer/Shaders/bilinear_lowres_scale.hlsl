@@ -65,7 +65,7 @@ float4 PSDrawLowresBilinearRGBA(VertData v_in) : SV_TARGET
 	return DrawLowresBilinear(v_in);
 }
 
-float4 PSDrawLowresBilinearRGBADivide(VertData v_in) : SV_TARGET
+float4 PSDrawLowresBilinearRGBADivide(VertOut v_in) : SV_TARGET
 {
 	float4 rgba = DrawLowresBilinear(v_in);
 	float alpha = rgba.a;

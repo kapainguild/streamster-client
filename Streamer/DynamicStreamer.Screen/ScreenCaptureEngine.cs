@@ -41,18 +41,25 @@ namespace DynamicStreamer.Screen
             {
                 _device = dx == null ? Direct3D11Helper.CreateDevice() : Direct3D11Helper.CreateDirect3DDeviceFromSharpDXDevice(dx.Device);
                 _d3dDevice = Direct3D11Helper.CreateSharpDXDevice(_device);
-                _framePool = Direct3D11CaptureFramePool.CreateFreeThreaded(
-                    _device,
-                    DirectXPixelFormat.B8G8R8A8UIntNormalized,
-                    2,
-                    request.InitialSize);
+                try
+                {
+                    _framePool = Direct3D11CaptureFramePool.CreateFreeThreaded(
+                        _device,
+                        DirectXPixelFormat.B8G8R8A8UIntNormalized,
+                        2,
+                        request.InitialSize);
 
-                _framePool.FrameArrived += OnFrameArrived;
-                _session = _framePool.CreateCaptureSession(request.Item);
-                if (ApiInformation.IsApiContractPresent(typeof(Windows.Foundation.UniversalApiContract).FullName, 10))
-                    SetCursor(_session, request.Cursor);
+                    _framePool.FrameArrived += OnFrameArrived;
+                    _session = _framePool.CreateCaptureSession(request.Item);
+                    if (ApiInformation.IsApiContractPresent(typeof(Windows.Foundation.UniversalApiContract).FullName, 10))
+                        SetCursor(_session, request.Cursor);
 
-                _session.StartCapture();
+                    _session.StartCapture();
+                }
+                catch (Exception e)
+                {
+                    ScreenCaptureManager.Instance.Logger.Error(e, $"Failed to create capture");
+                }
             }, true);
 
             _screenTexture = CreateTexture(_initSize);
@@ -68,11 +75,14 @@ namespace DynamicStreamer.Screen
 
             ScreenCaptureManager.Instance.MainThreadExecutor.Execute(() =>
             {
-                _framePool.Recreate(
-                    _device,
-                    DirectXPixelFormat.B8G8R8A8UIntNormalized,
-                    2,
-                    size);
+                if (_framePool != null)
+                {
+                    _framePool.Recreate(
+                        _device,
+                        DirectXPixelFormat.B8G8R8A8UIntNormalized,
+                        2,
+                        size);
+                }
 
             }, true);
         }

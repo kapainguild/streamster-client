@@ -6,7 +6,6 @@ using System.Linq;
 using System.Threading.Tasks;
 using Windows.Foundation.Metadata;
 using Windows.Graphics.Capture;
-using Windows.Graphics.DirectX;
 
 namespace DynamicStreamer.Screen
 {
@@ -30,8 +29,15 @@ namespace DynamicStreamer.Screen
         public static int GetApiContract()
         {
             var osVersion = Environment.OSVersion;
-            if (osVersion.Version > new Version(6, 2))
-                return GetApiContractInternal();
+            try
+            {
+                if (osVersion.Version > new Version(6, 2))
+                    return GetApiContractInternal();
+            }
+            catch
+            {
+                return -1;
+            }
             return -2;
         }
 

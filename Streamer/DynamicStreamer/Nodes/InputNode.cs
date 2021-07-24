@@ -26,6 +26,11 @@ namespace DynamicStreamer.Nodes
         private ContextVersion<IInputContext, InputSetup, Packet> _openThreadRunningContext;
         private volatile bool _openThreadIsRunning = false;
         private int _analyzeAttempt;
+        private TimerSubscription _observer;
+
+        private DateTime _lastInputCycle = DateTime.MaxValue;
+        private DateTime _lastOpenCycle = DateTime.MaxValue;
+        private bool _openThreadDenied;
 
         public NodeName Name => _name;
 
@@ -37,33 +42,54 @@ namespace DynamicStreamer.Nodes
             _streamer = streamer;
             _inputThread = new Thread(() => OnInputThread());
             _inputThread.Name = $"Streamer:{name} input thread";
+            _observer = streamer.Subscribe(1000, On1Second);
+        }
+
+        private void On1Second()
+        {
+            ContextVersion<IInputContext, InputSetup, Packet> openContextToClose = null;
+            lock (this)
+            {
+                DateTime now = DateTime.UtcNow;
+
+                if (now - _lastOpenCycle > TimeSpan.FromSeconds(5)) // open thread is hanged
+                {
+                    openContextToClose = _openThreadRunningContext;
+                    _openThreadRunningContext = null;
+                    _openThreadDenied = true;
+                }
+            }
+
+            if (openContextToClose != null)
+            {
+
+            }
         }
 
         public IInputContext CurrentContext => _inputThreadCurrentContext?.Context?.Instance;
 
-        public IInputContext PrepareVersion(UpdateVersionContext update, ITargetQueue<Packet> outputQueue, InputSetup setup, int sourceId)
+        public IInputContext PrepareVersion(UpdateVersionContext update, ITargetQueue<Packet> outputQueue, InputSetup setup)
         {
             update.RuntimeConfig.Add(this, setup);
-            var last = _inputThreadCurrentContext;
-
-            bool sameConfig = last != null && last.ContextSetup.Equals(setup);
-            bool sameDevice = last != null && last.ContextSetup.Input.Equals(setup.Input);
-            if (!sameConfig)
-                Core.LogInfo($"Change {_name}: {last?.ContextSetup} >> {setup}");
-
-            int version = update.Version;
-            var ver = new ContextVersion<IInputContext, InputSetup, Packet>
-            {
-                Version = version,
-                ContextSetup = setup,
-                OutputQueue = outputQueue,
-            };
-
             update.AddDeploy(() =>
             {
                 bool startOpenThread = false;
                 lock (this)
                 {
+                    var last = _inputThreadCurrentContext;
+                    bool sameConfig = last != null && last.ContextSetup.Equals(setup);
+                    bool sameDevice = last != null && last.ContextSetup.Input.Equals(setup.Input);
+                    if (!sameConfig)
+                        Core.LogInfo($"Change {_name}: {last?.ContextSetup} >> {setup}");
+
+                    int version = update.Version;
+                    var ver = new ContextVersion<IInputContext, InputSetup, Packet>
+                    {
+                        Version = version,
+                        ContextSetup = setup,
+                        OutputQueue = outputQueue,
+                    };
+
                     if (sameConfig)
                     {
                         ver.Context = last.Context.AddRef();
@@ -73,7 +99,7 @@ namespace DynamicStreamer.Nodes
                     }
                     else
                     {
-                        if (sameDevice || last == null)
+                        if (sameDevice || last == null || _openThreadDenied)
                         {
                             _inputThreadPendingContext?.Dispose();
                             _inputThreadPendingContext = ver;
@@ -111,6 +137,7 @@ namespace DynamicStreamer.Nodes
                 }
             });
 
+            var last = _inputThreadCurrentContext;
             // same config and at least one time opened
             return (last != null && last.Context != null && last.Context.Instance.Config != null) ? last.Context.Instance : null;
         }
@@ -124,11 +151,13 @@ namespace DynamicStreamer.Nodes
                     if (_openThreadPendingContext == null)
                     {
                         _openThreadIsRunning = false;
+                        _lastOpenCycle = DateTime.MaxValue;
                         return;
                     }
                     _openThreadRunningContext = _openThreadPendingContext;
                     _openThreadRunningContext.Context = new RefCounted<IInputContext>(CreateInputContext(_openThreadRunningContext.ContextSetup));
                     _openThreadPendingContext = null;
+                    _lastOpenCycle = DateTime.UtcNow;
                 }
                 try
                 {
@@ -146,11 +175,14 @@ namespace DynamicStreamer.Nodes
 
                 lock(this)
                 {
-                    if (_inputThreadCurrentContext != null && _inputThreadCurrentContext.Context != null)
-                        _inputThreadCurrentContext.Context.Instance.Interrupt();
+                    if (_openThreadRunningContext != null)
+                    {
+                        if (_inputThreadCurrentContext != null && _inputThreadCurrentContext.Context != null)
+                            _inputThreadCurrentContext.Context.Instance.Interrupt();
 
-                    _inputThreadPendingContext = _openThreadRunningContext;
-                    _openThreadRunningContext = null;
+                        _inputThreadPendingContext = _openThreadRunningContext;
+                        _openThreadRunningContext = null;
+                    }
                 }
             }
         }
@@ -293,6 +325,7 @@ namespace DynamicStreamer.Nodes
 
         public void Dispose()
         {
+            _observer.Unsubscribe();
             lock (this)
             {
                 _inputThreadIsRunning = false;

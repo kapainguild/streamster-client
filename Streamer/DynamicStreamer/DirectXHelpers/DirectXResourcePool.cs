@@ -23,7 +23,7 @@ namespace DynamicStreamer.DirectXHelpers
 
         public (int pooled, int inField) CleanUp(DateTime now)
         {
-            var old = now - TimeSpan.FromSeconds(10);
+            var old = now - TimeSpan.FromSeconds(2);
 
             List<DirectXResource> all = new List<DirectXResource>();
 

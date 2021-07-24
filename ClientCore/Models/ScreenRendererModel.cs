@@ -1,19 +1,12 @@
 ﻿using DynamicStreamer.Queues;
-using Serilog;
 using Streamster.ClientCore.Cross;
-using Streamster.ClientData;
-using Streamster.ClientData.Model;
-using Streamster.DynamicStreamerWrapper;
 using System;
-using System.Runtime.InteropServices;
-using System.Threading;
-using System.Threading.Tasks;
 
 namespace Streamster.ClientCore.Models
 {
     public interface IScreenRenderer
     {
-        void ShowFrame(FrameOutputData fromPool);
+        void ShowFrame(FrameOutputData fromPool, IWindowStateManager manager);
     }
 
     public interface IScreenRendererHost
@@ -24,14 +17,16 @@ namespace Streamster.ClientCore.Models
     public class ScreenRendererModel : IScreenRendererHost
     {
         private IScreenRenderer _screenRenderer;
+        private readonly IWindowStateManager _windowStateManager;
 
         public Property<bool> IsEnabled { get; } = new Property<bool>(true);
 
         public Action OnChanged { get; set; }
 
-        public ScreenRendererModel()
+        public ScreenRendererModel(IWindowStateManager windowStateManager)
         {
             IsEnabled.OnChange = (o, n) => OnIsEnabledChanged(n);
+            _windowStateManager = windowStateManager;
         }
 
         private void OnIsEnabledChanged(bool newValue)
@@ -43,7 +38,7 @@ namespace Streamster.ClientCore.Models
         {
             if (_screenRenderer != null)
             {
-                _screenRenderer.ShowFrame(frameData);
+                _screenRenderer.ShowFrame(frameData, _windowStateManager);
             }
             else
                 frameData.Frame.Dispose();

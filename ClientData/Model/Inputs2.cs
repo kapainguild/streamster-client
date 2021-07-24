@@ -24,6 +24,8 @@ namespace Streamster.ClientData.Model
             hashCode = hashCode * -1521134295 + EqualityComparer<string>.Default.GetHashCode(Name);
             return hashCode;
         }
+
+        public override string ToString() => $"{Name}";
     }
 
     public interface IInputDevice

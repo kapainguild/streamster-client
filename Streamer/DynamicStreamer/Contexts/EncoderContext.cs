@@ -26,45 +26,60 @@ namespace DynamicStreamer
 
         public int Open(EncoderSetup setup)
         {
-            EncoderConfig config = new EncoderConfig();
-            var res = EncoderContext_Open(_handle, Core.StringToBytes(setup.Name), Core.StringToBytes(setup.Options), ref setup.EncoderSpec, ref setup.EncoderBitrate, ref config.EncoderProps, ref config.CodecProps);
-            _opened = res >= 0;
-            _setup = setup;
-            Config = config;
-            return res;
+            lock (this)
+            {
+                EncoderConfig config = new EncoderConfig();
+                var res = EncoderContext_Open(_handle, Core.StringToBytes(setup.Name), Core.StringToBytes(setup.Options), ref setup.EncoderSpec, ref setup.EncoderBitrate, ref config.EncoderProps, ref config.CodecProps);
+                _opened = res >= 0;
+                _setup = setup;
+                Config = config;
+                return res;
+            }
         }
 
         public int Write(Frame frame, bool enforceIFrame)
         {
-            if (!_opened)
-                Open(_setup);
+            lock (this)
+            {
+                if (!_opened)
+                    Open(_setup);
 
-            if (_opened)
-                return EncoderContext_Write(_handle, frame.Handle, enforceIFrame ? 1 : 0);
-            else
-                return (int)ErrorCodes.ContextIsNotOpened;
+                if (_opened)
+                    return EncoderContext_Write(_handle, frame.Handle, enforceIFrame ? 1 : 0);
+                else
+                    return (int)ErrorCodes.ContextIsNotOpened;
+            }
         }
 
         public ErrorCodes Read(Packet packet)
         {
-            if (_opened)
-                return EncoderContext_Read(_handle, packet.Handle, ref packet.Properties);
-            else
-                return ErrorCodes.ContextIsNotOpened;
+            lock (this)
+            {
+                if (_opened)
+                    return EncoderContext_Read(_handle, packet.Handle, ref packet.Properties);
+                else
+                    return ErrorCodes.ContextIsNotOpened;
+            }
         }
 
         public void Dispose()
         {
-            if (_handle != IntPtr.Zero)
+            lock (this)
             {
-                EncoderContext_Delete(_handle);
-                _handle = IntPtr.Zero;
+                if (_handle != IntPtr.Zero)
+                {
+                    EncoderContext_Delete(_handle);
+                    _handle = IntPtr.Zero;
+                }
             }
         }
 
         public void UpdateBitrate(EncoderBitrate encoderBitrate)
         {
-            EncoderContext_UpdateBitrate(_handle, ref encoderBitrate);
+            lock (this)
+            {
+                EncoderContext_UpdateBitrate(_handle, ref encoderBitrate);
+            }
         }
     }
 

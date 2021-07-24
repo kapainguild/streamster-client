@@ -225,7 +225,7 @@ namespace Streamster.ClientApp.Win.Controls
 
         protected override void OnMouseLeave(MouseEventArgs e)
         {
-            if (VM.EditingMode.Value)
+            if (VM != null && VM.EditingMode.Value)
                 UpdateMouseOver(e);
         }
 
@@ -448,7 +448,7 @@ namespace Streamster.ClientApp.Win.Controls
             
 
 
-        private SceneEditingModel VM => ((MainModel)DataContext).SceneEditing;
+        private SceneEditingModel VM => ((MainModel)DataContext)?.SceneEditing;
 
         private ObservableCollection<SceneItemModel> GetItems() => VM.Items;
 

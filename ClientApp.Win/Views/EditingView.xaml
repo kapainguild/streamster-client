@@ -160,9 +160,12 @@
                 <Grid>
                     <mah:TransitioningContentControl Margin="30,15" x:Name="transition" Transition="Up" Content="{Binding MainContent.Value}"/>
 
-                    <TextBlock Margin="0,30" x:Name="expandMessage" FontWeight="Normal" Text="Resize application to get full editing experience" Visibility="Collapsed" VerticalAlignment="Center" HorizontalAlignment="Center" TextWrapping="WrapWithOverflow" TextTrimming="CharacterEllipsis"
-                               TextAlignment="Center"/>
-                    
+                    <StackPanel Margin="5,30" x:Name="expandMessage"  Visibility="Collapsed">
+                        <materialDesign:PackIcon HorizontalAlignment="Center" Kind="Warning" Foreground="#FFAA55" Width="24"/>
+                        <TextBlock Margin="0,3,0,0"  FontWeight="Normal" Text="Resize/expand application to get full editing experience" VerticalAlignment="Center" HorizontalAlignment="Center" TextWrapping="WrapWithOverflow" TextTrimming="CharacterEllipsis"
+                               TextAlignment="Center" Foreground="#FFAA55"/>
+                    </StackPanel>
+
                     <Button x:Name="close" Margin="0" HorizontalAlignment="Right" VerticalAlignment="Top" Style="{StaticResource MaterialDesignFlatButton}" 
                         Command="{Binding Close, Converter={StaticResource CommandConverter}}"
                         ToolTip="Stop editing" Padding="5,0" materialDesign:ButtonAssist.CornerRadius="15">

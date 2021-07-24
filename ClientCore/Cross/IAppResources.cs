@@ -12,6 +12,8 @@ namespace Streamster.ClientCore.Cross
 
     public class AppData
     {
+        public string UserNamePrefix { get; set; }
+
         public string ClientTitle { get; set; }
 
         public string Background { get; set; }

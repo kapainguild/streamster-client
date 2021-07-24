@@ -25,10 +25,19 @@ namespace DynamicStreamer
             return obj is EncoderSetup setup &&
                    Type == setup.Type &&
                    Name == setup.Name &&
-                   DirectXContext == setup.DirectXContext &&
+                   DirectXContext == setup.DirectXContext && // h264 needs this also so it is reinit during device failure
                    SupportsEnforcingIFrame == setup.SupportsEnforcingIFrame &&
                    Options == setup.Options &&
                    EncoderSpec.Equals(setup.EncoderSpec); //EncoderBitrate is missed conciusly
+        }
+
+        public bool EqualsExceptBitrate(EncoderSetup setup)
+        {
+            return Type == setup.Type &&
+                   Name == setup.Name &&
+                   DirectXContext == setup.DirectXContext && // h264 needs this also so it is reinit during device failure
+                   SupportsEnforcingIFrame == setup.SupportsEnforcingIFrame &&
+                   EncoderSpec.Equals(setup.EncoderSpec); //EncoderBitrate && Options is missed conciusly
         }
 
         public override int GetHashCode()

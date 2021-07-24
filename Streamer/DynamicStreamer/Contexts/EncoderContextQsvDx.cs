@@ -65,6 +65,12 @@ namespace DynamicStreamer.Contexts
             {
                 if (_opened && _handle != IntPtr.Zero)
                 {
+                    if (frame.DirectXResourceRef.Instance.Texture2D == null)
+                    {
+                        Core.LogWarning("Ignore empty Texture2d");
+                        return 0;
+                    }
+
                     var res = EncoderContextQsvDx_Write(_handle, frame.DirectXResourceRef.Instance.GetSharedHandle(), frame.GetPts(), enforceIFrame ? 1 : 0);
                     if (res != 0)
                     {
