@@ -1,6 +1,6 @@
 # ![Logo](ClientApp.Win.Exe/Assets/Logo.png) 
 
-High performance Windows-based video streaming application with Rich-UI, server-based restreaming, etc. It is used as client to the www.streamster.io backend and distributed under GPL v2 license.
+High performance Windows-based video streaming application with Rich-UI, server-based restreaming, etc. It is used as client to the streamster.io backend and distributed under GPL v2 license.
 
 ### Key features
 - Mainly .Net Core 3.1 application with small pieces written in C++
