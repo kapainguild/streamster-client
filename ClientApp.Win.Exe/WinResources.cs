@@ -1,10 +1,14 @@
 ﻿using Streamster.ClientCore.Cross;
 using Streamster.ClientData.Model;
+using System.IO;
+using System.Reflection;
 
 namespace Streamster.ClientApp.Win
 {
     class WinResources : IAppResources
     {
+        static byte[] _canvasBackground = ReadResource("Canvas.png");
+
         public AppData AppData => new AppData
         {
             UserNamePrefix = "",
@@ -26,11 +30,25 @@ namespace Streamster.ClientApp.Win
             KnowledgeBaseUrl = "https://help.streamster.io/support/home",
             RegisterUrl = "https://account.streamster.io/register",
             TermsOfServiceUrl = "https://streamster.io/terms-conditions",
+            CreateTicketUrl = "https://help.streamster.io/support/tickets/new",
             PricingUrl = "https://account.streamster.io/user/tariff",
+            PricingUrlForNotRegistered = "https://streamster.io/pricing",
             DownloadAppUrl = "https://streamster.io",
             TargetHintTemplate = "https://streamster.io/{0}",
             Domain = null,
+            CanvasBackground = _canvasBackground
         };
+
+        public static byte[] ReadResource(string name)
+        {
+            var assembly = Assembly.GetEntryAssembly();
+            using (Stream stream = assembly.GetManifestResourceStream($"Streamster.ClientApp.Win.Assets.{name}"))
+            {
+                var buf = new byte[stream.Length];
+                stream.Read(buf);
+                return buf;
+            }
+        }
 
         public bool TargetFilter(ITarget target) => true;
     }

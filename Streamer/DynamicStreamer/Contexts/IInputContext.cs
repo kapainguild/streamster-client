@@ -4,12 +4,12 @@ namespace DynamicStreamer.Contexts
 {
     public record InputSetup(string Type, string Input, string Options = "", object ObjectInput = null, DirectXContext Dx = null, 
         InputSetupNoneResetingOptions NoneResetingOptions = null, int ExpectedNumberOfStreams = 1,
-        AdjustInputType AdjustInputType = AdjustInputType.None)
+        AdjustInputType AdjustInputType = AdjustInputType.None, bool FirstStreamOnly = true, bool UseFpsQueue = true)
     {
         public override string ToString() => $"{Type} {Input} {Options} {ObjectInput}";
     }
 
-    public enum AdjustInputType { None, Adaptive, CurrentTime }
+    public enum AdjustInputType { None, Adaptive, CurrentTime, AdaptiveNetwork }
 
     public class LoopbackOptions
     {

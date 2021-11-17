@@ -2,25 +2,33 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
 
 namespace DynamicStreamer.Queues
 {
+    public record AudioMixingQueueSetup(
+        bool CheckAgainstLastPacketEndPts, 
+        bool UseCurrentTimeForDelta, 
+        int GenerateSilenceToRuntime,
+        int PushSilenceDelay);
+
     public class AudioMixingQueue : ITargetQueue<Frame>, IStatProvider, ISourceQueue<Frame>
     {
         private readonly Queue<Data<Frame>> _payloads = new Queue<Data<Frame>>();
         private readonly NodeName _name;
         private readonly PayloadPool<Frame> _payloadPool;
+        private readonly AudioMixingQueueSetup _setup;
         private bool _disposed;
         private List<AudioMixingQueueInput> _inputs = new List<AudioMixingQueueInput>();
         private long _lastPacketPts = 0;
         private int _version;
         private TimerSubscription _timer;
 
-        public AudioMixingQueue(NodeName name, PayloadPool<Frame> payloadPool, IStreamerBase streamer)
+        public AudioMixingQueue(NodeName name, PayloadPool<Frame> payloadPool, IStreamerBase streamer,
+            AudioMixingQueueSetup setup)
         {
             _name = name;
             _payloadPool = payloadPool;
+            _setup = setup;
             OnChanged = () => { Core.LogWarning($"Fake activation of {_name}"); };
             _timer = streamer.Subscribe(100, OnTimer);
         }
@@ -57,7 +65,7 @@ namespace DynamicStreamer.Queues
         }
 
 
-        internal void Reset(int version, int count, bool sameConfig)
+        public void Reset(int version, int count, bool sameConfig)
         {
             lock(this)
             {
@@ -72,9 +80,14 @@ namespace DynamicStreamer.Queues
 
         private void OnTimer()
         {
+            bool changed;
             lock (this)
-                GenerateSilence();
+                changed = GenerateSilence();
+            if (changed)
+                OnChanged();
         }
+
+        private long ToTime(long v) => v / 441 * 100000;
 
         private void EnqueueNext(Data<Frame> payload)
         {
@@ -87,6 +100,7 @@ namespace DynamicStreamer.Queues
             else
             {
                 var packetPts = payload.Payload.GetPts();
+
                 var samples = payload.Payload.Properties.Samples;
                 var input = _inputs[source];
                 var currentTimePts = Core.GetCurrentTime() * 441 / 100000;
@@ -98,16 +112,31 @@ namespace DynamicStreamer.Queues
                     {
                         s.LastPacketPts = packetPts;
                         s.LastPacketEndPts = packetPts + ((s == input) ? samples : 0);
+                        s.LastCurrentTimePts = currentTimePts;
                     });
                     _payloads.Enqueue(payload);
                 }
                 else
                 {
+                    bool gap = currentTimePts - input.LastCurrentTimePts > 44100 * 2;
+                    if (gap)
+                    {
+                        Core.LogWarning($"Audio smooth flow interrupted {Core.FormatTicks(ToTime(input.LastPacketEndPts))} - {Core.FormatTicks(ToTime(currentTimePts))}");
+                        input.DeltasCount = -200;
+                    }
+                    input.LastCurrentTimePts = currentTimePts;
+
                     if (input.LastPacketEndPts > currentTimePts)
                     {
                         _payloadPool.Back(payload.Payload);
                         input.Dropped++;
-                        Core.LogWarning($"Dropping packet on audio{source}");
+                        Core.LogWarning($"Dropping packet on audio{source} ({Core.FormatTicks(ToTime(input.LastPacketEndPts))}; {Core.FormatTicks(ToTime(currentTimePts))};  {Core.FormatTicks(ToTime(packetPts))})");
+                    }
+                    else if (input.LastPacketEndPts > packetPts && _setup.CheckAgainstLastPacketEndPts)
+                    {
+                        _payloadPool.Back(payload.Payload);
+                        input.Dropped++;
+                        Core.LogWarning($"Dropping obsolete packet on audio{source} ({Core.FormatTicks(ToTime(input.LastPacketEndPts))}; {Core.FormatTicks(ToTime(currentTimePts))};  {Core.FormatTicks(ToTime(packetPts))})");
                     }
                     else
                     {
@@ -116,11 +145,15 @@ namespace DynamicStreamer.Queues
                         input.LastPacketPts = input.LastPacketEndPts;
                         input.LastPacketEndPts = input.LastPacketEndPts + samples;
                         input.LastInputPts = packetPts;
-                        
+
                         _payloads.Enqueue(payload);
 
-                        var delta = currentTimePts - input.LastPacketEndPts;
-                        input.Deltas[input.DeltasCount] = delta;
+                        //Core.LogWarning($"Audio {Core.FormatTicks(ToTime(input.LastPacketPts))} ({_payloads.Count})");
+
+                        var deltaBase = _setup.UseCurrentTimeForDelta ? currentTimePts : packetPts;
+                        var delta = deltaBase - input.LastPacketEndPts;
+                        if (input.DeltasCount >= 0)
+                            input.Deltas[input.DeltasCount] = delta;
                         input.DeltasCount++;
                         if (input.DeltasCount == input.Deltas.Length)
                         {
@@ -129,7 +162,7 @@ namespace DynamicStreamer.Queues
                             if (delta > 6000 && ave > 6000) // more then 150ms
                             {
                                 var over5000 = Math.Min(delta - 5000, ave - 5000);
-                                var toGenerate = Math.Min(10, Math.Max(1, (int)over5000 / 441)); // from 10 to 100 ms
+                                var toGenerate = Math.Min(_setup.GenerateSilenceToRuntime, Math.Max(1, (int)over5000 / 441)); // from 10 to 100 ms
                                 Core.LogWarning($"Generate {toGenerate} silences to catch runtime on audio{input.Id}: d={delta},ave={ave}", "Generate silence");
                                 for (int q = 0; q < toGenerate; q++)
                                     PushFrame(source, input, _version, input.LastPacketEndPts);
@@ -142,8 +175,9 @@ namespace DynamicStreamer.Queues
             }
         }
 
-        private void GenerateSilence()
+        private bool GenerateSilence()
         {
+            int initialCount = _payloads.Count;
             var currentTimePts = Core.GetCurrentTime() * 441 / 100000;
 
             // check other sources to inser silence
@@ -153,7 +187,7 @@ namespace DynamicStreamer.Queues
 
                 if (other.LastPacketEndPts != 0)
                 {
-                    int generate = (int)((currentTimePts - 44100 / 4 - other.LastPacketEndPts) / 441);
+                    int generate = (int)((currentTimePts - _setup.PushSilenceDelay - other.LastPacketEndPts) / 441);
 
                     if (generate > 50) // kind of gap, push one packet
                     {
@@ -170,6 +204,7 @@ namespace DynamicStreamer.Queues
                     }
                 }
             }
+            return initialCount != _payloads.Count;
         }
 
         private void PushFrame(int sourceId, AudioMixingQueueInput input, int version, long pts)
@@ -184,6 +219,8 @@ namespace DynamicStreamer.Queues
             input.LastPacketPts = pts;
             input.LastPacketEndPts = pts + 441;
             input.Silence++;
+
+            //Core.LogWarning($"Silence {Core.FormatTicks(ToTime(input.LastPacketPts))} ({_payloads.Count})");
         }
 
         public bool TryDequeue(out Data<Frame> result)
@@ -270,6 +307,9 @@ namespace DynamicStreamer.Queues
         public int DeltasCount { get; set; }
 
         public int Silence { get; set; }
+
         public long LastInputPts { get; internal set; }
+
+        public long LastCurrentTimePts { get; internal set; }
     }
 }

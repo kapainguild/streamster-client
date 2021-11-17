@@ -1,0 +1,421 @@
+﻿<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                    xmlns:models="clr-namespace:Streamster.ClientCore.Models;assembly=Streamster.ClientCore"
+                    xmlns:support="clr-namespace:Streamster.ClientApp.Win.Support"
+                    xmlns:materialDesign="http://materialdesigninxaml.net/winfx/xaml/themes"
+                    xmlns:converters="clr-namespace:MaterialDesignThemes.Wpf.Converters;assembly=MaterialDesignThemes.Wpf"
+                    xmlns:controlzEx="clr-namespace:ControlzEx;assembly=MaterialDesignThemes.Wpf" xmlns:controls="clr-namespace:Streamster.ClientApp.Win.Controls">
+    <ResourceDictionary.MergedDictionaries>
+        <ResourceDictionary Source="Common.xaml"/>
+        <ResourceDictionary Source="BitrateSlider.xaml"/>
+        <ResourceDictionary Source="MainViewTargets.Styles.xaml"/>
+        <ResourceDictionary Source="OnScreenStyles.xaml"/>
+    </ResourceDictionary.MergedDictionaries>
+
+
+    
+    <Style TargetType="{x:Type materialDesign:PopupBox}" x:Key="TranscodingPopupBox">
+        <Setter Property="Background" Value="{StaticResource OnScreenBackground}"/>
+        <Setter Property="BorderBrush" Value="{StaticResource OnScreenBorder}"/>
+        <Setter Property="Foreground" Value="#a0a0a0"/>
+        <Setter Property="PlacementMode" Value="TopAndAlignCentres" />
+        <Setter Property="PopupMode" Value="Click" />
+        <Setter Property="StaysOpen" Value="False" />
+        <Setter Property="HorizontalAlignment" Value="Left" />
+        <Setter Property="BorderThickness" Value="1"/>
+        <Setter Property="Cursor" Value="Hand"/>
+
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="{x:Type materialDesign:PopupBox}">
+                    <ControlTemplate.Resources>
+                        <Style TargetType="ToggleButton" x:Key="ToggleButtonStyle">
+                            <Setter Property="Template">
+                                <Setter.Value>
+                                    <ControlTemplate TargetType="ToggleButton">
+                                        <Grid x:Name="RootGrid" Background="{x:Null}">
+                                            <Border Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}" 
+                                                    BorderThickness="{TemplateBinding BorderThickness}" 
+                                                    CornerRadius="15"
+                                                        x:Name="border">
+                                                <ContentPresenter Content="{TemplateBinding Content}" 
+                                                    ContentTemplate="{TemplateBinding ContentTemplate}" 
+                                                    Focusable="False"
+                                                    ContentStringFormat="{TemplateBinding ContentStringFormat}"
+                                                    HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}" 
+                                                    VerticalAlignment="{TemplateBinding VerticalContentAlignment}"
+                                                    Margin="10,0" 
+                                                    SnapsToDevicePixels="{TemplateBinding SnapsToDevicePixels}"/>
+                                            </Border>
+                                        </Grid>
+                                        <ControlTemplate.Triggers>
+                                            <Trigger Property="IsMouseOver" Value="true">
+                                                <Setter Property="BorderBrush" TargetName="border" Value="{StaticResource OnScreenBorderMouseOver}" />
+                                                <Setter Property="Background" TargetName="border" Value="{StaticResource OnScreenBackgroundMouseOver}" />
+                                                <Setter Property="Foreground" Value="{StaticResource OnScreenForegroundMouseOver}" />
+                                            </Trigger>
+                                        </ControlTemplate.Triggers>
+                                    </ControlTemplate>
+                                </Setter.Value>
+                            </Setter>
+                        </Style>
+                        <Storyboard x:Key="Open">
+                            <DoubleAnimation Storyboard.TargetName="PART_PopupContentControl" Storyboard.TargetProperty="Opacity"
+                                             To="1" Duration="0:0:0.1">
+                                <DoubleAnimation.EasingFunction>
+                                    <SineEase EasingMode="EaseInOut" />
+                                </DoubleAnimation.EasingFunction>
+                            </DoubleAnimation>
+                            <DoubleAnimation Storyboard.TargetName="PART_Toggle" Storyboard.TargetProperty="Opacity"
+                                             To="0.4" Duration="0:0:0.1">
+                                <DoubleAnimation.EasingFunction>
+                                    <SineEase EasingMode="EaseInOut" />
+                                </DoubleAnimation.EasingFunction>
+                            </DoubleAnimation>
+                        </Storyboard>
+                        <Storyboard x:Key="Close">
+                            <DoubleAnimation Storyboard.TargetName="PART_PopupContentControl" Storyboard.TargetProperty="Opacity"
+                                             Duration="0:0:0.8">
+                                <DoubleAnimation.EasingFunction>
+                                    <SineEase EasingMode="EaseInOut" />
+                                </DoubleAnimation.EasingFunction>
+                            </DoubleAnimation>
+                            <DoubleAnimation Storyboard.TargetName="PART_Toggle" Storyboard.TargetProperty="Opacity"
+                                             To="1" Duration="0:0:0.1">
+                                <DoubleAnimation.EasingFunction>
+                                    <SineEase EasingMode="EaseInOut" />
+                                </DoubleAnimation.EasingFunction>
+                            </DoubleAnimation>
+                        </Storyboard>
+                    </ControlTemplate.Resources>
+                    <Grid>
+                        <ToggleButton x:Name="PART_Toggle" Style="{StaticResource MaterialDesignIconButton}" 
+                                      IsChecked="{Binding RelativeSource={RelativeSource TemplatedParent}, Path=IsPopupOpen, Mode=TwoWay}"                                      
+                                      Cursor="Hand"
+                                      IsTabStop="{TemplateBinding IsTabStop}"
+                                      Width="36" Height="36"
+                                      ToolTip="{TemplateBinding ToolTip}"
+                                      Foreground="{TemplateBinding Foreground}"
+                                      ToolTipService.Placement="{Binding RelativeSource={RelativeSource FindAncestor, AncestorType=materialDesign:PopupBox}, Path=(ToolTipService.Placement)}"
+                                      Content="{TemplateBinding ToggleContent}" ContentTemplate="{TemplateBinding ToggleContentTemplate}">
+                        </ToggleButton>
+                        <controlzEx:PopupEx x:Name="PART_Popup" 
+                                          IsOpen="False"
+                                          CustomPopupPlacementCallback="{Binding RelativeSource={RelativeSource TemplatedParent}, Path=PopupPlacementMethod}"
+                                          PlacementTarget="{Binding ElementName=PART_Toggle}"
+                                          Placement="Custom"
+                                          PopupAnimation="None"
+                                          AllowsTransparency="True">
+                            <Grid>
+                                <Border Background="White" Opacity="0.002" />
+                                <ContentControl Content="{TemplateBinding PopupContent}" ContentTemplate="{TemplateBinding PopupContentTemplate}"      
+                                                Visibility="{TemplateBinding IsEnabled, Converter={StaticResource BooleanToVisibilityConverter}}"
+                                                Margin="0" Padding="8"
+                                                Opacity="0" x:Name="PART_PopupContentControl">
+                                </ContentControl>
+                            </Grid>
+                        </controlzEx:PopupEx>
+                    </Grid>
+                    <ControlTemplate.Triggers>
+                        <Trigger SourceName="PART_Toggle" Property="IsMouseOver" Value="True">
+                            <Setter TargetName="PART_Toggle"  Property="Foreground" Value="White"/>
+                        </Trigger>
+                        <Trigger Property="IsPopupOpen" Value="True">
+                            <Setter TargetName="PART_Toggle" Property="IsEnabled" Value="False" />
+                            <Setter TargetName="PART_Popup" Property="IsOpen" Value="True" />
+                            <Trigger.EnterActions>
+                                <BeginStoryboard Storyboard="{StaticResource Open}" />
+                            </Trigger.EnterActions>
+                            <Trigger.ExitActions>
+                                <BeginStoryboard Storyboard="{StaticResource Close}" />
+                            </Trigger.ExitActions>
+                        </Trigger>
+                        <MultiTrigger>
+                            <MultiTrigger.Conditions>
+                                <Condition Property="PopupMode" Value="MouseOverEager" />
+                                <Condition Property="IsVisible" Value="True" />
+                            </MultiTrigger.Conditions>
+                            <Setter TargetName="PART_Popup" Property="IsOpen" Value="True" />
+                        </MultiTrigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+        <Setter Property="ToggleContent" Value="{StaticResource MaterialDesignMultiFloatingActionPopupBoxIcon}" />
+        <Style.Triggers>
+            <Trigger Property="UnfurlOrientation" Value="Horizontal">
+                <Setter Property="ToolTipService.Placement" Value="Custom" />
+            </Trigger>
+        </Style.Triggers>
+    </Style>
+
+
+    <DataTemplate x:Key="NoneTranscodedItem" DataType="{x:Type models:TranscodingChannelModel}">
+        <materialDesign:Card Width="150" Height="35" Background="#505050" Margin="0,6,12,0">
+            <DockPanel>
+                <Button Margin="0,0,-6,0" Foreground="White" VerticalAlignment="Center" DockPanel.Dock="Right" Style="{StaticResource MaterialDesignIconButton}"
+                        Command="{Binding Move, Converter={StaticResource CommandConverter}}">
+                    <materialDesign:PackIcon Kind="ChevronDoubleDown"/>
+                </Button>
+                <TextBlock Margin="10,0,0,0" VerticalAlignment="Center" Text="{Binding Name}" TextTrimming="CharacterEllipsis"/>
+            </DockPanel>
+        </materialDesign:Card>
+    </DataTemplate>
+
+    <DataTemplate x:Key="TranscodedItem" DataType="{x:Type models:TranscodingChannelModel}">
+        <materialDesign:Card Width="150" Height="35" Background="#505050" Margin="0,6,12,0">
+            <DockPanel>
+                <Button Margin="0,0,-6,0" Foreground="White" VerticalAlignment="Center" DockPanel.Dock="Right" Style="{StaticResource MaterialDesignIconButton}"
+                        Command="{Binding Move, Converter={StaticResource CommandConverter}}">
+                    <materialDesign:PackIcon Kind="ChevronDoubleUp"/>
+                </Button>
+                <TextBlock Margin="10,0,0,0" VerticalAlignment="Center" Text="{Binding Name}" TextTrimming="CharacterEllipsis"/>
+            </DockPanel>
+        </materialDesign:Card>
+    </DataTemplate>
+
+    <DataTemplate DataType="{x:Type models:TrascodingComboboxValue}">
+        <TextBlock x:Name="txt" Text="{Binding Name}"/>
+        <DataTemplate.Triggers>
+            <DataTrigger Binding="{Binding Good}" Value="False">
+                <Setter TargetName="txt" Property="Foreground" Value="Red"/>
+            </DataTrigger>
+        </DataTemplate.Triggers>
+    </DataTemplate>
+
+    <DataTemplate x:Key="TranscodingDialogContent" DataType="{x:Type models:TranscodingModel}">
+        <Border MaxWidth="710" BorderBrush="#406090" BorderThickness="1" RenderOptions.BitmapScalingMode="LowQuality"  Background="{DynamicResource MaterialDesignToolBarBackground}">
+            <StackPanel>
+                <Border Background="#232324">
+                    <DockPanel>
+                        <Button Width="36" Height="36" DockPanel.Dock="Right" IsCancel="True" 
+                            Command="{x:Static materialDesign:DialogHost.CloseDialogCommand}"
+                            Style="{StaticResource MaterialDesignIconForegroundButton}">
+                            <materialDesign:PackIcon Kind="Close" />
+                        </Button>
+                        <TextBlock Margin="18,0" FontSize="16" Text="Original stream" VerticalAlignment="Center"/>
+                    </DockPanel>
+                </Border>
+                <Border Background="#282828">
+                    <Grid Margin="30,20,30,30">
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                        </Grid.RowDefinitions>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto"/>
+                            <ColumnDefinition Width="Auto"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+                        <ComboBox x:Name="res1"
+                                  materialDesign:HintAssist.Hint="Resolution"
+                                  materialDesign:HintAssist.IsFloating="True"
+                                  materialDesign:ComboBoxAssist.ClassicMode="True"
+                                  ToolTipService.ShowOnDisabled="True"
+                                  MinWidth="90"
+                                  ToolTipService.InitialShowDelay="500"
+                                  BorderThickness="0"
+                                  SelectedItem="{Binding OriginalResolutionCurrent.Value}"
+                                  ItemsSource="{Binding OriginalResolutions}">
+                        </ComboBox>
+
+                        <ComboBox x:Name="fps1" 
+                                  Margin="25,0" Grid.Column="1" materialDesign:HintAssist.Hint="FPS"
+                                  materialDesign:ComboBoxAssist.ClassicMode="True"
+                                  ToolTipService.InitialShowDelay="500"
+                                  BorderThickness="0"
+                                  ToolTipService.ShowOnDisabled="True"
+                                  SelectedItem="{Binding OriginalFpsCurrent.Value}"
+                                  ItemsSource="{Binding OriginalFpss}"
+                                  materialDesign:HintAssist.IsFloating="True">
+                        </ComboBox>
+
+                        <DockPanel Grid.Column="2">
+                            <TextBlock Foreground="#909090" FontSize="9.5" Margin="0,2" Text="Bitrate" DockPanel.Dock="Top"/>
+                            <Slider x:Name="bit1" Margin="0,4,0,0" Minimum="{Binding StreamSettings.MinBitrate}" 
+                                        Padding="0,1"
+                                    FontSize="13" FontWeight="Black"
+                                    Foreground="Red"
+                                    Maximum="{Binding StreamSettings.MaxBitrate}"
+                                            Value="{Binding CoreData.Root.Settings.Bitrate, Delay=500}"
+                                            SmallChange="100"
+                                            LargeChange="100"
+                                            Style="{StaticResource BitrateSlider}"/>
+                        </DockPanel>
+
+                        <DockPanel Margin="0,15,0,0" x:Name="cha1"  Grid.ColumnSpan="3" Grid.Row="1">
+                            <TextBlock Foreground="#909090" FontSize="9.5" Margin="0,2" Text="Channels" DockPanel.Dock="Top"/>
+                            <Grid>
+                                <ItemsControl x:Name="NoneTranscodedItems" ItemsSource="{Binding NoneTranscoded}" ItemTemplate="{StaticResource NoneTranscodedItem}">
+                                    <ItemsControl.ItemsPanel>
+                                        <ItemsPanelTemplate>
+                                            <WrapPanel Orientation="Horizontal"/>
+                                        </ItemsPanelTemplate>
+                                    </ItemsControl.ItemsPanel>
+                                </ItemsControl>
+
+                                <TextBlock Foreground="Yellow" x:Name="NoneTranscodedItemsEmpty" Visibility="Collapsed" Margin="0" Text="No channels configured for original stream. This is inefficient!"/>
+                            </Grid>
+                        </DockPanel>
+
+                    </Grid>
+                </Border>
+                <Border Height="36" BorderThickness="0,1,0,0" BorderBrush="#181818" Background="#1F242B">
+                    <TextBlock Margin="18,0" FontSize="16" Text="Transcoded stream" VerticalAlignment="Center"/>
+                </Border>
+                <Border Background="#222730">
+                    <Grid Margin="30,20,30,30">
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                        </Grid.RowDefinitions>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto"/>
+                            <ColumnDefinition Width="Auto"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+                        <ComboBox x:Name="res2"
+                            materialDesign:HintAssist.Hint="Resolution"
+                                  MinWidth="90"
+                                  ToolTipService.ShowOnDisabled="True"
+                                  ToolTipService.InitialShowDelay="500"
+                                  materialDesign:HintAssist.IsFloating="True"
+                                  materialDesign:ComboBoxAssist.ClassicMode="True"
+                                  BorderThickness="0"
+                                  SelectedItem="{Binding Transcoder.Value.Resolution}"
+                                  ItemsSource="{Binding Resolutions}">
+                        </ComboBox>
+
+                        <ComboBox x:Name="fps2" Margin="25,0" Grid.Column="1" materialDesign:HintAssist.Hint="FPS"
+                                  materialDesign:ComboBoxAssist.ClassicMode="True"
+                                  BorderThickness="0"
+                                  ToolTipService.InitialShowDelay="500"
+                                  SelectedItem="{Binding Transcoder.Value.Fps}"
+                                  ItemsSource="{Binding FpsList}"
+                                  ToolTipService.ShowOnDisabled="True"
+                                  materialDesign:HintAssist.IsFloating="True">
+                        </ComboBox>
+
+                        <DockPanel Grid.Column="2">
+                            <TextBlock Foreground="#909090" FontSize="9.5" Margin="0,2" Text="Bitrate" DockPanel.Dock="Top"/>
+                            <Slider x:Name="bit2" Margin="0,4,0,0" Minimum="{Binding StreamSettings.MinBitrate}" 
+                                            Padding="0,1"
+                                            FontSize="13" FontWeight="Black"
+                                            Maximum="{Binding StreamSettings.MaxBitrate}"
+                                            Value="{Binding Transcoder.Value.Bitrate, Delay=500}"
+                                            SmallChange="100"
+                                            LargeChange="100"
+                                            Style="{StaticResource BitrateSlider}"/>
+                        </DockPanel>
+
+                        <DockPanel x:Name="cha2" Margin="0,15,0,0" Grid.ColumnSpan="3" Grid.Row="1">
+                            <TextBlock Foreground="#909090" FontSize="9.5" Margin="0,2" Text="Channels" DockPanel.Dock="Top"/>
+                            <Grid>
+                                <ItemsControl x:Name="TranscodedItems" ItemsSource="{Binding Transcoded}" ItemTemplate="{StaticResource TranscodedItem}">
+                                    <ItemsControl.ItemsPanel>
+                                        <ItemsPanelTemplate>
+                                            <WrapPanel Orientation="Horizontal"/>
+                                        </ItemsPanelTemplate>
+                                    </ItemsControl.ItemsPanel>
+                                </ItemsControl>
+
+                                <TextBlock x:Name="TranscodedItemsEmpty" Visibility="Collapsed" Margin="0" Text="No channels to transcode. Transcoding will be off."/>
+                            </Grid>
+                        </DockPanel>
+
+                        <StackPanel x:Name="TranscodingDisabled" Visibility="Collapsed" Grid.ColumnSpan="3" Grid.Row="1">
+                            <TextBlock Margin="0,20,0,10" Foreground="#ff4040" FontSize="15" Text="Transcoding is not included in your pricing plan" DockPanel.Dock="Top"
+                                       HorizontalAlignment="Center" TextWrapping="Wrap" TextAlignment="Center"/>
+
+                            <TextBlock x:Name="promo" DockPanel.Dock="Top" HorizontalAlignment="Center" Margin="0,-2,0,0" FontWeight="Normal" FontSize="15">
+                                <Hyperlink NavigateUri="{Binding TariffUrl}" support:HyperlinkExtensions.IsExternal="true" Style="{StaticResource hlStyle}">
+                                    <Run Text="Discover available pricing plans"/> 
+                                </Hyperlink>
+                            </TextBlock>
+
+                        </StackPanel>
+
+                    </Grid>
+                </Border>
+                <Border Background="#151515" >
+                    <Grid Margin="18,6,20,10">
+                        <DockPanel x:Name="normalMessage">
+                            <materialDesign:PackIcon Margin="0,0,10,0" Width="24" Height="24" Foreground="#909090" VerticalAlignment="Center" Kind="InfoCircleOutline" DockPanel.Dock="Left"/>
+                            <TextBlock TextWrapping="Wrap" VerticalAlignment="Center" FontSize="11" Foreground="#909090"
+                               Text="Transcoding allows you to change stream properties to some destinations while maintaining source properties to other destinations. For example, in this way you can have stream 5 Mbps to two sites while keeping 9 Mbps to some other three sites" />
+                        </DockPanel>
+
+                        <DockPanel x:Name="increasedQuality" Visibility="Collapsed">
+                            <materialDesign:PackIcon Margin="0,0,10,0" Width="24" Height="24" Foreground="#ff4040" VerticalAlignment="Center" Kind="Warning" DockPanel.Dock="Left"/>
+                            <TextBlock TextWrapping="Wrap" VerticalAlignment="Center" FontSize="14" 
+                                       Foreground="#ff4040"
+                                       Text="We don't recommend setting higher Resolution, FPS or Bitrate on the transcoded stream than the original one. It will not improve your actual video quality. Besides, it is prohibited by the rules of some platforms." />
+                        </DockPanel>
+
+                        <DockPanel x:Name="highInputFps" Visibility="Collapsed">
+                            <materialDesign:PackIcon Margin="0,0,10,0" Width="24" Height="24" Foreground="#ff4040" VerticalAlignment="Center" Kind="Warning" DockPanel.Dock="Left"/>
+                            <TextBlock TextWrapping="Wrap" VerticalAlignment="Center" FontSize="14" Foreground="#ff4040" Text="{Binding MaxFps}" />
+                        </DockPanel>
+
+                        <DockPanel x:Name="highInputResolution" Visibility="Collapsed">
+                            <materialDesign:PackIcon Margin="0,0,10,0" Width="24" Height="24" Foreground="#ff4040" VerticalAlignment="Center" Kind="Warning" DockPanel.Dock="Left"/>
+                            <TextBlock TextWrapping="Wrap" VerticalAlignment="Center" FontSize="14" Foreground="#ff4040" Text="{Binding MaxResolution}" />
+                        </DockPanel>
+                    </Grid>
+                </Border>
+            </StackPanel>
+        </Border>
+
+        <DataTemplate.Triggers>
+            <DataTrigger Binding="{Binding Transcoded.Count}" Value="0">
+                <Setter TargetName="TranscodedItems" Property="Visibility" Value="Collapsed"/>
+                <Setter TargetName="TranscodedItemsEmpty" Property="Visibility" Value="Visible"/>
+            </DataTrigger>
+
+            <DataTrigger Binding="{Binding NoneTranscoded.Count}" Value="0">
+                <Setter TargetName="NoneTranscodedItems" Property="Visibility" Value="Collapsed"/>
+                <Setter TargetName="NoneTranscodedItemsEmpty" Property="Visibility" Value="Visible"/>
+            </DataTrigger>
+
+            <DataTrigger Binding="{Binding NoneTranscodedChangeDisabled.Value}" Value="True">
+                <Setter TargetName="fps1" Property="IsEnabled" Value="False"/>
+                <Setter TargetName="res1" Property="IsEnabled" Value="False"/>
+                <Setter TargetName="fps1" Property="ToolTip" Value="The option cannot be changed during Streaming to cloud or Recording"/>
+                <Setter TargetName="res1" Property="ToolTip" Value="The option cannot be changed during Streaming to cloud or Recording"/>
+            </DataTrigger>
+
+            <DataTrigger Binding="{Binding TranscodedChangeDisabled.Value}" Value="True">
+                <Setter TargetName="fps2" Property="IsEnabled" Value="False"/>
+                <Setter TargetName="res2" Property="IsEnabled" Value="False"/>
+                <Setter TargetName="fps2" Property="ToolTip" Value="The option cannot be changed if restreaming started to any channel"/>
+                <Setter TargetName="res2" Property="ToolTip" Value="The option cannot be changed if restreaming started to any channel"/>
+            </DataTrigger>
+
+            <DataTrigger Binding="{Binding Message.Value}" Value="TranscodingDisabled">
+                <Setter TargetName="cha2" Property="Visibility" Value="Collapsed"/>
+                <Setter TargetName="TranscodingDisabled" Property="Visibility" Value="Visible"/>
+
+                <Setter TargetName="res2" Property="IsEnabled" Value="False"/>
+                <Setter TargetName="fps2" Property="IsEnabled" Value="False"/>
+                <Setter TargetName="bit2" Property="IsEnabled" Value="False"/>
+            </DataTrigger>
+
+            <DataTrigger Binding="{Binding Message.Value}" Value="IncreasedQuality">
+                <Setter TargetName="normalMessage" Property="Visibility" Value="Collapsed"/>
+                <Setter TargetName="increasedQuality" Property="Visibility" Value="Visible"/>
+            </DataTrigger>
+
+            <DataTrigger Binding="{Binding Message.Value}" Value="HighInputFps">
+                <Setter TargetName="normalMessage" Property="Visibility" Value="Collapsed"/>
+                <Setter TargetName="highInputFps" Property="Visibility" Value="Visible"/>
+            </DataTrigger>
+
+            <DataTrigger Binding="{Binding Message.Value}" Value="HighInputResolution">
+                <Setter TargetName="normalMessage" Property="Visibility" Value="Collapsed"/>
+                <Setter TargetName="highInputResolution" Property="Visibility" Value="Visible"/>
+            </DataTrigger>
+
+        </DataTemplate.Triggers>
+    </DataTemplate>
+    
+</ResourceDictionary>

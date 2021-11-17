@@ -31,7 +31,7 @@
                         <Border.RenderTransform>
                             <ScaleTransform ScaleX="1" ScaleY="1"></ScaleTransform>
                         </Border.RenderTransform>
-                        <TextBlock  x:Name="text" VerticalAlignment="Top" FontSize="11" Margin="0,3" Opacity="0.7"
+                        <TextBlock  x:Name="text" VerticalAlignment="Top"  Margin="{TemplateBinding Padding}" Opacity="0.7"
                                     Text="{Binding RelativeSource={RelativeSource FindAncestor, AncestorType=Slider}, Path=Value, Converter={StaticResource BitrateToStringConverter}}"
                                     Foreground="{DynamicResource PrimaryHueMidForegroundBrush}"
                                     TextAlignment="Center" HorizontalAlignment="Center" FontWeight="Normal" />
@@ -110,7 +110,7 @@
                                     x:Name="IncreaseRepeatButton" />
                     </Track.IncreaseRepeatButton>
                     <Track.Thumb>
-                        <Thumb x:Name="Thumb" Focusable="False" Height="0" Width="0" VerticalAlignment="Center" HorizontalAlignment="Center" OverridesDefaultStyle="True" Template="{StaticResource MaterialDesignSliderThumb}" />
+                        <Thumb x:Name="Thumb" Padding="{TemplateBinding Padding}" Focusable="False" Height="0" Width="0" VerticalAlignment="Center" HorizontalAlignment="Center" OverridesDefaultStyle="True" Template="{StaticResource MaterialDesignSliderThumb}" />
                     </Track.Thumb>
                 </Track>
             </Grid>
@@ -141,6 +141,9 @@
         <Setter Property="BorderBrush" Value="Transparent"/>
         <Setter Property="Foreground" Value="{DynamicResource PrimaryHueMidBrush}"/>
         <Setter Property="Template" Value="{StaticResource MaterialDesignSliderHorizontal}"/>
+        <Setter Property="FontSize" Value="11"/>
+        <Setter Property="Padding" Value="0,3"/>
+        
         <Style.Triggers>
             <Trigger Property="IsEnabled" Value="False">
                 <Setter Property="Foreground" Value="{DynamicResource MaterialDesignCheckBoxDisabled}" />

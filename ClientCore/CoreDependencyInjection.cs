@@ -41,7 +41,8 @@ namespace Streamster.ClientCore
                 .Add<TransientMessageModel>()
                 .Add<SceneEditingModel>()
                 .Add<AudioModel>()
-                .Add<StreamSettingsModel>();
+                .Add<StreamSettingsModel>()
+                .Add<TranscodingModel>();
         }
     }
 }

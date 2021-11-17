@@ -2,6 +2,9 @@
                     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
                     xmlns:models="clr-namespace:Streamster.ClientCore.Models;assembly=Streamster.ClientCore"
                     xmlns:materialDesign="http://materialdesigninxaml.net/winfx/xaml/themes" xmlns:support="clr-namespace:Streamster.ClientApp.Win.Support">
+    <ResourceDictionary.MergedDictionaries>
+        <ResourceDictionary Source="Transcoding.xaml"/>
+    </ResourceDictionary.MergedDictionaries>
 
     <Style x:Key="GroupTitle" TargetType="TextBlock">
         <Setter Property="Margin" Value="10,12,10,8"/>
@@ -119,6 +122,21 @@
                                                 Style="{StaticResource MaterialDesignHeaderedContentControl}"/>
 
                         </DockPanel>
+                        <Border Background="{DynamicResource MaterialDesignDivider}" Height="1" SnapsToDevicePixels="True" />
+                        <DockPanel>
+                            <Button Margin="0,0,8,0" DockPanel.Dock="Right"
+                                            Content="Show detail" Command="{x:Static materialDesign:DialogHost.OpenDialogCommand}"
+                                            Style="{StaticResource MaterialDesignOutlinedButton}"
+                                            Foreground="#609EFF">
+                                <Button.CommandParameter>
+                                    <ContentControl Content="{Binding Transcoding}" ContentTemplate="{StaticResource TranscodingDialogContent}"/>
+                                </Button.CommandParameter>
+                            </Button>
+                            <HeaderedContentControl Header="Transcoding" 
+                                                Content="Broadcast streams with different quality parameters to different platforms"
+                                                Style="{StaticResource MaterialDesignHeaderedContentControl}"/>
+
+                        </DockPanel>
                     </StackPanel>
                 </Border>
 
@@ -202,7 +220,8 @@
                 <Border Style="{StaticResource GroupBorderStyle}">
                     <StackPanel Orientation="Vertical">
                         <DockPanel>
-                            <TextBox Margin="0,1,8,0" Width="200" DockPanel.Dock="Right" VerticalAlignment="Top" BorderThickness="0" MaxLength="1024">
+                            <TextBox Margin="0,1,8,0" Width="200" DockPanel.Dock="Right" VerticalAlignment="Top" BorderThickness="0" 
+                                     MaxLength="1024">
                                 <TextBox.Text>
                                     <Binding Path="CoreData.ThisDevice.DeviceSettings.RecordingsPath" UpdateSourceTrigger="PropertyChanged">
                                         <Binding.ValidationRules>
@@ -213,6 +232,16 @@
                             </TextBox>
                             <HeaderedContentControl Header="Path for recordings" 
                                                 Content="Path where recordings will be stored"
+                                                Style="{StaticResource MaterialDesignHeaderedContentControl}"/>
+
+                        </DockPanel>
+                        <Border Background="{DynamicResource MaterialDesignDivider}" Height="1" SnapsToDevicePixels="True" />
+                        <DockPanel>
+                            <ComboBox x:Name="recFormat" Margin="0,0,8,0" DockPanel.Dock="Right" VerticalAlignment="Top" BorderThickness="0"
+                                      ItemsSource="{Binding RecordingFormats}" SelectedItem="{Binding CurrentRecordingFormat.Value}" DisplayMemberPath="DisplayName">
+                            </ComboBox>
+                            <HeaderedContentControl Header="File format" 
+                                                Content="Either flv (Flash video) or mp4 (MPEG-4 Part 14)"
                                                 Style="{StaticResource MaterialDesignHeaderedContentControl}"/>
 
                         </DockPanel>
@@ -248,6 +277,8 @@
                 <Setter TargetName="nalHdr" Property="ToolTip" Value="The option cannot be changed during Streaming or Recording"/>
                 <Setter TargetName="qsvn12" Property="IsEnabled" Value="False"/>
                 <Setter TargetName="qsvn12" Property="ToolTip" Value="The option cannot be changed during Streaming or Recording"/>
+                <Setter TargetName="recFormat" Property="IsEnabled" Value="False"/>
+                <Setter TargetName="recFormat" Property="ToolTip" Value="The option cannot be changed during Streaming or Recording"/>
             </DataTrigger>
 
         </DataTemplate.Triggers>

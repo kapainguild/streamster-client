@@ -36,6 +36,16 @@ namespace Streamster.ClientData.Model
         bool NoStreamWithoutVpn { get; set; }
 
         string SelectedScene { get; set; }
+
+        RecordingFormat RecordingFormat { get; set; }
+
+        string UserFeedback { get; set; }
+    }
+
+    public enum RecordingFormat
+    {
+        Flv,
+        Mp4
     }
 
     public enum StreamingToCloudBehavior

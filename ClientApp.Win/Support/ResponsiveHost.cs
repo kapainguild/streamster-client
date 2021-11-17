@@ -136,6 +136,7 @@ namespace Streamster.ClientApp.Win.Support
                         }
                     }
                     res.ChannelWidth = baseWidth + sol * 3;
+                    res.HideChannelHintButton = res.ChannelWidth < 271;
                 }
                 else
                 {
@@ -449,6 +450,8 @@ namespace Streamster.ClientApp.Win.Support
         public int ChannelTemplate { get; internal set; }
 
         public double ChannelWidth { get; internal set; }
+
+        public bool HideChannelHintButton { get; internal set; }
 
         public bool HidePromo { get; set; }
 

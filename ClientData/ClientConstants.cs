@@ -34,6 +34,9 @@ namespace Streamster.ClientData
         public static string DebugClaim = "deb";
         public static string VpnClaim = "vpn";
         public static string DomainClaim = "dmn";
+        public static string TranscodersClaim = "tra";
+        public static string TranscodersInputLimitClaim = "tri";
+        public static string TranscodersOutputLimitClaim = "tro";
 
         public static int VpnVersion = 1;
     }

@@ -5,20 +5,20 @@ using System.Threading;
 
 namespace DynamicStreamer.Contexts
 {
-    
-
     public class InputContext : IInputContext
     {
+        public static AVRational s_translate_to_time_base = new AVRational { num = 1, den = 10_000_000 };
+
         delegate int ReadInterruptCallbackFunction();
 
         private IntPtr _handle;
         private ReadInterruptCallbackFunction _readInterruptCallbackFunction;
         private bool _interrupted = false;
         private DateTime _startOperationTime = DateTime.MaxValue;
-        private AdjustInputType _adjustInputType;
+        private bool _firstStreamOnly;
         private long _overloadCounter = 0;
 
-        private InputTimeAdjuster _timeAdjuster = new InputTimeAdjuster();
+        private IInputTimeAdjuster _timeAdjuster = new InputTimeAdjusterNone();
 
         [DllImport(Core.DllName)] private static extern IntPtr InputContext_Create();
         [DllImport(Core.DllName)] private static extern void InputContext_Delete(IntPtr handle);
@@ -38,19 +38,27 @@ namespace DynamicStreamer.Contexts
         {
             _interrupted = false;
             _startOperationTime = DateTime.UtcNow;
-            _adjustInputType = setup.AdjustInputType;
+            _timeAdjuster = CreateAdjuster(setup.AdjustInputType);
+            _firstStreamOnly = setup.FirstStreamOnly;
             _readInterruptCallbackFunction = new ReadInterruptCallbackFunction(OnReadInterruptCallback);
-            var translate_to_time_base = new AVRational { num = 1, den = 10_000_000 };
             int res = InputContext_Open(
                 _handle,
                 Core.StringToBytes(setup.Type),
                 Core.StringToBytes(setup.Input),
                 Core.StringToBytes(setup.Options),
-                ref translate_to_time_base,
+                ref s_translate_to_time_base,
                 Marshal.GetFunctionPointerForDelegate(_readInterruptCallbackFunction));
             _startOperationTime = DateTime.MaxValue;
             CheckedCall(res);
         }
+
+        private IInputTimeAdjuster CreateAdjuster(AdjustInputType adjustInputType) => adjustInputType switch
+        {
+            AdjustInputType.Adaptive => new InputTimeAdjuster(),
+            AdjustInputType.CurrentTime => new InputTimeAdjusterCurrentTime(),
+            AdjustInputType.AdaptiveNetwork => new InputNetworkTimeAdjuster(),
+            _ => new InputTimeAdjusterNone()
+        };
 
         private int OnReadInterruptCallback()
         {
@@ -73,21 +81,18 @@ namespace DynamicStreamer.Contexts
 
                 CheckedCall(res);
 
-                if (packet.Properties.StreamIndex == 0) // ignore sound for receiver mode
+                // overload prevention
+                if (packet.Properties.StreamIndex == 0)
                 {
                     if ((_overloadCounter & 7) == 0)
                         Thread.Sleep(10);
 
                     _overloadCounter++;
+                }
 
-                    if (_adjustInputType == AdjustInputType.Adaptive)
-                    {
-                        packet.SetPts(_timeAdjuster.Add(packet.Properties.Pts, currentTime));
-                    }
-                    else if (_adjustInputType == AdjustInputType.CurrentTime)
-                    {
-                        packet.SetPts(currentTime);
-                    }
+                if (packet.Properties.StreamIndex == 0 || !_firstStreamOnly) // ignore sound for receiver mode
+                {
+                    packet.SetPts(_timeAdjuster.Add(packet.Properties.Pts, currentTime));
                     break;
                 }
 

@@ -53,7 +53,7 @@ namespace Streamster.ClientCore.Models
                     }
                     else
                     {
-                        var bitratePercent = (bitrate * 100) / _coreData.Settings.Bitrate;
+                        var bitratePercent = (ave * 100) / _coreData.Settings.Bitrate;
 
                         if (bitratePercent < 60)
                             state = IndicatorState.Warning;
@@ -131,7 +131,7 @@ namespace Streamster.ClientCore.Models
                 }
                 else
                 {
-                    var bitratePercent = (bitrate * 100) / _coreData.Settings.Bitrate;
+                    var bitratePercent = (ave * 100) / _coreData.Settings.Bitrate;
 
                     if (bitratePercent < 60)
                         state = IndicatorState.Warning2;

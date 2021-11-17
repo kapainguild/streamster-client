@@ -46,6 +46,7 @@ namespace DynamicStreamer
             switch (filterDesc.Type)
             {
                 case VideoFilterType.HFlip: return "hflip";
+                case VideoFilterType.VFlip: return "vflip";
                 case VideoFilterType.Warm: return "curves=r='0/0 .50/.53 1/1':g='0/0 0.50/0.48 1/1':b='0/0 .50/.46 1/1'";
                 case VideoFilterType.Cold: return "curves=r='0/0 .50/.46 1/1':g='0/0 0.50/0.51 1/1':b='0/0 .50/.54 1/1'";
                 case VideoFilterType.Dark: return "curves=preset=darker";

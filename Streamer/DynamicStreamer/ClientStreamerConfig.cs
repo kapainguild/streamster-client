@@ -41,7 +41,9 @@ namespace DynamicStreamer
 
         public override string ToString() => string.Join("+", Filters.Select(s => s.ToString()));
 
-        internal bool HasFlip() => (Filters.Count(s => s.Type == VideoFilterType.HFlip) & 1) > 0;
+        internal bool HasHFlip() => (Filters.Count(s => s.Type == VideoFilterType.HFlip) & 1) > 0;
+
+        internal bool HasVFlip() => (Filters.Count(s => s.Type == VideoFilterType.VFlip) & 1) > 0;
     }
 
     public record VideoFilterDescriptor(VideoFilterType Type, double Value, FixedFrameData Data)
@@ -57,6 +59,7 @@ namespace DynamicStreamer
         None,
 
         HFlip,
+        VFlip,
 
         Warm,
         Cold,
@@ -83,7 +86,9 @@ namespace DynamicStreamer
         Pastel,
         Romantic,
         Sapphire,
-        Wine
+        Wine,
+
+
     }
 
 
@@ -246,7 +251,7 @@ namespace DynamicStreamer
 
         public FixedFrame BackgroundFrame { get; set; }
 
-        public DuplicateFrameQueue EncoderAndUiFilterDuplicateQueue { get; set; }
+        public DuplicateQueue<Frame> EncoderAndUiFilterDuplicateQueue { get; set; }
 
         public FpsQueue<Frame> UiFpsFilterQueue { get; set; }
 
@@ -278,7 +283,7 @@ namespace DynamicStreamer
             EncoderNode = new EncoderNode(new NodeName("VE", null, "E", 4), streamer);
             
 
-            EncoderAndUiFilterDuplicateQueue = new DuplicateFrameQueue(streamer.FramePool);
+            EncoderAndUiFilterDuplicateQueue = new DuplicateQueue<Frame>(streamer.FramePool);
             UiFilterQueue = new UnorderedStreamQueue<Frame>(new NodeName("VE", null, "FUIq", 9), streamer.FramePool, 2);
 
             BackgroundFrame = new FixedFrame();
@@ -311,7 +316,7 @@ namespace DynamicStreamer
 
         public FilterNode Filter { get; set; }
 
-        public DuplicateFrameQueue MixerAndUiFilterQueue { get; set; }
+        public DuplicateQueue<Frame> MixerAndUiFilterQueue { get; set; }
 
         public FrameOutput UiOutput { get; set; }
 
@@ -332,7 +337,7 @@ namespace DynamicStreamer
 
         public FilterNode MixingFilter { get; set; }
 
-        public DuplicateFrameQueue EncoderAndUiFilterQueue { get; set; }
+        public DuplicateQueue<Frame> EncoderAndUiFilterQueue { get; set; }
 
         public FrameOutput UiFilterQueue { get; set; }
 

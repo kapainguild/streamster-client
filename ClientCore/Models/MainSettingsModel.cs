@@ -18,6 +18,7 @@ namespace Streamster.ClientCore.Models
 
         public CoreData CoreData { get; }
         public StreamSettingsModel StreamSettings { get; }
+        public TranscodingModel Transcoding { get; }
         public List<SettingsSelectorData<StreamingToCloudBehavior>> StreamingToCloudBehaviors { get; } = new List<SettingsSelectorData<StreamingToCloudBehavior>>
         {
             new SettingsSelectorData<StreamingToCloudBehavior> { Value = StreamingToCloudBehavior.AppStart, DisplayName = "App is started" },
@@ -72,6 +73,12 @@ namespace Streamster.ClientCore.Models
             new SettingsSelectorData<BlenderType> { Value = BlenderType.Area, DisplayName = "Area" },
         };
 
+        public List<SettingsSelectorData<RecordingFormat>> RecordingFormats { get; } = new List<SettingsSelectorData<RecordingFormat>>
+        {
+            new SettingsSelectorData<RecordingFormat> { Value = RecordingFormat.Flv, DisplayName = "flv" },
+            new SettingsSelectorData<RecordingFormat> { Value = RecordingFormat.Mp4, DisplayName = "mp4" },
+        };
+
         public ObservableCollection<string> HardwareAdapters { get; } = new ObservableCollection<string>();
 
         public Property<SettingsSelectorData<StreamingToCloudBehavior>> CurrentStreamingToCloudBehavior { get; } = new Property<SettingsSelectorData<StreamingToCloudBehavior>>();
@@ -88,18 +95,24 @@ namespace Streamster.ClientCore.Models
 
         public Property<SettingsSelectorData<BlenderType>> CurrentBlenderType { get; } = new Property<SettingsSelectorData<BlenderType>>();
 
+        public Property<SettingsSelectorData<RecordingFormat>> CurrentRecordingFormat { get; } = new Property<SettingsSelectorData<RecordingFormat>>();
+
         public Property<string> HardwareAdapter { get; } = new Property<string>();
 
         public Property<bool> PreferNalHdr { get; } = new Property<bool>();
 
         public Property<bool> EnableQsvNv12Optimization { get; } = new Property<bool>(true);
 
+        public Action OpenTranscoding { get; }
+
         public bool UserHasVpn { get; set; }
 
-        public MainSettingsModel(LocalSettingsService localSettings, CoreData coreData, StreamSettingsModel streamSettings, ConnectionService connectionService)
+        public MainSettingsModel(LocalSettingsService localSettings, CoreData coreData, StreamSettingsModel streamSettings, ConnectionService connectionService,
+            TranscodingModel transcoding)
         {
             CoreData = coreData;
             StreamSettings = streamSettings;
+            Transcoding = transcoding;
             _connectionService = connectionService;
             AutoLogon.SilentValue = localSettings.Settings.AutoLogon; // TODO: what is is not registred and not save password
             AutoLogon.OnChange = async (o, n) => await localSettings.ChangeSettingsUnconditionally(s => s.AutoLogon = n);
@@ -111,6 +124,7 @@ namespace Streamster.ClientCore.Models
             CurrentVpnBehavior.Value = VpnBehaviors.First(s => s.Value == default);
             CurrentRendererType.Value = RendererTypes.First(s => s.Value == default);
             CurrentBlenderType.Value = BlenderTypes.First(s => s.Value == default);
+            CurrentRecordingFormat.Value = RecordingFormats.First(s => s.Value == default);
 
             CurrentStreamingToCloudBehavior.OnChange = (o, n) => coreData.Settings.StreamingToCloud = n.Value;
             CurrentEncoderType.OnChange = (o, n) => coreData.Settings.EncoderType = n.Value;
@@ -120,6 +134,7 @@ namespace Streamster.ClientCore.Models
                 coreData.ThisDevice.DeviceSettings.DisableTopMost = TopMostModeConverter.GetDisableTopMost(n.Value);
                 coreData.ThisDevice.DeviceSettings.TopMostExtendedMode = TopMostModeConverter.GetTopMostExtendedMode(n.Value);
             };
+            CurrentRecordingFormat.OnChange = (o, n) => coreData.Settings.RecordingFormat = n.Value;
             CurrentVpnBehavior.OnChange = (o, n) => coreData.ThisDevice.DeviceSettings.VpnBehavior = n.Value;
             CurrentRendererType.OnChange = (o, n) => coreData.ThisDevice.DeviceSettings.RendererType = n.Value;
             CurrentBlenderType.OnChange = (o, n) => coreData.ThisDevice.DeviceSettings.BlenderType = n.Value;
@@ -132,6 +147,7 @@ namespace Streamster.ClientCore.Models
             CoreData.Subscriptions.SubscribeForProperties<ISettings>(s => s.EncoderQuality, (s, c, p) => CurrentEncoderQuality.SilentValue = EncoderQualities.FirstOrDefault(r => r.Value == CoreData.Settings.EncoderQuality));
             CoreData.Subscriptions.SubscribeForProperties<ISettings>(s => s.PreferNalHdr, (s, c, p) => PreferNalHdr.SilentValue = CoreData.Settings.PreferNalHdr);
             CoreData.Subscriptions.SubscribeForProperties<ISettings>(s => s.DisableQsvNv12Optimization, (s, c, p) => EnableQsvNv12Optimization.SilentValue = !CoreData.Settings.DisableQsvNv12Optimization);
+            CoreData.Subscriptions.SubscribeForProperties<ISettings>(s => s.RecordingFormat, (s, c, p) => CurrentRecordingFormat.SilentValue = RecordingFormats.FirstOrDefault(r => r.Value == CoreData.Settings.RecordingFormat));
 
             CoreData.Subscriptions.SubscribeForProperties<IDeviceSettings>(s => s.DisableTopMost, (s, c, p) => UpdateTopMost());
             CoreData.Subscriptions.SubscribeForProperties<IDeviceSettings>(s => s.TopMostExtendedMode, (s, c, p) => UpdateTopMost());
@@ -143,7 +159,6 @@ namespace Streamster.ClientCore.Models
                 if (HardwareAdapters != null)
                     HardwareAdapter.SilentValue = HardwareAdapters.Contains(CoreData.ThisDevice.DeviceSettings.RendererAdapter) ? CoreData.ThisDevice.DeviceSettings.RendererAdapter : HardwareAdapters.FirstOrDefault();
             });
-            
         }
 
         private void UpdateTopMost() => CurrentTopMostMode.SilentValue = TopMostModes.FirstOrDefault(s => s.Value == TopMostModeConverter.ToMode(CoreData.ThisDevice.DeviceSettings));

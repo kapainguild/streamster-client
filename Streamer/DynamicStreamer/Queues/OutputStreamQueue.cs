@@ -5,7 +5,7 @@ using System.Threading;
 
 namespace DynamicStreamer.Queues
 {
-    public class OutputStreamQueue<TPayload> : ITargetQueue<TPayload> where TPayload : class, IPayload, new()
+    public class OutputStreamQueue<TPayload> : ITargetQueue<TPayload> where TPayload : Packet, new()
     {
         private readonly LinkedList<Data<TPayload>> _sortingQueue = new LinkedList<Data<TPayload>>();
         private readonly LinkedList<OutputStreamQueueDataReference<TPayload>> _readyQueue = new LinkedList<OutputStreamQueueDataReference<TPayload>>();
@@ -29,6 +29,8 @@ namespace DynamicStreamer.Queues
 
         public void Enqueue(Data<TPayload> payload)
         {
+            //Core.LogInfo($"QIn {Core.FormatTicks(payload.Payload.GetPts())} ({_sortingQueueCountsPerId[0]}/{_sortingQueueCountsPerId[1]})  {GetHashCode()}");
+
             if (payload.SourceId == 0 && payload.Trace != null)
             {
                 if ((_traceCounter++) % 300 == 0)
@@ -42,7 +44,6 @@ namespace DynamicStreamer.Queues
 
                 if (pts >= _lastReleasedPts)
                 {
-
                     while (last != null && pts < last.Value.Payload.GetPts())
                         last = last.Previous;
 
@@ -164,9 +165,26 @@ namespace DynamicStreamer.Queues
         {
             lock (this)
             {
+                var seq = _lastSequenceNumber + 1;
+                var last = _readyQueue.Last;
+                int count = 0;
+                while (last != null)
+                {
+                    var lastPacket = last.Value.Data;
+                    if ((lastPacket.Payload.Properties.Flags & 1) > 0 && lastPacket.SourceId == 0)
+                    {
+                        seq = lastPacket.SequenceNumber;
+                        break;
+                    }
+
+                    last = last.Previous;
+                    count++;
+                }
+
+                Core.LogInfo($"Adding reader, to be sent {count} additionally");
                 var result = new OutputStreamQueueReader<TPayload>
                 {
-                    CurrentSequenceNumber = _lastSequenceNumber + 1
+                    CurrentSequenceNumber = seq
                 };
                 _readers.Add(result);
                 return result;

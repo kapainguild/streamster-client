@@ -31,6 +31,14 @@
   </ItemGroup>
 
   <ItemGroup>
+    <Resource Remove="Assets\Canvas.png" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <EmbeddedResource Include="Assets\Canvas.png" />
+  </ItemGroup>
+
+  <ItemGroup>
     <PackageReference Include="Autofac" Version="5.2.0" />
     <PackageReference Include="MaterialDesignColors" Version="1.2.6" />
     <PackageReference Include="MaterialDesignThemes" Version="3.1.3" />
@@ -45,8 +53,5 @@
     <ProjectReference Include="..\ClientApp.Win\ClientApp.Win.csproj" />
     <ProjectReference Include="..\ClientCore\ClientCore.csproj" />
     <ProjectReference Include="..\Support\DirectShowLib\DirectShowLib.csproj" />
-  </ItemGroup>
-
-  <ItemGroup>
   </ItemGroup>
 </Project>

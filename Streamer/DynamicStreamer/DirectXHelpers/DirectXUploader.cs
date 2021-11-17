@@ -42,7 +42,6 @@ namespace DynamicStreamer.DirectXHelpers
             _width = width;
             _height = height;
             _descriptor = descriptor;
-            _defferedContext = new DeviceContext(_dx.Device);
         }
 
         public static bool IsFormatSupportedForDecoderUpload(int pixelFormat)
@@ -113,6 +112,8 @@ namespace DynamicStreamer.DirectXHelpers
             {
                 if (_dx.IsBrokenAndLog("Upload"))
                     return null;
+
+                _defferedContext = _defferedContext ?? new DeviceContext(_dx.Device);
 
                 var source0 = LoadPlane(0, dataPointer);
                 var source1 = LoadPlane(1, dataPointer1);

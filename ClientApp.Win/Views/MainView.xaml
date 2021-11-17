@@ -29,7 +29,7 @@
     </DataTemplate>
 
     <DataTemplate DataType="{x:Type models:NewVersionModel}">
-        <Border MaxWidth="750" MaxHeight="640" RenderOptions.BitmapScalingMode="LowQuality">
+        <Border MaxWidth="950" MaxHeight="840" RenderOptions.BitmapScalingMode="HighQuality">
             <Grid>
                 <Grid.RowDefinitions>
                     <RowDefinition Height="Auto"/>
@@ -45,7 +45,7 @@
                         <TextBlock Margin="40,0,10,0" HorizontalAlignment="Center" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" FontSize="16" Text="{Binding Title}"/>
                     </DockPanel>
                 </Border>
-                <Border Grid.Row="1" Background="{DynamicResource MaterialDesignToolBarBackground}">
+                <Border Grid.Row="1" Background="#202020">
                     <Grid >
                         <DockPanel x:Name="standard" >
                             <TextBlock Margin="15" Text="What's new" DockPanel.Dock="Top" HorizontalAlignment="Center" FontSize="20"/>
@@ -64,46 +64,33 @@
                         
                         <Border x:Name="custom" TextElement.FontSize="16">
                             <Grid>
-                                <Image Source="/Streamster.ClientApp.WinCore;component/Assets/WhatsNew.Png" Stretch="Fill"/>
-                            <Viewbox Margin="0">
-                                <Grid>
-                                    
-                                    
-                                    <StackPanel Margin="20,20,20,0" HorizontalAlignment="Stretch" TextElement.FontSize="16">
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="*"/>
+                                    <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="Auto"/>
+                                </Grid.RowDefinitions>
+                                
+                                <Image Grid.Row="1" Margin="0,-20"  Source="/Streamster.ClientApp.WinCore;component/Assets/WhatsNew.Png" Stretch="Uniform"/>
 
-                                        <TextBlock Width="520" Foreground="#aaaaaa"
-                                                   TextAlignment="Justify"
-                                                   Text="We were working hard to rebuild our rendering engine with state-of-the-art technologies so now you can compose your video stream as a scene of multiple video sources"
-                                                   TextWrapping="Wrap"/>
+                                <TextBlock Margin="0,15,0,0" FontSize="18" TextWrapping="Wrap" TextAlignment="Center" LineHeight="27" Foreground="#aaaaaa">Transcoding is here!</TextBlock>
 
-                                        <TextBlock Margin="10" FontSize="20" Text="What's new:" HorizontalAlignment="Center" Foreground="#aaaaaa"/>
+                                <TextBlock Grid.Row="2" Margin="30,15,30,0" FontSize="14" TextWrapping="Wrap" TextAlignment="Justify" LineHeight="27" Foreground="#aaaaaa">Streaming platforms may have different requirements for live streams. Some of them give advantages to creators who broadcast in the highest quality. But some of them limit live video performance. For this reason, streamers often find themselves in a difficult situation. But now our Transcoding feature is solving this problem. Users with Lite+ and Pro+ pricing plans are able to stream with 2 preference sets, including different Resolution, FPS, and Bitrate.</TextBlock>
 
-                                        <StackPanel Margin="150,0">
-                                            <StackPanel.Resources>
-                                                <ResourceDictionary>
-                                                    <Style TargetType="TextBlock">
-                                                        <Setter Property="TextAlignment" Value="Left"/>
-                                                        <Setter Property="Margin" Value="0,3"/>
-                                                    </Style>
-                                                </ResourceDictionary>
-                                            </StackPanel.Resources>
-                                            <TextBlock Text="&#x2022; Image overlays"/>
-                                            <TextBlock Text="&#x2022; Video-in-video"/>
-                                            <TextBlock Text="&#x2022; Desktop audio, Mute"/>
-                                            <TextBlock Text="&#x2022; LUT filters"/>
-                                            <TextBlock Text="&#x2022; Screen capture"/>
-                                            <TextBlock Text="&#x2022; Mouse-controlled zoom"/>
-                                            <TextBlock Text="&#x2022; NVidia, AMD hardware acceleration"/>
-                                            <TextBlock Text="&#x2022; Web page as a video source"/>
-                                        </StackPanel>
+                                <TextBlock Grid.Row="3" HorizontalAlignment="Left" Margin="30,5,0,0" FontSize="14" >
+                                    <Hyperlink NavigateUri="https://streamster.io/transcoding/" support:HyperlinkExtensions.IsExternal="true" Style="{StaticResource hlStyle}">
+                                        <Run Text="How to use it? Get more details here"/> 
+                                    </Hyperlink>
+                                </TextBlock>
 
-                                        <TextBlock Margin="0,15,0,20" FontSize="20" TextWrapping="Wrap" TextAlignment="Center" LineHeight="27" Foreground="#aaaaaa">
-                                        Be creative with Streamster!</TextBlock>
-
-
-                                    </StackPanel>
-                                </Grid>
-                            </Viewbox>
+                                <TextBlock Grid.Row="4" HorizontalAlignment="Left" Margin="30,5,0,0" FontSize="14" >
+                                    <Hyperlink NavigateUri="https://streamster.io/pricing/" support:HyperlinkExtensions.IsExternal="true" Style="{StaticResource hlStyle}">
+                                        <Run Text="Check our new pricing plans with Transcoding"/> 
+                                    </Hyperlink>
+                                </TextBlock>
+                                <TextBlock Grid.Row="5" Margin="30,25,30,10" FontSize="16" TextWrapping="Wrap" TextAlignment="Center" LineHeight="27" Foreground="#aaaaaa">Take the most out of the streaming platforms with Streamster!</TextBlock>
                             </Grid>
                         </Border>
                     </Grid>

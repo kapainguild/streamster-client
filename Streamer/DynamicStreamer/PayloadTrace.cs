@@ -57,7 +57,8 @@ namespace DynamicStreamer
                 SentStamp = SentStamp,
                 ReceivedBy = ReceivedBy,
                 ReceivedStamp = ReceivedStamp,
-                Previous = Previous
+                Previous = Previous,
+                SequenceNo = SequenceNo
             };
         }
 

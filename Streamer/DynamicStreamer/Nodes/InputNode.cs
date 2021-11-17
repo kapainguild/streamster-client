@@ -283,7 +283,7 @@ namespace DynamicStreamer.Nodes
 
                         packetToDispose = null;
                         seqNumber++;
-                        _inputThreadCurrentContext.OutputQueue.Enqueue(new Data<Packet>(packet, _inputThreadCurrentContext.Version, seqNumber, PayloadTrace.Create(Name, null, seqNumber)));
+                        _inputThreadCurrentContext.OutputQueue.Enqueue(new Data<Packet>(packet, _inputThreadCurrentContext.Version, seqNumber, PayloadTrace.Create(Name, null, seqNumber)) { SourceId = packet.Properties.StreamIndex });
                     }
                     catch (OperationCanceledException)
                     {

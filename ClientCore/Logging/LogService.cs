@@ -40,7 +40,7 @@ namespace Streamster.ClientCore.Logging
 
         public void EnableDebug()
         {
-            _switch.MinimumLevel = Serilog.Events.LogEventLevel.Debug;
+            _switch.MinimumLevel = LogEventLevel.Debug;
         }
 
         private void CurrentDomain_UnhandledException(object sender, UnhandledExceptionEventArgs e)

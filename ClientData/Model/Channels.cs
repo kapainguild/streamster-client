@@ -23,6 +23,8 @@ namespace Streamster.ClientData.Model
         int Bitrate { get; set; }
 
         string Timer { get; set; }
+
+        string TranscoderId { get; set; }
     }
 
     public enum ChannelState

@@ -29,7 +29,7 @@ namespace Streamster.ClientCore.Models
             new Resolution(640, 360),
         };
 
-        public int[] FpsList { get; } = new[] { 60, 30, 25, 20, 15, 10 };
+        public int[] FpsList { get; } = new[] { 60, 50, 30, 25, 20, 15, 10 };
 
         public int MinBitrate { get; } = 800;
 

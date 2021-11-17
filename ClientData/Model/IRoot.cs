@@ -24,6 +24,8 @@ namespace Streamster.ClientData.Model
 
         IDictionary<string, IScene> Scenes { get; set; }
 
+        IDictionary<string, ITranscoder> Transcoders { get; set; }
+
         ISettings Settings { get; set; }
     }
 }

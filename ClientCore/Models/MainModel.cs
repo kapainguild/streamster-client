@@ -218,13 +218,11 @@ namespace Streamster.ClientCore.Models
             var (currentVersionInfo, currentVersionString) = ClientVersionHelper.GetCurrent(upperVersions);
 
             bool simulateUpdate = false;
-            string custom = "4.0.2";
+            string custom = "4.5.0";
 
             if (_localSettingsService.Settings.LastRunVerion != currentVersionString || simulateUpdate)
             {
                 if ((_localSettingsService.Settings.NotFirstInstall || _localSettingsService.NoSettingsFileAtLoad == false) && 
-                    _localSettingsService.Settings.LastRunVerion != "4.0.0" &&
-                    _localSettingsService.Settings.LastRunVerion != "4.0.1" &&
                     string.IsNullOrEmpty(_appResources.AppData.Domain) || simulateUpdate)
                 {
                     string[] standard = string.IsNullOrWhiteSpace(currentVersionInfo?.WhatsNew) ? null :

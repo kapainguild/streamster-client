@@ -4,7 +4,17 @@ using System.Text;
 
 namespace DynamicStreamer.Contexts
 {
-    class InputTimeAdjuster
+    class InputTimeAdjusterCurrentTime : IInputTimeAdjuster
+    {
+        public long Add(long packetTime, long currentTime) => currentTime;
+    }
+
+    class InputTimeAdjusterNone : IInputTimeAdjuster
+    {
+        public long Add(long packetTime, long currentTime) => packetTime;
+    }
+
+    class InputTimeAdjuster : IInputTimeAdjuster
     {
         const int Size = 60;
 

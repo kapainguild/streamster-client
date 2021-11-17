@@ -14,6 +14,14 @@ namespace Streamster.ClientCore.Models
         private const int UnknownBufferSize = 40000 * 2000;
         private static string UnknownOptions = $"fflags{Eq}nobuffer{Sep}rtbufsize{Eq}{UnknownBufferSize}";
 
+        public static string GetDeviceName(LocalSource localDevice)
+        {
+            if (!localDevice.Name.Contains(':')) // cannot use : as it is seprator between audio:video parts
+                return localDevice.Name;
+            else
+                return localDevice.Id.Replace(":", "_"); // ffmpeg support selection by id
+        }
+
         public static string GetAudioOptions(LocalAudioSource device)
         {
             var def = $"fflags{Eq}nobuffer{Sep}audio_buffer_size{Eq}50";

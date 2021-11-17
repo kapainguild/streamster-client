@@ -51,6 +51,7 @@ namespace Streamster.ClientCore.Models
         {
             SceneItemFilterType.None        => VideoFilterType.None,
             SceneItemFilterType.HFlip       => VideoFilterType.HFlip,
+            SceneItemFilterType.VFlip       => VideoFilterType.VFlip,
             SceneItemFilterType.Warm        => VideoFilterType.Warm,
             SceneItemFilterType.Cold        => VideoFilterType.Cold,
             SceneItemFilterType.Dark        => VideoFilterType.Dark,

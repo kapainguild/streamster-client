@@ -16,6 +16,8 @@ namespace Streamster.ClientData.Model
         public string Output { get; set; }
 
         public string Options { get; set; }
+
+        public int Port { get; set; }
     }
 
     public interface IOutgest
@@ -25,10 +27,14 @@ namespace Streamster.ClientData.Model
 
     public class OutgestData
     {
+        public RequireOutgestType RequireType { get; set; }
+
         public string Type { get; set; }
 
         public string Output { get; set; }
 
         public string Options { get; set; }
+
+        public int Port { get; set; }
     }
 }

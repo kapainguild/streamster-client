@@ -6,6 +6,7 @@ using System;
 using System.IO;
 using System.Linq;
 using System.Reflection;
+using System.Threading.Tasks;
 
 namespace Streamster.ClientCore.Models
 {
@@ -14,6 +15,7 @@ namespace Streamster.ClientCore.Models
         private readonly ConnectionService _connectionService;
         private readonly IAppEnvironment _environment;
         private readonly IdService _idService;
+        private readonly CoreData _coreData;
 
         public Property<bool> AsUnregistered { get; } = new Property<bool>();
 
@@ -23,14 +25,23 @@ namespace Streamster.ClientCore.Models
 
         public string License { get; set; }
 
+        public string Credits { get; set; }
+
         public string Version { get; set; }
 
-        public MainAboutModel(RootModel root, ConnectionService connectionService, IAppEnvironment environment, IdService idService)
+        public Property<string> FeedbackText { get; } = new Property<string>("");
+
+        public Action FeedbackSend { get; set; }
+
+        public Property<FeedbackStateEnum> FeedbackState { get; } = new Property<FeedbackStateEnum>(FeedbackStateEnum.Normal);
+
+        public MainAboutModel(RootModel root, ConnectionService connectionService, IAppEnvironment environment, IdService idService, CoreData coreData)
         {
             Root = root;
             _connectionService = connectionService;
             _environment = environment;
             _idService = idService;
+            _coreData = coreData;
             CopyToClipboard = () => DoCopyToClipboard();
 
             Version = ClientVersionHelper.GetVersion();
@@ -40,6 +51,32 @@ namespace Streamster.ClientCore.Models
             using (StreamReader reader = new StreamReader(stream))
             {
                 License = reader.ReadToEnd();
+            }
+
+            using (Stream stream = assembly.GetManifestResourceStream("Streamster.ClientCore.CREDITS.txt"))
+            using (StreamReader reader = new StreamReader(stream))
+            {
+                Credits = reader.ReadToEnd();
+            }
+
+            FeedbackSend = () => _ = SendFeedback();
+        }
+
+        private async Task SendFeedback()
+        {
+            if (!string.IsNullOrEmpty(FeedbackText.Value))
+            {
+                FeedbackState.Value = FeedbackStateEnum.Sending;
+                _coreData.Root.Settings.UserFeedback = FeedbackText.Value;
+                FeedbackText.SilentValue = "";
+
+                await Task.Delay(1500);
+
+                FeedbackState.Value = FeedbackStateEnum.Sent;
+
+                await Task.Delay(6000);
+                FeedbackState.Value = FeedbackStateEnum.Normal;
+                
             }
         }
 
@@ -90,5 +127,12 @@ namespace Streamster.ClientCore.Models
         public string Value { get; set; }
 
         public string Id { get; set; }
+    }
+
+    public enum FeedbackStateEnum
+    {
+        Normal,
+        Sending,
+        Sent
     }
 }

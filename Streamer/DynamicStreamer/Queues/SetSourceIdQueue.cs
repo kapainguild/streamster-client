@@ -4,7 +4,7 @@ using System.Text;
 
 namespace DynamicStreamer.Queues
 {
-    class SetSourceIdQueue<T> : ITargetQueue<T> where T : IPayload
+    public class SetSourceIdQueue<T> : ITargetQueue<T> where T : IPayload
     {
         private readonly ITargetQueue<T> _output;
         private readonly int _sourceId;

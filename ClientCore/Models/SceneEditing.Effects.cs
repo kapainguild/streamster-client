@@ -37,6 +37,7 @@ namespace Streamster.ClientCore.Models
             new FilterTypeDescriptor("Saturation", SceneItemFilterType.Saturation   , FilterCategory.Basic, SliderType.MinusPlus),
             new FilterTypeDescriptor("Sharpness", SceneItemFilterType.Sharpness     , FilterCategory.Basic, SliderType.ZeroPlus),
             new FilterTypeDescriptor("Opacity", SceneItemFilterType.Opacity         , FilterCategory.Basic, SliderType.ZeroPlus),
+            new FilterTypeDescriptor("V.Flip", SceneItemFilterType.VFlip            , FilterCategory.Basic, SliderType.No),
         };
 
         public Property<bool> HFlip { get; } = new Property<bool>();

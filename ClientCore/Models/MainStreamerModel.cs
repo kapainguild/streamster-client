@@ -33,6 +33,7 @@ namespace Streamster.ClientCore.Models
         private readonly IAppEnvironment _appEnvironment;
         private readonly IWindowStateManager _windowStateManager;
         private readonly AudioModel _audioModel;
+        private readonly IAppResources _appResource;
         private readonly StreamerHealthCheck _healthCheck;
         private HardwareEncoderCheck _hardwareEncoderCheck;
         private ClientStreamer _mainStreamer;
@@ -53,7 +54,8 @@ namespace Streamster.ClientCore.Models
             ResourceService resourceService,
             IAppEnvironment appEnvironment,
             IWindowStateManager windowStateManager,
-            AudioModel audioModel)
+            AudioModel audioModel,
+            IAppResources appResource)
         {
             _coreData = coreData;
             _sources = sources;
@@ -61,6 +63,7 @@ namespace Streamster.ClientCore.Models
             _appEnvironment = appEnvironment;
             _windowStateManager = windowStateManager;
             _audioModel = audioModel;
+            _appResource = appResource;
             ScreenRenderer = screenRenderer;
 
             _healthCheck = new StreamerHealthCheck(coreData);
@@ -106,6 +109,7 @@ namespace Streamster.ClientCore.Models
             _coreData.Subscriptions.SubscribeForProperties<ISettings>(s => s.SelectedScene, RefreshStreamer);
             _coreData.Subscriptions.SubscribeForProperties<ISettings>(s => s.PreferNalHdr, RefreshStreamer);
             _coreData.Subscriptions.SubscribeForProperties<ISettings>(s => s.DisableQsvNv12Optimization, RefreshStreamer);
+            _coreData.Subscriptions.SubscribeForProperties<ISettings>(s => s.RecordingFormat, RefreshStreamer);
 
             _coreData.Subscriptions.SubscribeForProperties<IDeviceSettings>(s => s.RendererType, RefreshStreamer);
             _coreData.Subscriptions.SubscribeForProperties<IDeviceSettings>(s => s.BlenderType, RefreshStreamer);
@@ -206,7 +210,7 @@ namespace Streamster.ClientCore.Models
                 var outgestUrl = GetIngestOutgestUrl(outgest.Data.Output);
                 //outgestUrl = outgestUrl.Replace("60", "66");
                 inputs = new[] { new VideoInputTrunkConfig("0", new VideoInputConfigFull(
-                    new InputSetup(outgest.Data.Type, outgestUrl, outgest.Data.Options, null, null, null, 2)), 
+                    new InputSetup(outgest.Data.Type, outgestUrl, outgest.Data.Options, null, null, null, 2, AdjustInputType.None, true, false)), 
                     null, PositionRect.Full, PositionRect.Full, true, 0) };
             }
 
@@ -273,11 +277,12 @@ namespace Streamster.ClientCore.Models
                 if (MainSettingsModel.IsValidRecordingPath(_coreData.ThisDevice.DeviceSettings.RecordingsPath))
                 {
                     var now = DateTime.Now;
-                    _currentRecordingPath ??= Path.Combine(_coreData.ThisDevice.DeviceSettings.RecordingsPath, now.ToString("yyy_MM_dd__HH_mm_ss") + ".flv");
+                    string format = _coreData.Settings.RecordingFormat == RecordingFormat.Flv ? "flv" : "mp4";
+                    _currentRecordingPath ??= Path.Combine(_coreData.ThisDevice.DeviceSettings.RecordingsPath, now.ToString("yyy_MM_dd__HH_mm_ss") + $".{format}");
                     string output = _currentRecordingPath;
                     return new OutputTrunkConfig(OutputNameRecording, new OutputSetup
                     {
-                        Type = "flv",
+                        Type = format,
                         Output = output,
                         Options = ""
                     }, false);
@@ -317,7 +322,7 @@ namespace Streamster.ClientCore.Models
                                                 ModelToStreamerTranslator.Translate(_coreData.ThisDevice.DeviceSettings.BlenderType), 
                                                 null, //CreateVideoFilter(VideoFilterAll.Value), - no global filter supported so far
                                                 onUiFrame,
-                                                new FixedFrameData(nameof(StaticResources.Background), StaticResources.Background, SingleFrameType.Png),
+                                                new FixedFrameData(nameof(AppData.CanvasBackground), _appResource.AppData.CanvasBackground, SingleFrameType.Png),
                                                 new FixedFrameData(nameof(StaticResources.NoSignal), StaticResources.NoSignal, SingleFrameType.Png));
         }
 
@@ -342,7 +347,7 @@ namespace Streamster.ClientCore.Models
                 if (device != null)
                 {
                     var opts = DShowOptionsSelector.GetAudioOptions(device);
-                    return new AudioInputTrunkConfig(id, new InputSetup("dshow", $"audio={device.Name}", opts), level, f => OnAudioFrame(id, f));
+                    return new AudioInputTrunkConfig(id, new InputSetup("dshow", $"audio={DShowOptionsSelector.GetDeviceName(device)}", opts), level, f => OnAudioFrame(id, f));
                 }
                 else
                 {
@@ -413,7 +418,7 @@ namespace Streamster.ClientCore.Models
                 var options = DShowOptionsSelector.GetVideoOptions(localDevice, _coreData.Settings.Fps, _coreData.Settings.Resolution, item);
                 return new VideoInputConfigFull(new InputSetup(
                     Type: "dshow",
-                    Input: $"video={device.DeviceName.Name}",
+                    Input: $"video={DShowOptionsSelector.GetDeviceName(localDevice)}",
                     Options: options));
             }
             else return GetFailedInputSource(id, rebuildContext, InputIssueDesc.VideoRemoved ,$"Video device '{device?.DeviceName}' not found");

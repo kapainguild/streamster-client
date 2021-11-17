@@ -13,10 +13,6 @@
   </ItemGroup>
 
   <ItemGroup>
-    <None Remove="..\LICENSE.txt" />
-  </ItemGroup>
-
-  <ItemGroup>
     <PackageReference Include="Autofac" Version="5.2.0" />
     <PackageReference Include="IdentityModel" Version="4.3.0" />
     <PackageReference Include="Microsoft.AspNetCore.SignalR.Client" Version="3.1.5" />
@@ -38,13 +34,18 @@
 
   <ItemGroup>
     <ProjectReference Include="..\ClientData\ClientData.csproj" />
-    <ProjectReference Include="..\DynamicStreamerWrapper\DynamicStreamerWrapper.csproj" />
     <ProjectReference Include="..\Streamer\DynamicStreamer\DynamicStreamer.csproj" />
     <ProjectReference Include="..\Support\DeltaModel\DeltaModel.csproj" />
   </ItemGroup>
 
   <ItemGroup>
+    <None Remove="..\LICENSE.txt" />
+    <None Remove="..\CREDITS.txt" />
+  </ItemGroup>
+  
+  <ItemGroup>
     <EmbeddedResource Include="..\LICENSE.txt" />
+    <EmbeddedResource Include="..\CREDITS.txt" />
   </ItemGroup>
 
 

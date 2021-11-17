@@ -12,7 +12,7 @@ namespace DynamicStreamer.Contexts
 {
     public enum BlendingType { Smart, Linear, Lanczos, BilinearLowRes, Bicubic, Area}
 
-    public record VideoBlenderSetup(int Width, int Height, int Fps, int OutputPixelFormat, BlendingType BlendingType, DirectXContext Dx, VideoBlenderSetupWeakOptions WeakOptions) : IDisposable
+    public record VideoBlenderSetup(int Width, int Height, int Fps, int DelayFromRuntimeFrames, int PushPipelineDelayFrames, long MaxDelay, long ComebackDelay, int OutputPixelFormat, BlendingType BlendingType, DirectXContext Dx, VideoBlenderSetupWeakOptions WeakOptions) : IDisposable
     {
         public void Dispose()
         {
@@ -76,7 +76,7 @@ namespace DynamicStreamer.Contexts
 
         public PixelFormatGroup PixelFormatGroup { get; set; }
 
-        public FixedFrameData NoSignalData { get; internal set; }
+        public FixedFrameData NoSignalData { get; set; }
 
         public VideoFilterChainDescriptor FilterChain { get; set; }
 
@@ -111,12 +111,13 @@ namespace DynamicStreamer.Contexts
         private readonly Action _pushPipeline;
         private long _currentFpsTicks = 0;
         private long _delayFromRuntime;
+        private long _pushPipelineDelay;
         private TimerSubscription _timer;
         private long _lastReadTime;
 
         private readonly DirectXPipeline<BlendingConstantBuffer> _directXPipeline;
         private readonly DirectXPipeline<BlendingConstantBuffer> _directXPipelineLowRes;
-        private readonly DeviceContext _defferedContext;
+        private DeviceContext _defferedContext;
         private readonly DirectXFilterRuntime _dxFilterRuntime = new DirectXFilterRuntime();
 
         private static Dictionary<BlendingType, BlendingTypeDescriptor> s_descriptors;
@@ -143,7 +144,8 @@ namespace DynamicStreamer.Contexts
             _streamer = streamer;
             _overloadController = overloadController;
             _pushPipeline = pushPipeline;
-            _delayFromRuntime = ToTime(3); // 3 frames
+            _delayFromRuntime = ToTime(setup.DelayFromRuntimeFrames); // 3 frames in client
+            _pushPipelineDelay = ToTime(setup.PushPipelineDelayFrames); // 3 frames
 
             Reconfigure(setup);
 
@@ -158,7 +160,6 @@ namespace DynamicStreamer.Contexts
                 else 
                     _directXPipeline = LoadPipline(setup.BlendingType, setup.Dx);
 
-                _defferedContext = new DeviceContext(setup.Dx.Device);
             }
 
             _currentFpsTicks = ToTicks(Core.GetCurrentTime() - 600_000); // -60ms
@@ -264,10 +265,12 @@ namespace DynamicStreamer.Contexts
 
                 if (runtime.BlackScreenDelay >= 0 && ToTime(_currentFpsTicks) - ToTime(first) > runtime.BlackScreenDelay) // to old
                 {
+                    //Core.LogInfo($"{Core.FormatTicks(ToTime(_currentFpsTicks))} - {Core.FormatTicks(ToTime(first))} Blend NoSignal");
                     return GetOrCreateNoSignalFrame(runtime);
                 }
                 else
                 {
+                    //Core.LogInfo($"{Core.FormatTicks(ToTime(_currentFpsTicks))} - {Core.FormatTicks(ToTime(first))} -({runtime.Frames.Count})- {Core.FormatTicks(runtime.Frames.Last.Value.Payload.GetPts())} Blend");
                     return runtime.Frames.First.Value;
                 }
             }
@@ -285,7 +288,7 @@ namespace DynamicStreamer.Contexts
         private void OnTimer()
         {
             long now = Core.GetCurrentTime();
-            if (now - _lastReadTime > _delayFromRuntime)
+            if (now - _lastReadTime > _pushPipelineDelay)
             {
                 _pushPipeline();
             }
@@ -298,19 +301,19 @@ namespace DynamicStreamer.Contexts
             long currentFpsTime = ToTime(_currentFpsTicks);
             long currentFrameDelay = now - currentFpsTime;
 
-            if (currentFrameDelay > 20_000_000) //2 sec
+            if (currentFrameDelay > _setup.MaxDelay) //2 sec
             {
                 // we too late
                 Core.LogError($"Blender skips batch due to high delay from now {currentFrameDelay / 10_000}ms");
 
-                _currentFpsTicks = ToTicks(now - 3_000_000); // -300 ms
+                _currentFpsTicks = ToTicks(now - _setup.ComebackDelay); // -300 ms
                 currentFpsTime = ToTime(_currentFpsTicks);
                 currentFrameDelay = now - currentFpsTime;
             }
 
-            bool runtimesReady = true;
+            bool runtimesReady = currentFrameDelay > 0; // don't go behind real-time. Especially relevant for cases when all _inputRuntimes are Fixed images
 
-            if (currentFrameDelay <= _delayFromRuntime)
+            if (currentFrameDelay > 0 && currentFrameDelay <= _delayFromRuntime)
             {
                 foreach (var runtime in _inputRuntimes)
                 {
@@ -320,8 +323,14 @@ namespace DynamicStreamer.Contexts
                         long first = ToTicks(runtime.Frames.First.Value.Payload.GetPts());
                         long last = ToTicks(runtime.Frames.Last.Value.Payload.GetPts());
 
-                        if (first <= _currentFpsTicks && _currentFpsTicks <= last)
+                        if (_currentFpsTicks <= last)
+                        {
                             ok = true;
+                        }
+                    }
+                    else if (runtime.FixedFrame != null)
+                    {
+                        ok = true;
                     }
 
                     if (!ok)
@@ -335,7 +344,7 @@ namespace DynamicStreamer.Contexts
             // prepare frame
             if (runtimesReady)
             {
-                bool hasAnyContent = false;
+                bool hasAnyContent;
                 if (_setup.Dx == null)
                     hasAnyContent = RenderFFMpeg(resultPayload, out resultTrace);
                 else
@@ -343,7 +352,10 @@ namespace DynamicStreamer.Contexts
 
                 if (hasAnyContent)
                 {
-                    _overloadController.Increment(ref _currentFpsTicks, 1);
+                    if (_overloadController == null)
+                        _currentFpsTicks += 1;
+                    else 
+                        _overloadController.Increment(ref _currentFpsTicks, 1);
                     return ErrorCodes.Ok;
                 }
             }
@@ -381,6 +393,8 @@ namespace DynamicStreamer.Contexts
                     return false;
 
                 var texture = dx.Pool.Get("Blender", DirectXResource.Desc(_setup.Width, _setup.Height, SharpDX.DXGI.Format.B8G8R8A8_UNorm, BindFlags.ShaderResource | BindFlags.RenderTarget, ResourceUsage.Default, ResourceOptionFlags.None));
+
+                _defferedContext = _defferedContext ?? new DeviceContext(dx.Device);
                 //using 
                 using (var rtv = texture.GetRenderTargetView())
                 {
@@ -474,7 +488,7 @@ namespace DynamicStreamer.Contexts
             var currect = runtime.VertexBuffer;
             pipeline.UpdatePosition(new RectangleF((float)rect.Left, (float)rect.Top, (float)rect.Width, (float)rect.Height),
                 new RectangleF((float)ptz.Left, (float)ptz.Top, (float)ptz.Width, (float)ptz.Height),
-                runtime.Description.FilterChain?.HasFlip() == true, ref currect);
+                runtime.Description.FilterChain?.HasHFlip() == true, runtime.Description.FilterChain?.HasVFlip() == true, ref currect);
             runtime.VertexBuffer = currect;
 
             pipeline.SetExternalPosition(new Viewport(0, 0, _setup.Width, _setup.Height), currect);

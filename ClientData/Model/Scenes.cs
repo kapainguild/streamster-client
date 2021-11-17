@@ -261,7 +261,9 @@ namespace Streamster.ClientData.Model
         Pastel,
         Romantic,
         Sapphire,
-        Wine
+        Wine,
+
+        VFlip
 
 
 

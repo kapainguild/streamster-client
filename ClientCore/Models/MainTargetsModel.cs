@@ -28,16 +28,18 @@ namespace Streamster.ClientCore.Models
 
         public AppData AppData { get; }
 
-        public MainTargetsModel(StaticFilesCacheService staticFilesCacheService, CoreData coreData, ConnectionService connectionService, IAppResources resources)
+        public TranscodingModel Transcoding { get; }
+
+        public MainTargetsModel(StaticFilesCacheService staticFilesCacheService, CoreData coreData, ConnectionService connectionService, IAppResources resources,
+            TranscodingModel transcoding)
         {
             _staticFilesCacheService = staticFilesCacheService;
             CoreData = coreData;
             _connectionService = connectionService;
             _resources = resources;
-            CoreData.Subscriptions.SubscribeForAnyProperty<IChannel>((s, c, p, v) => RefreshChannelState(s));
+            
             AppData = resources.AppData;
-
-            CoreData.Subscriptions.SubscribeForProperties<ISettings>(s => s.StreamingToCloudStarted, (a, b, c) => RefreshAllChannels());
+            Transcoding = transcoding;
 
             CustomTarget = CoreData.Create<ITarget>(s =>
             {
@@ -51,6 +53,8 @@ namespace Streamster.ClientCore.Models
 
         internal void Start()
         {
+            Transcoding.Start();
+
             _initialTargets = CoreData.Root.Targets.Values.OrderBy(s => s.Name).ToArray();
 
             Targets.Add(new TargetModel { Source = CustomTarget, OnSelected = () => DoSelected(null), Tooltip = "Custom target where you can set any rtmp Url" });
@@ -77,6 +81,11 @@ namespace Streamster.ClientCore.Models
             });
 
             UpdateFilter();
+            RefreshAllChannels();
+
+            CoreData.Subscriptions.SubscribeForAnyProperty<IChannel>((s, c, p, v) => RefreshChannelState(s));
+            CoreData.Subscriptions.SubscribeForProperties<ISettings>(s => s.StreamingToCloudStarted, (a, b, c) => RefreshAllChannels());
+            CoreData.Subscriptions.SubscribeForAnyProperty<ISettings>((a, b, c, d) => RefreshAllChannels());
         }
 
         private void RefreshChannelState(IChannel s)
@@ -119,7 +128,7 @@ namespace Streamster.ClientCore.Models
                         break;
                     case ChannelState.RunningInitError:
                         model.State.Value = ChannelModelState.RunningInitError;
-                        model.TextState.Value = "Failed. Unknown error";
+                        model.TextState.Value = "Failed. Url or Key is not set";
                         model.Bitrate.Value = $"{s.Bitrate} Kb/s";
                         break;
                 }
@@ -135,6 +144,8 @@ namespace Streamster.ClientCore.Models
 
             string rtmpUrl = s.RtmpUrl == null ? model.Target.DefaultRtmpUrl : s.RtmpUrl;
             model.RtmpUrl.SilentValue = rtmpUrl;
+
+            model.IsTranscoded.SilentValue = Transcoding.IsTranscoded(s);
         }
 
         private void UpdateFilter()
@@ -269,12 +280,14 @@ namespace Streamster.ClientCore.Models
             Delete = () => parent.Remove(this);
             Start = DoStart;
             Stop = () => Source.IsOn = false;
-            GoToHelp = () => environment.OpenUrl(string.Format(parent.AppData.TargetHintTemplate, source.TargetId == null ? "Custom" : source.TargetId));
+            GoToHelp = () => environment.OpenUrl(string.Format(parent.AppData.TargetHintTemplate, source.TargetId ?? "Custom"));
             GoToWebUrl = () => environment.OpenUrl(WebUrl.Value);
 
             WebUrl.OnChange = (o, n) => Source.WebUrl = n == Target.WebUrl ? null : n;
             Name.OnChange = (o, n) => Source.Name = n == Target.Name ? null : n;
             RtmpUrl.OnChange = (o, n) => Source.RtmpUrl = n == Target.DefaultRtmpUrl ? null : n;
+
+            IsTranscoded.OnChange = (o, n) => Transcoding.SetTranscoding(Source, n);
 
             TaskHelper.RunUnawaited(() => parent.GetImageAsync(Logo, source.TargetId), "Get image for channel");
         }
@@ -285,6 +298,20 @@ namespace Streamster.ClientCore.Models
             {
                 StartError.Value = "";
                 Source.IsOn = true;
+
+                //var dev = Parent.CoreData.ThisDevice;
+
+                //TaskHelper.RunUnawaited(async () =>
+                //{
+                //    dev.RequireOutgest = false;
+                //    await Task.Delay(30);
+                //    dev.RequireOutgest = true;
+
+                //    await Task.Delay(30);
+                //    dev.RequireOutgest = false;
+                //    await Task.Delay(30);
+                //    dev.RequireOutgest = true;
+                //}, "");
             }
             else
             {
@@ -296,6 +323,12 @@ namespace Streamster.ClientCore.Models
                 }, "");
             }
         }
+
+        public TranscodingModel Transcoding => Parent.Transcoding.SetCurrent(this);
+
+        public bool TranscodingEnabled => Parent.Transcoding.TranscodingEnabled;
+
+        public Property<bool> IsTranscoded { get; } = new Property<bool>();
 
         public ITarget Target { get; }
 
@@ -334,6 +367,8 @@ namespace Streamster.ClientCore.Models
         public Action GoToHelp { get; }
 
         public Action GoToWebUrl { get; }
+
+        public Action ShowTranscoding { get; }
     }
 
     public enum ChannelModelState

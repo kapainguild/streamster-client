@@ -4,7 +4,7 @@ using System.Text;
 
 namespace DynamicStreamer.Contexts
 {
-    class FilterContextNull : IFilterContext
+    public class FilterContextNull : IFilterContext
     {
         public static string Type = nameof(FilterContextNull);
 

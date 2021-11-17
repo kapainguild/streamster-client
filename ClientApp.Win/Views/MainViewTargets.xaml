@@ -6,9 +6,18 @@
     <ResourceDictionary.MergedDictionaries>
         <ResourceDictionary Source="Common.xaml"/>
         <ResourceDictionary Source="pack://application:,,,/MaterialDesignThemes.Wpf;component/Themes/MaterialDesignTheme.Flipper.xaml" />
+        <ResourceDictionary Source="Transcoding.xaml"/>
         <ResourceDictionary Source="MainViewTargets.Styles.xaml"/>
     </ResourceDictionary.MergedDictionaries>
 
+    <Style x:Key="ChannelButtons" TargetType="{x:Type Button}" BasedOn="{StaticResource MaterialDesignIconButton}">
+        <Setter Property="Foreground" Value="#a0a0a0"/>
+        <Style.Triggers>
+            <Trigger Property="IsMouseOver" Value="True">
+                <Setter  Property="Foreground" Value="White"/>
+            </Trigger>
+        </Style.Triggers>
+    </Style>
 
     <DataTemplate DataType="{x:Type models:TargetModel}">
             <Button Style="{StaticResource EmptyButton}" x:Name="root"
@@ -149,7 +158,7 @@
                         <RowDefinition Height="Auto"/>
                     </Grid.RowDefinitions>
 
-                    <Border Grid.RowSpan="2" Margin="5" CornerRadius="3" Background="#505050">
+                    <Border Grid.RowSpan="2" Margin="5" CornerRadius="3" Background="#404040">
                         <Viewbox  Stretch="Uniform" >
                             <Grid>
                                 <materialDesign:PackIcon x:Name="custom" Height="80" Width="80" Kind="Cogs"
@@ -168,26 +177,58 @@
                                TextTrimming="CharacterEllipsis"
                                Opacity="0.5"/>
 
-                    <StackPanel Margin="3,3,0,0" Grid.Column="1" Grid.Row="1" Orientation="Horizontal" x:Name="buttons" Opacity="0.2" VerticalAlignment="Top" HorizontalAlignment="Left">
-                        <Button x:Name="gotoWeb" Style="{StaticResource MaterialDesignIconButton}" 
+                    <StackPanel Margin="3,3,0,0" Grid.Column="1" Grid.Row="1" Orientation="Horizontal" x:Name="buttons" Opacity="0.4" VerticalAlignment="Top" HorizontalAlignment="Left">
+
+                        <materialDesign:PopupBox x:Name="transcodingPopup" 
+                                     PlacementMode="TopAndAlignCentres"
+                                     PopupMode="Click"
+                                     Style="{StaticResource TranscodingPopupBox}"
+                                     ToolTip="Transcoding options">
+                            <materialDesign:PopupBox.ToggleContent>
+                                <materialDesign:PackIcon Width="24" Height="24" Kind="PlusMinusBox" />
+                            </materialDesign:PopupBox.ToggleContent>
+                            <Border Background="#222730" BorderThickness="1" BorderBrush="#48a3f7">
+                                <DockPanel Margin="30,20">
+                                    <TextBlock x:Name="badTranscodingConfig" DockPanel.Dock="Bottom" HorizontalAlignment="Center" Margin="0,5,0,0" Text="Bad settings!" Visibility="Collapsed" Foreground="Red"/>
+                                    <Button Margin="0,10,0,0" DockPanel.Dock="Bottom" Content="Settings..." Command="{x:Static materialDesign:DialogHost.OpenDialogCommand}"
+                                            Style="{StaticResource MaterialDesignOutlinedButton}"
+                                            Foreground="#609EFF">
+                                        <Button.CommandParameter>
+                                            <ContentControl Content="{Binding Transcoding}" ContentTemplate="{StaticResource TranscodingDialogContent}"/>
+                                        </Button.CommandParameter>
+                                    </Button>
+                                    <ToggleButton x:Name="transcodingToggle" DockPanel.Dock="Right" Style="{StaticResource MaterialDesignSwitchLightToggleButton}" IsChecked="{Binding IsTranscoded.Value}" >
+                                        <materialDesign:ToggleButtonAssist.SwitchTrackOffBackground>
+                                            <SolidColorBrush Color="White" />
+                                        </materialDesign:ToggleButtonAssist.SwitchTrackOffBackground>
+                                    </ToggleButton>
+                                    <TextBlock Foreground="White" Margin="0,0,10,0" Text="Transcoding"/>
+                                </DockPanel>
+                            </Border>
+                        </materialDesign:PopupBox>
+
+                        <Button x:Name="gotoWeb" Style="{StaticResource ChannelButtons}" 
                                 Command="{Binding GoToWebUrl, Converter={StaticResource CommandConverter}}"
                                 ToolTip="Open web URL in a web browser. The URL can be configured in the channel settings"
                                 Width="36" Height="36">
-                            <materialDesign:PackIcon Kind="Web" Width="24" Height="24" Foreground="White"/>
+                            <materialDesign:PackIcon Kind="Web" Width="24" Height="24" />
                         </Button>
-                        <Button x:Name="gotoHelp" Style="{StaticResource MaterialDesignIconButton}" 
-                                Command="{Binding GoToHelp, Converter={StaticResource CommandConverter}}"
-                                ToolTip="Tutorial on how to set up the channel to the platform"
-                                Width="36" Height="36">
-                            <materialDesign:PackIcon Kind="HelpRhombusOutline" Width="24" Height="24" Foreground="White"/>
-                        </Button>
-                        <Button x:Name="options" Style="{StaticResource MaterialDesignIconButton}" 
+                        
+                        <Button x:Name="options" Style="{StaticResource ChannelButtons}" 
                                 ToolTip="Change your channel settings. You can also remove the channel here"
                                 Command="{x:Static materialDesign:Flipper.FlipCommand}"
                                 Width="36" Height="36"
                                 Visibility="Collapsed">
-                            <materialDesign:PackIcon Kind="Tools" Width="24" Height="24" Foreground="White"/>
+                            <materialDesign:PackIcon Kind="Tools" Width="24" Height="24"/>
                         </Button>
+
+                        <Button x:Name="gotoHelp" Style="{StaticResource ChannelButtons}" 
+                                Command="{Binding GoToHelp, Converter={StaticResource CommandConverter}}"
+                                ToolTip="Tutorial on how to set up the channel to the platform"
+                                Width="36" Height="36">
+                            <materialDesign:PackIcon Kind="HelpRhombusOutline" Width="24" Height="24"/>
+                        </Button>
+
                     </StackPanel>
 
                     <Grid Grid.Column="2" Grid.Row="1" Margin="6,3,6,0" VerticalAlignment="Top" Width="36" Height="36">
@@ -325,6 +366,37 @@
             </materialDesign:Flipper.BackContent>
         </materialDesign:Flipper>
         <DataTemplate.Triggers>
+
+            <DataTrigger Binding="{Binding (support:ResponsiveHost.Calculation).Values.HideChannelHintButton, ElementName=root}" Value="True">
+                <Setter TargetName="gotoHelp" Property="Visibility" Value="Collapsed"/>
+            </DataTrigger>
+            
+            <DataTrigger Binding="{Binding TranscodingEnabled}"  Value="False">
+                <Setter TargetName="transcodingToggle" Property="Visibility" Value="Hidden"/>
+            </DataTrigger>
+
+            <DataTrigger Binding="{Binding IsTranscoded.Value}"  Value="True">
+                <Setter TargetName="transcodingPopup" Property="Foreground" Value="#5aff90"/>
+            </DataTrigger>
+
+            <MultiDataTrigger>
+                <MultiDataTrigger.Conditions>
+                    <Condition Binding="{Binding Transcoding.Message.Value}"  Value="HighInputResolution"/>
+                    <Condition Binding="{Binding IsTranscoded.Value}"  Value="True"/>
+                </MultiDataTrigger.Conditions>
+                <Setter TargetName="transcodingPopup" Property="Foreground" Value="Red"/>
+                <Setter TargetName="badTranscodingConfig" Property="Visibility" Value="Visible"/>
+            </MultiDataTrigger>
+
+            <MultiDataTrigger>
+                <MultiDataTrigger.Conditions>
+                    <Condition Binding="{Binding Transcoding.Message.Value}"  Value="HighInputFps"/>
+                    <Condition Binding="{Binding IsTranscoded.Value}"  Value="True"/>
+                </MultiDataTrigger.Conditions>
+                <Setter TargetName="transcodingPopup" Property="Foreground" Value="Red"/>
+                <Setter TargetName="badTranscodingConfig" Property="Visibility" Value="Visible"/>
+            </MultiDataTrigger>
+
             <DataTrigger Binding="{Binding StartError.Value.Length}"  Value="0">
                 <Setter TargetName="startError" Property="Visibility" Value="Collapsed"/>
             </DataTrigger>
@@ -424,7 +496,7 @@
                     <BeginStoryboard>
                         <Storyboard>
                             <DoubleAnimation Storyboard.TargetName="buttons" Storyboard.TargetProperty="Opacity" 
-                                             BeginTime="0:0:1" Duration="0:0:0.2" To="0.2"/>
+                                             BeginTime="0:0:1" Duration="0:0:0.2" To="0.4"/>
                             <DoubleAnimation Storyboard.TargetName="nameText" Storyboard.TargetProperty="Opacity" 
                                              BeginTime="0:0:1" Duration="0:0:0.2" To="0.5"/>
                         </Storyboard>

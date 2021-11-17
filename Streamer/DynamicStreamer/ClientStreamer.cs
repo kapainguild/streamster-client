@@ -155,8 +155,9 @@ namespace DynamicStreamer
             {
                 AudioEncoderTrunk.EncoderNode = new EncoderNode(new NodeName("AE", null, "E", 3), this);
                 AudioEncoderTrunk.UiFilterQueue = new FrameOutput(this, c.AudioEncoderTrunk.OnAudioFrame);
-                AudioEncoderTrunk.EncoderAndUiFilterQueue = new DuplicateFrameQueue(FramePool);
-                AudioEncoderTrunk.MixingFilterQueue = new AudioMixingQueue(new NodeName("AE", null, "FMix", 1), FramePool, this);
+                AudioEncoderTrunk.EncoderAndUiFilterQueue = new DuplicateQueue<Frame>(FramePool);                
+                AudioEncoderTrunk.MixingFilterQueue = new AudioMixingQueue(new NodeName("AE", null, "FMix", 1), FramePool, this,
+                    new AudioMixingQueueSetup(CheckAgainstLastPacketEndPts: false, UseCurrentTimeForDelta: true, GenerateSilenceToRuntime:10, PushSilenceDelay: 44100 / 4));
                 AudioEncoderTrunk.EncoderQueue = new UnorderedStreamQueue<Frame>(new NodeName("AE", null, "Eq", 3), FramePool);
                 AudioEncoderTrunk.EncoderAndUiFilterQueue.SetQueues(AudioEncoderTrunk.UiFilterQueue, AudioEncoderTrunk.EncoderQueue);
             }
@@ -286,7 +287,7 @@ namespace DynamicStreamer
             if (trunk.Filter == null)
             {
                 trunk.UiOutput = new FrameOutput(this, trunkConfig.OnAudioFrame);
-                trunk.MixerAndUiFilterQueue = new DuplicateFrameQueue(FramePool);
+                trunk.MixerAndUiFilterQueue = new DuplicateQueue<Frame>(FramePool);
                 trunk.MixerAndUiFilterQueue.SetQueues(trunk.UiOutput, AudioEncoderTrunk.MixingFilterQueue);
                 trunk.Filter = new FilterNode(new NodeName("A", trunkConfig.Id, "F", 2), this);
             }
@@ -401,15 +402,17 @@ namespace DynamicStreamer
                 if (trunkConfig.Detail is VideoInputConfigFull videoInputConfigFull)
                 {
                     var trunk = GetOrCreateTrunkDetail(trunkRoot, () => new VideoInputTrunkFull(trunkId, this, () => InputChanged()));
-                    UpdateInputFpsQueue(update, trunk, trunkId, fps);
+                    var fpsQueue = UpdateInputFpsQueue(update, trunk, videoInputConfigFull, trunkId, fps);
 
-                    var inputCtx = trunk.Input.PrepareVersion(update, trunk.InputFpsLimitQueue, PrepareVideoInputSetup(videoInputConfigFull.Setup, fps, trunk.Input.CurrentContext, c));
+                    var inputCtx = trunk.Input.PrepareVersion(update, fpsQueue, PrepareVideoInputSetup(videoInputConfigFull.Setup, fps, trunk.Input.CurrentContext, c));
                     if (inputCtx != null)
                     {
                         var blenderQueue = new SetSourceIdQueue<Frame>(VideoEncoderTrunk.BlenderQueue, sourceId);
                         var streamProps = inputCtx.Config.InputStreamProps[0];
                         int decoders = (streamProps.CodecProps.codec_id == Core.Const.CODEC_ID_MJPEG) ? 3 : 1;
                         int outputPixelFormat = -1;
+                        bool inputIsVFlipped = IsInputVFlipped(streamProps, videoInputConfigFull.Setup);
+                        var filterChain = PrepareFilterChain(trunkConfig.FilterChain, inputIsVFlipped);
 
                         if (_dx != null)
                         {
@@ -473,7 +476,7 @@ namespace DynamicStreamer
 
                             var inputPixelFormat = decoder.Config.DecoderProperties.pix_fmt;
                             outputPixelFormat = outputPixelFormats.Any(s => s == inputPixelFormat) ? inputPixelFormat : outputPixelFormats[0];
-                            UpdateVideoFilterForFFMpeg(update, trunk, trunkConfig, decoder.Config, scaledWidth, scaledHeight, outputPixelFormat);
+                            UpdateVideoFilterForFFMpeg(update, trunk, trunkConfig, decoder.Config, scaledWidth, scaledHeight, outputPixelFormat, filterChain);
 
                             trunk.Filter2.PrepareVersion(update, trunk.Filter2Queue, blenderQueue, new FilterSetup { Type = FilterContextNull.Type });
                         }
@@ -482,7 +485,7 @@ namespace DynamicStreamer
                         {
                             PixelFormat = outputPixelFormat,
                             Behavior = CreateMergerBehavior(videoInputConfigFull.Setup),
-                            FilterChain = trunkConfig.FilterChain
+                            FilterChain = filterChain
                         };
                     }
                 }
@@ -533,6 +536,31 @@ namespace DynamicStreamer
             return encoderCtx;
         }
 
+        private VideoFilterChainDescriptor PrepareFilterChain(VideoFilterChainDescriptor filterChain, bool inputIsVFlipped)
+        {
+            if (!inputIsVFlipped)
+                return filterChain;
+            else
+            {
+                if (filterChain == null || filterChain.Filters == null)
+                    return new VideoFilterChainDescriptor(new[] { new VideoFilterDescriptor(VideoFilterType.VFlip, 1.0, null)});
+
+                if (filterChain.HasVFlip())
+                    return new VideoFilterChainDescriptor(filterChain.Filters.Where(s => s.Type != VideoFilterType.VFlip).ToArray());
+                else
+                    return new VideoFilterChainDescriptor(filterChain.Filters.Concat(new[] { new VideoFilterDescriptor(VideoFilterType.VFlip, 1.0, null) }).ToArray());
+            }
+        }
+
+        private bool IsInputVFlipped(InputStreamProperties streamProps, InputSetup setup)
+        {
+            return setup.Input?.Contains("EOS Webcam Utility") == true;
+            //return streamProps.CodecProps.extradata_size == 9 &&
+            //     streamProps.CodecProps.extradata[0] == 66 && // "BottomUp" string is encoded here
+            //     streamProps.CodecProps.extradata[1] == 111 && streamProps.CodecProps.extradata[2] == 116 && streamProps.CodecProps.extradata[3] == 116 && streamProps.CodecProps.extradata[4] == 111 && streamProps.CodecProps.extradata[5] == 109 &&
+            //     streamProps.CodecProps.extradata[6] == 85 && streamProps.CodecProps.extradata[7] == 112 && streamProps.CodecProps.extradata[8] == 0;
+        }
+
         private void UpdateVideoFilterForDirectXUpload(UpdateVersionContext update, VideoInputTrunkFull trunk, DecoderConfig dc, int outputPixelFormat)
         {
             trunk.FilterPool.PrepareVersion(update, 2, trunk.FilterQueue, (v, s) => s.PrepareVersion(v, null, trunk.Filter2Queue, new FilterSetup
@@ -558,12 +586,20 @@ namespace DynamicStreamer
             }));
         }
 
-        private void UpdateInputFpsQueue(UpdateVersionContext update, VideoInputTrunkFull trunkImpl, string trunkId, int fps)
+        private ITargetQueue<Packet> UpdateInputFpsQueue(UpdateVersionContext update, VideoInputTrunkFull trunkImpl, VideoInputConfigFull videoInputConfigFull, string trunkId, int fps)
         {
             if (trunkImpl.InputFpsLimitQueue == null || trunkImpl.InputFpsLimitQueue.Fps != fps)
-                    trunkImpl.InputFpsLimitQueue = new FpsQueue<Packet>(new NodeName("V", trunkId, "Ifps", 1), trunkImpl.DecoderQueue, this, PacketPool, fps, 3, _time_base, _overloadController, -1);
+                trunkImpl.InputFpsLimitQueue = new FpsQueue<Packet>(new NodeName("V", trunkId, "Ifps", 1), trunkImpl.DecoderQueue, this, PacketPool, fps, 3, _time_base, _overloadController, -1);
 
-            update.RuntimeConfig.Add(trunkImpl.InputFpsLimitQueue, null);
+            if (!videoInputConfigFull.Setup.UseFpsQueue)
+            {
+                return trunkImpl.DecoderQueue;
+            }
+            else
+            {
+                update.RuntimeConfig.Add(trunkImpl.InputFpsLimitQueue, null);
+                return trunkImpl.InputFpsLimitQueue;
+            }
         }
 
         private void UpdateDirectXContext(UpdateVersionContext update, ClientStreamerConfig c)
@@ -861,7 +897,11 @@ namespace DynamicStreamer
                 update,
                 VideoEncoderTrunk.BlenderQueue,
                 VideoEncoderTrunk.EncoderAndUiFilterDuplicateQueue,
-                new VideoBlenderSetup(w, h, config.FPS, blenderOutputPixelFormat, config.BlendingType, _dx, new VideoBlenderSetupWeakOptions
+                new VideoBlenderSetup(w, h, config.FPS, 3, // 3 frames
+                                                        3, // 3 frames
+                                                        20_000_000, // 2 sec
+                                                        3_000_000, //300 ms -> should more than 3 frames and less 2 sec
+                                                        blenderOutputPixelFormat, config.BlendingType, _dx, new VideoBlenderSetupWeakOptions
                 {
                     PixelFormatGroup = pixelFormatGroup,
                     Inputs = inputs.ToArray(),
@@ -1030,7 +1070,8 @@ namespace DynamicStreamer
             }
         }
 
-        private IFilterContext UpdateVideoFilterForFFMpeg(UpdateVersionContext update, VideoInputTrunkFull trunk, VideoInputTrunkConfig trunkConfig, DecoderConfig decoderConfig, int scaledWidth, int scaledHeight, int outputPixelFormat)
+        private IFilterContext UpdateVideoFilterForFFMpeg(UpdateVersionContext update, VideoInputTrunkFull trunk, VideoInputTrunkConfig trunkConfig, DecoderConfig decoderConfig, int scaledWidth, int scaledHeight, int outputPixelFormat,
+            VideoFilterChainDescriptor filterChain)
         {
             var inputWidth = decoderConfig.CodecProperties.width;
             var inputHeight = decoderConfig.CodecProperties.height;
@@ -1048,7 +1089,7 @@ namespace DynamicStreamer
             }
             if (scaledHeight != inputHeight || scaledWidth != inputWidth) 
                 scale += (scale.Length == 0 ? "" : ", ") +  $"scale=w={scaledWidth}:h={scaledHeight}";
-            string userFilter = FFMpegFilters.GetFFMpegFilterString(trunkConfig.FilterChain);
+            string userFilter = FFMpegFilters.GetFFMpegFilterString(filterChain);
             string final;
             if (scale != "")
             {

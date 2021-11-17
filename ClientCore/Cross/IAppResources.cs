@@ -46,7 +46,11 @@ namespace Streamster.ClientCore.Cross
 
         public string TermsOfServiceUrl { get; set; }
 
+        public string CreateTicketUrl { get; set; }
+
         public string PricingUrl { get; set; }
+
+        public string PricingUrlForNotRegistered { get; set; }
 
         public string DownloadAppUrl { get; set; }
 
@@ -57,5 +61,7 @@ namespace Streamster.ClientCore.Cross
         public string DataFolder { get; set; }
 
         public bool HideTargetFilter { get; set; }
+
+        public byte[] CanvasBackground { get; set; }
     }
 }

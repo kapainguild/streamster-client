@@ -119,11 +119,11 @@ namespace DynamicStreamer.DirectXHelpers
             return s_compilationCache.GetOrAdd(key, k => ShaderBytecode.Compile(DirectXHelper.ReadResource(shaderFile), shaderFunction, profile, ShaderFlags.None));
         }
 
-        public void SetPosition(RectangleF inputLayout, Viewport viewPort, bool hflip = false) 
+        public void SetPosition(RectangleF inputLayout, Viewport viewPort, bool hflip = false, bool vflip = false) 
         {
             _viewPort = viewPort;
 
-            UpdatePosition(inputLayout, new RectangleF(0, 0, 1, 1), hflip, ref _vertexBuffer);
+            UpdatePosition(inputLayout, new RectangleF(0, 0, 1, 1), hflip, vflip, ref _vertexBuffer);
         }
 
         public void SetExternalPosition(Viewport viewPort, VertexBuffer vb)
@@ -133,22 +133,24 @@ namespace DynamicStreamer.DirectXHelpers
             _vertexBuffer = vb;
         }
 
-        public void UpdatePosition(RectangleF inputLaylout, RectangleF ptz, bool hflip, ref VertexBuffer buffer)
+        public void UpdatePosition(RectangleF inputLaylout, RectangleF ptz, bool hflip, bool vflip, ref VertexBuffer buffer)
         {
             try
             {
                 if (buffer == null ||
                     buffer.InputLayout != inputLaylout ||
                     buffer.InputPtz != ptz ||
-                    buffer.InputHFlip != hflip)
+                    buffer.InputHFlip != hflip ||
+                    buffer.InputVFlip != vflip)
                 {
                     buffer?.Dispose();
                     buffer = new VertexBuffer
                     {
                         InputHFlip = hflip,
+                        InputVFlip = vflip,
                         InputLayout = inputLaylout,
                         InputPtz = ptz,
-                        Buffer = CreateBuffer(inputLaylout, ptz, hflip)
+                        Buffer = CreateBuffer(inputLaylout, ptz, hflip, vflip)
                     };
                 }
             }
@@ -158,7 +160,7 @@ namespace DynamicStreamer.DirectXHelpers
             }
         }
 
-        private SharpDX.Direct3D11.Buffer CreateBuffer(RectangleF inputLayout, RectangleF ptz, bool hflip)
+        private SharpDX.Direct3D11.Buffer CreateBuffer(RectangleF inputLayout, RectangleF ptz, bool hflip, bool vflip)
         {
             float x1 = inputLayout.Left * 2 - 1;
             float x2 = inputLayout.Right * 2 - 1;
@@ -166,13 +168,22 @@ namespace DynamicStreamer.DirectXHelpers
             float y1 = 1f - inputLayout.Top * 2;
             float y2 = 1f - inputLayout.Bottom * 2;
 
-            return SharpDX.Direct3D11.Buffer.Create(_dx.Device, BindFlags.VertexBuffer, new[]
-            {
-                     x1,  y2,  0,      hflip ? ptz.Right: ptz.Left, ptz.Bottom,
-                     x1,  y1,  0,      hflip ? ptz.Right: ptz.Left, ptz.Top,
-                     x2,  y2,  0,      hflip ? ptz.Left: ptz.Right, ptz.Bottom,
-                     x2,  y1,  0,      hflip ? ptz.Left: ptz.Right, ptz.Top
-            });
+            if (!vflip)
+                return SharpDX.Direct3D11.Buffer.Create(_dx.Device, BindFlags.VertexBuffer, new[]
+                {
+                         x1,  y2,  0,      hflip ? ptz.Right: ptz.Left, ptz.Bottom,
+                         x1,  y1,  0,      hflip ? ptz.Right: ptz.Left, ptz.Top,
+                         x2,  y2,  0,      hflip ? ptz.Left: ptz.Right, ptz.Bottom,
+                         x2,  y1,  0,      hflip ? ptz.Left: ptz.Right, ptz.Top
+                });
+            else
+                return SharpDX.Direct3D11.Buffer.Create(_dx.Device, BindFlags.VertexBuffer, new[]
+                {
+                         x1,  y2,  0,      hflip ? ptz.Right: ptz.Left, ptz.Top,
+                         x1,  y1,  0,      hflip ? ptz.Right: ptz.Left, ptz.Bottom,
+                         x2,  y2,  0,      hflip ? ptz.Left: ptz.Right, ptz.Top,
+                         x2,  y1,  0,      hflip ? ptz.Left: ptz.Right, ptz.Bottom
+                });
         }
 
         public void SetConstantBuffer(TConstantBuffer cb, bool compare = false)
@@ -260,6 +271,7 @@ namespace DynamicStreamer.DirectXHelpers
     {
         public bool InputHFlip { get; set; }
 
+        public bool InputVFlip { get; set; }
         public RectangleF InputLayout { get; set; }
 
         public RectangleF InputPtz { get; set; }

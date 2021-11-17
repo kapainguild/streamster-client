@@ -60,6 +60,8 @@ namespace DynamicStreamer.Nodes
 
         private void OnThread()
         {
+            int q = 0;
+
             while (_continueProcessing)
             {
                 ReplaceCurrentVersion();
@@ -115,6 +117,11 @@ namespace DynamicStreamer.Nodes
                                             int size = packet.Properties.Size;
                                             var writeRes = _currentContext.Context.Instance.Write(packet, sourceId);
                                             var writeTime = DateTime.UtcNow - writeStart;
+
+                                            //if (q % 610 == 0)
+                                            //    Thread.Sleep(3000);
+
+                                            q++;
 
                                             if (writeTime.TotalMilliseconds > 300)
                                                 Core.LogWarning($"Long send {(int)writeTime.TotalMilliseconds}ms", "Long send");
@@ -234,7 +241,7 @@ namespace DynamicStreamer.Nodes
                     {
                         _pendingContext = new OutputContextVersion
                         {
-                            Version = version,
+                            Version = last == null ? version - 1 : version, // we assume that this output is just added - so accept previous version from the output queue
                             MaxVersion = version,
                             ContextSetup = setup,
                             Context = new RefCounted<OutputContext>(new OutputContext()),
