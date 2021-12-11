@@ -16,8 +16,8 @@ namespace Streamster.ClientData
         public static string[] LoadBalancerServers = new[] { "localhost" };
         //public static string[] LoadBalancerServers = new[] { "fi3.streamster.io" };
 #else
-        public static string[] LoadBalancerServers = new[] { "fi1.streamster.io", "de2.streamster.io", "mo1.streamster.io" };
-        //public static string[] LoadBalancerServers = new[] { "fi3.streamster.io" };
+        //public static string[] LoadBalancerServers = new[] { "fi1.streamster.io", "de2.streamster.io", "mo1.streamster.io" };
+        public static string[] LoadBalancerServers = new[] { "fi3.streamster.io" };
 #endif
 
         public static string AnonymousGrandType = "ano";
