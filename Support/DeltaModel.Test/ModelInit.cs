@@ -22,8 +22,8 @@ namespace DeltaModel.Test
             _manager2 = b2.Build<ITestModel>();
 
 
-            _modelClient12 = new ModelClient { Filter = new FilterConfigurator(true).Build() };
-            _modelClient21 = new ModelClient { Filter = new FilterConfigurator(true).Build() };
+            _modelClient12 = new ModelClient(_manager1, new FilterConfigurator(true).Build());
+            _modelClient21 = new ModelClient(_manager2, new FilterConfigurator(true).Build());
         }
 
         [Fact]
@@ -37,10 +37,8 @@ namespace DeltaModel.Test
             _manager1.Root.Level1.Level2.GuidValue = Guid.NewGuid();
             _manager1.Root.Level1.Level2.Level3 = new Level3 { IntValue = 44 };
 
-            _manager1.Register(_modelClient12);
-
             _manager2.Register(_modelClient21);
-            _manager2.ApplyChanges(_modelClient21, _modelClient12.SerializeAndClearChanges());
+            _manager2.ApplyChanges(_modelClient21, _manager1.Register(_modelClient12));
 
             Assert.True(_manager1.IsDeepEqual(_manager1.Root, _manager2.Root));
 

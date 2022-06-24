@@ -1,7 +1,9 @@
 ﻿using Clutch.DeltaModel;
 using Serilog;
 using Streamster.ClientCore.Cross;
+using Streamster.ClientCore.Models.Chats;
 using Streamster.ClientCore.Services;
+using Streamster.ClientCore.Support;
 using Streamster.ClientData;
 using Streamster.ClientData.Model;
 using System;
@@ -17,6 +19,8 @@ namespace Streamster.ClientCore.Models
         private readonly StaticFilesCacheService _staticFilesCacheService;
         private readonly ConnectionService _connectionService;
         private readonly IAppResources _resources;
+        private readonly StreamingSourcesModel _streamingSourcesModel;
+        private readonly MainVpnModel _mainVpnModel;
 
         public TargetFilterModel[] Filters { get; private set; }
 
@@ -30,8 +34,17 @@ namespace Streamster.ClientCore.Models
 
         public TranscodingModel Transcoding { get; }
 
-        public MainTargetsModel(StaticFilesCacheService staticFilesCacheService, CoreData coreData, ConnectionService connectionService, IAppResources resources,
-            TranscodingModel transcoding)
+        public PlatformsModel PlatformsModel { get; }
+
+        public Property<object> Popup { get; } = new Property<object>();
+
+        public Action AddTarget { get; }
+
+        public ObservableCollection<IChannel> VisibleChannels { get; } = new ObservableCollection<IChannel>();
+
+        public MainTargetsModel(StaticFilesCacheService staticFilesCacheService, CoreData coreData, ConnectionService connectionService, 
+            IAppResources resources,
+            TranscodingModel transcoding, PlatformsModel platformsModel, StreamingSourcesModel streamingSourcesModel, MainVpnModel mainVpnModel)
         {
             _staticFilesCacheService = staticFilesCacheService;
             CoreData = coreData;
@@ -40,24 +53,40 @@ namespace Streamster.ClientCore.Models
             
             AppData = resources.AppData;
             Transcoding = transcoding;
-
+            PlatformsModel = platformsModel;
+            _streamingSourcesModel = streamingSourcesModel;
+            _mainVpnModel = mainVpnModel;
             CustomTarget = CoreData.Create<ITarget>(s =>
             {
                 s.Flags = TargetFlags.Key | TargetFlags.Url;
                 s.Name = "Custom";
                 s.WebUrl = "";
             });
+
+            AddTarget = () => { Popup.Value = new TargetSelectPopup { Content = this }; };
         }
 
         private void RefreshAllChannels() => CoreData.Root.Channels.Values.ToList().ForEach(s => RefreshChannelState(s));
 
         internal void Start()
         {
+            if (CoreData.Root.Settings.ResetKeys)
+            {
+                int onlineDevices = CoreData.Root.Devices.Values.Count(s => s.State == DeviceState.Online);
+                if (onlineDevices <= 1)
+                {
+                    CoreData.Root.Channels.Values.ToList().ForEach(s => s.Key = "");
+                    Log.Information("Resetting all the keys");
+                }
+                else
+                    Log.Information($"Cannot reset keys as number of online devices = {onlineDevices} > 1");
+            }
+
             Transcoding.Start();
 
             _initialTargets = CoreData.Root.Targets.Values.OrderBy(s => s.Name).ToArray();
 
-            Targets.Add(new TargetModel { Source = CustomTarget, OnSelected = () => DoSelected(null), Tooltip = "Custom target where you can set any rtmp Url" });
+            Targets.Add(new TargetModel { Source = CustomTarget, OnSelected = () => CreateChannelFromTarget(null), Tooltip = "Custom target where you can set any rtmp Url" });
 
             Filters = new TargetFilterModel[]
             {
@@ -81,12 +110,51 @@ namespace Streamster.ClientCore.Models
             });
 
             UpdateFilter();
+            UpdateVisibleChannels();
             RefreshAllChannels();
 
-            CoreData.Subscriptions.SubscribeForAnyProperty<IChannel>((s, c, p, v) => RefreshChannelState(s));
+            CoreData.Subscriptions.SubscribeForAnyProperty<IChannel>((s, c, p, v) => { RefreshChannelState(s); UpdateVisibleChannels(); });
             CoreData.Subscriptions.SubscribeForProperties<ISettings>(s => s.StreamingToCloudStarted, (a, b, c) => RefreshAllChannels());
             CoreData.Subscriptions.SubscribeForAnyProperty<ISettings>((a, b, c, d) => RefreshAllChannels());
         }
+
+        private void UpdateVisibleChannels()
+        {
+            ListHelper.UpdateCollection(CoreData, CoreData.Root.Channels.Values.Where(s => !s.Temporary).ToList(), VisibleChannels, t => CoreData.GetId(t), (a, b) => a);
+        }
+
+        public void StartChannel(ChannelModel channelModel)
+        {
+            var status = channelModel.Status.Value;
+            if (CoreData.Root.Channels.Count(s => s.Value.IsOn) >= _connectionService.Claims.MaxChannels)
+            {
+                channelModel.StartError.Value = $"Your plan does not allow more than {_connectionService.Claims.MaxChannels} channels";
+                ClearStartError(channelModel);
+            }
+            else if (status.State == ChannelModelState.IdleError || status.State == ChannelModelState.IdleLoginError)
+            {
+                channelModel.StartError.Value = $"Restreaming not possible: {status.TextState}";
+                ClearStartError(channelModel);
+            }
+            else if (status.State == ChannelModelState.Idle)
+            {
+                if (channelModel.Source.TargetMode == TargetMode.AutoLogin)
+                    channelModel.Source.AutoLoginState = AutoLoginState.Unknown; // enforce update state
+
+                channelModel.Source.IsOn = true;
+            }
+            else
+            {
+                channelModel.StartError.Value = $"Bad state";
+                ClearStartError(channelModel);
+            }
+        }
+
+        private void ClearStartError(ChannelModel channelModel) => TaskHelper.RunUnawaited(async () =>
+        {
+            await Task.Delay(5000);
+            channelModel.StartError.Value = "";
+        }, "");
 
         private void RefreshChannelState(IChannel s)
         {
@@ -95,57 +163,97 @@ namespace Streamster.ClientCore.Models
             if (model == null)
                 return;
 
-            if (s.IsOn && !CoreData.Settings.StreamingToCloudStarted)
+            model.AutoLoginMode.SilentAndCompared = model.SupportsAutoLogin && s.TargetMode == TargetMode.AutoLogin;
+            model.Name.SilentAndCompared = s.Name == null ? model.Target.Name : s.Name; 
+            model.WebUrl.SilentAndCompared = s.WebUrl == null ? model.Target.WebUrl : s.WebUrl;
+            model.RtmpKey.SilentAndCompared = s.Key == null ? "" : s.Key;
+            model.RtmpUrl.SilentAndCompared = s.RtmpUrl == null ? (model.Target.DefaultRtmpUrl ?? "") : s.RtmpUrl;
+            model.RtmpUrlHasWrongFormat.SilentAndCompared = !IsOkRtmpFormat(model.RtmpUrl.Value);
+            model.IsTranscoded.SilentAndCompared = Transcoding.IsTranscoded(s);
+
+            model.Status.Value = GetStatus(s, model);
+        }
+
+        private ChannelModelStatus GetStatus(IChannel ch, ChannelModel model)
+        {
+            if (!ch.IsOn) // OFF
             {
-                model.State.Value = ChannelModelState.WaitingForStreamToCloud;
-                model.Bitrate.Value = "";
-                model.TextState.Value = "Waiting for a stream to cloud...";
-            }
-            else if ((s.IsOn == false) != (s.State == ChannelState.Idle))
-            {
-                model.State.Value = ChannelModelState.InProgress;
-                model.TextState.Value = s.IsOn ? "Connecting..." : "Disconnecting...";
-                model.TimerState.Value = null;
-            }
-            else
-            {
-                switch (s.State)
+                if (ch.State != ChannelState.Idle)
+                    return new ChannelModelStatus(ChannelModelState.InProgress, "Disconnecting...");
+
+                if (model.AutoLoginMode.Value)
                 {
-                    case ChannelState.Idle:
-                        model.State.Value = ChannelModelState.Idle;
-                        model.TextState.Value = "";
-                        model.Bitrate.Value = "";
-                        break;
-                    case ChannelState.RunningOk:
-                        model.State.Value = ChannelModelState.RunningOk;
-                        model.TextState.Value = "Connected";
-                        model.Bitrate.Value = $"{s.Bitrate} Kb/s";
-                        break;
-                    case ChannelState.RunningConnectError:
-                        model.State.Value = ChannelModelState.RunningConnectError;
-                        model.TextState.Value = "Failed. Check your stream Key";
-                        model.Bitrate.Value = $"{s.Bitrate} Kb/s";
-                        break;
-                    case ChannelState.RunningInitError:
-                        model.State.Value = ChannelModelState.RunningInitError;
-                        model.TextState.Value = "Failed. Url or Key is not set";
-                        model.Bitrate.Value = $"{s.Bitrate} Kb/s";
-                        break;
+                    var als = "?";
+                    var state = ChannelModelState.Idle;
+                    switch (ch.AutoLoginState)
+                    {
+                        case AutoLoginState.Unknown:
+                            als = "State is unknown";
+                            break;
+                        case AutoLoginState.InProgress:
+                            als = "Authenticating...";
+                            break;
+                        case AutoLoginState.Authenticated:
+                            als = "Getting config...";
+                            break;
+                        case AutoLoginState.NotAuthenticated:
+                            als = "Not authenticated";
+                            state = ChannelModelState.IdleLoginError;
+                            break;
+                        case AutoLoginState.KeyObtained:
+                            als = "Config obtained";
+                            break;
+                        case AutoLoginState.KeyNotFound:
+                            als = "Config not obtained";
+                            state = ChannelModelState.IdleError;
+                            break;
+                    }
+                    
+                    var status = new ChannelModelStatus(state, ch.AutoLoginState == AutoLoginState.KeyObtained ? "" : als);
+                    status.AutoLoginStateText = als;
+                    status.AutoLoginState = ch.AutoLoginState;
+                    return status;
+                }
+                else
+                {
+                    if (string.IsNullOrEmpty(model.RtmpUrl.Value))
+                        return new ChannelModelStatus(ChannelModelState.IdleError, "Rtmp url is not set");
+                    if (model.RtmpUrlHasWrongFormat.Value)
+                        return new ChannelModelStatus(ChannelModelState.IdleError, "Wrong Rtmp url format");
+                    if (string.IsNullOrEmpty(model.Source.Key))
+                        return new ChannelModelStatus(ChannelModelState.IdleError, "Stream key is not set");
                 }
 
-                model.TimerState.Value = s.Timer;
+                if (model.IsTranscoded.Value) 
+                {
+                    if (Transcoding.Message.Value == TranscodingMessageType.HighInputFps ||
+                        Transcoding.Message.Value == TranscodingMessageType.HighInputResolution)
+                    {
+                        return new ChannelModelStatus(ChannelModelState.IdleError, "Bad transcoding config");
+                    }
+                }
+
+                return new ChannelModelStatus(ChannelModelState.Idle, "");
             }
+            else // Is on
+            {
+                if (!_streamingSourcesModel.IsSomeOneStreaming())
+                    return new ChannelModelStatus(ChannelModelState.RunningWait, "Waiting for stream to cloud");
 
-            string name = s.Name == null ? model.Target.Name : s.Name;
-            model.Name.SilentValue = name;
-
-            string webUrl = s.WebUrl == null ? model.Target.WebUrl : s.WebUrl;
-            model.WebUrl.SilentValue = webUrl;
-
-            string rtmpUrl = s.RtmpUrl == null ? model.Target.DefaultRtmpUrl : s.RtmpUrl;
-            model.RtmpUrl.SilentValue = rtmpUrl;
-
-            model.IsTranscoded.SilentValue = Transcoding.IsTranscoded(s);
+                switch (ch.State)
+                {
+                    case ChannelState.Idle:
+                        return new ChannelModelStatus(ChannelModelState.InProgress, "Connecting...");
+                    case ChannelState.RunningOk:
+                        return new ChannelModelStatus(ChannelModelState.RunningOk, "Connected", ch.Bitrate, ch.Timer);
+                    case ChannelState.RunningConnectError:
+                        return new ChannelModelStatus(ChannelModelState.RunningError, "Failed. Check your key", ch.Bitrate, ch.Timer);
+                    case ChannelState.RunningInitError:
+                        return new ChannelModelStatus(ChannelModelState.RunningError, "Unknown error", ch.Bitrate, ch.Timer);
+                    default:
+                        return new ChannelModelStatus(ChannelModelState.RunningError, "Unknown failure", ch.Bitrate, ch.Timer);
+                }
+            }
         }
 
         private void UpdateFilter()
@@ -176,7 +284,7 @@ namespace Streamster.ClientCore.Models
                         else
                             n.Tooltip = source.Hint;
                         _ = GetImageAsync(n.Logo, source.Id);
-                        n.OnSelected = () => DoSelected(n);
+                        n.OnSelected = () => CreateChannelFromTarget(n);
                         Targets.Insert(index, n);
                     }
                     index++;
@@ -198,10 +306,30 @@ namespace Streamster.ClientCore.Models
             }
         }
 
-        private void DoSelected(TargetModel model)
+        private void CreateChannelFromTarget(TargetModel model)
         {
+            CleanTemporary();
+
+            var id = IdGenerator.New();
             var channel = CoreData.Create<IChannel>(s => s.TargetId = model?.Source?.Id);
-            CoreData.Root.Channels[IdGenerator.New()] = channel;
+            channel.Temporary = true;
+            CoreData.Root.Channels[id] = channel;
+
+            var local = CoreData.GetLocal<ChannelModel>(channel);
+            var title = model?.Source?.Name ?? "Custom channel";
+            Popup.Value = new TargetConfig
+            {
+                Add = true,
+                ChannelModel = local,
+                Ok = () => { channel.Temporary = false; },
+                Cancel = () => { CleanTemporary(); }
+            };
+        }
+
+        private void CleanTemporary()
+        {
+            var toRemove = CoreData.Root.Channels.Where(c => c.Value.Temporary).ToList();
+            toRemove.ForEach(s => CoreData.Root.Channels.Remove(s.Key));
         }
 
         internal void Remove(ChannelModel channelModel)
@@ -209,22 +337,7 @@ namespace Streamster.ClientCore.Models
             CoreData.Root.Channels.Remove(CoreData.GetId(channelModel.Source));
         }
 
-        internal bool IsStartPossible(ChannelModel channelModel, out string error)
-        {
-            error = null;
-            if (channelModel.HasRtmpUrlInOptions && string.IsNullOrEmpty(channelModel.RtmpUrl.Value))
-                error = "Rtmp url is not set";
-            else if (channelModel.HasRtmpUrlInOptions && !IsOk(channelModel.RtmpUrl.Value))
-                error = "Rtmp url is wrongly formatted";
-            else if (string.IsNullOrEmpty(channelModel.Source.Key))
-                error = "Stream key is not set";
-            else if (CoreData.Root.Channels.Count(s => s.Value.IsOn) >= _connectionService.Claims.MaxChannels)
-                error = $"Your plan does not allow more than {_connectionService.Claims.MaxChannels} channels";
-
-            return string.IsNullOrEmpty(error);
-        }
-
-        private bool IsOk(string rtmpUrl)
+        private bool IsOkRtmpFormat(string rtmpUrl)
         {
             if (Uri.TryCreate(rtmpUrl, UriKind.Absolute, out var uri))
             {
@@ -234,7 +347,24 @@ namespace Streamster.ClientCore.Models
             }
             return false;
         }
+    }
 
+    public class TargetConfig : ICloseAware
+    {
+        public bool Add { get; set; }
+
+        public ChannelModel ChannelModel { get; set; }
+
+        public Action Cancel { get; set; }
+
+        public Action Ok { get; set; }
+
+        public void Close() => Cancel();
+    }
+
+    public class TargetSelectPopup
+    {
+        public object Content { get; set; }
     }
 
     public class TargetFilterModel
@@ -264,71 +394,46 @@ namespace Streamster.ClientCore.Models
             Source = source;
             Parent = parent;
 
-            if (source.TargetId != null)
+            var targetId = source.TargetId;
+
+            if (targetId != null)
             {
-                Target = coreData.Root.Targets[source.TargetId];
-                HasRtmpUrlInFront = (Target.Flags & TargetFlags.Url) > 0;
+                Target = coreData.Root.Targets[targetId];
+                NeedsRtmpUrl = (Target.Flags & TargetFlags.Url) > 0;
+                var platformInfo = coreData.Root.Platforms.PlatformInfos.FirstOrDefault(s => s.TargetId == targetId);
+                if (platformInfo != null)
+                    SupportsAutoLogin = ((platformInfo.Flags & PlatformInfoFlags.GetKey) > 0) && ClientConstants.ChatsEnabled;
             }
             else
             {
                 Target = parent.CustomTarget;
-                HasRtmpUrlInFront = true;
+                NeedsRtmpUrl = true;
             }
 
-            HasRtmpUrlInOptions = true;// (Target.Flags & TargetFlags.Url) > 0;
-
             Delete = () => parent.Remove(this);
-            Start = DoStart;
+            Start = () => Parent.StartChannel(this);
             Stop = () => Source.IsOn = false;
             GoToHelp = () => environment.OpenUrl(string.Format(parent.AppData.TargetHintTemplate, source.TargetId ?? "Custom"));
             GoToWebUrl = () => environment.OpenUrl(WebUrl.Value);
+            Authenticate = () => parent.PlatformsModel.Authenticate(targetId);
+
+            ShowSettings = () => parent.Popup.Value = new TargetConfig
+            {
+                Add = false,
+                ChannelModel = this,
+                Ok = () => { },
+                Cancel = () => { }
+            };
 
             WebUrl.OnChange = (o, n) => Source.WebUrl = n == Target.WebUrl ? null : n;
             Name.OnChange = (o, n) => Source.Name = n == Target.Name ? null : n;
             RtmpUrl.OnChange = (o, n) => Source.RtmpUrl = n == Target.DefaultRtmpUrl ? null : n;
-
-            IsTranscoded.OnChange = (o, n) => Transcoding.SetTranscoding(Source, n);
+            RtmpKey.OnChange = (o, n) => Source.Key = n == "" ? null : n;
+            AutoLoginMode.OnChange = (o, n) => Source.TargetMode = n ? TargetMode.AutoLogin : TargetMode.ManualKey;
+            IsTranscoded.OnChange = (o, n) => Parent.Transcoding.SetTranscoding(Source, n);
 
             TaskHelper.RunUnawaited(() => parent.GetImageAsync(Logo, source.TargetId), "Get image for channel");
         }
-
-        private void DoStart()
-        {
-            if (Parent.IsStartPossible(this, out var error))
-            {
-                StartError.Value = "";
-                Source.IsOn = true;
-
-                //var dev = Parent.CoreData.ThisDevice;
-
-                //TaskHelper.RunUnawaited(async () =>
-                //{
-                //    dev.RequireOutgest = false;
-                //    await Task.Delay(30);
-                //    dev.RequireOutgest = true;
-
-                //    await Task.Delay(30);
-                //    dev.RequireOutgest = false;
-                //    await Task.Delay(30);
-                //    dev.RequireOutgest = true;
-                //}, "");
-            }
-            else
-            {
-                StartError.Value = error;
-                TaskHelper.RunUnawaited(async () =>
-                {
-                    await Task.Delay(5000);
-                    StartError.Value = "";
-                }, "");
-            }
-        }
-
-        public TranscodingModel Transcoding => Parent.Transcoding.SetCurrent(this);
-
-        public bool TranscodingEnabled => Parent.Transcoding.TranscodingEnabled;
-
-        public Property<bool> IsTranscoded { get; } = new Property<bool>();
 
         public ITarget Target { get; }
 
@@ -336,27 +441,31 @@ namespace Streamster.ClientCore.Models
 
         public MainTargetsModel Parent { get; }
 
-        public bool HasRtmpUrlInFront { get; }
+        public bool NeedsRtmpUrl { get; }
 
-        public bool HasRtmpUrlInOptions { get; }
-
-        public Property<string> StartError { get; } = new Property<string>("");
+        public bool SupportsAutoLogin { get; }
 
         public Property<byte[]> Logo { get; } = new Property<byte[]>();
 
-        public Property<ChannelModelState> State { get; } = new Property<ChannelModelState>();
 
-        public Property<string> TextState { get; } = new Property<string>();
-
-        public Property<string> TimerState { get; } = new Property<string>();
+        public Property<bool> IsTranscoded { get; } = new Property<bool>();
 
         public Property<string> WebUrl { get; } = new Property<string>();
 
         public Property<string> RtmpUrl { get; } = new Property<string>();
 
+        public Property<bool> RtmpUrlHasWrongFormat { get; } = new Property<bool>();
+
         public Property<string> Name { get; } = new Property<string>();
 
-        public Property<string> Bitrate { get; } = new Property<string>();
+        public Property<string> RtmpKey { get; } = new Property<string>();
+
+        public Property<bool> AutoLoginMode { get; } = new Property<bool>();
+
+
+        public Property<ChannelModelStatus> Status { get; } = new Property<ChannelModelStatus>();
+
+        public Property<string> StartError { get; } = new Property<string>("");
 
         public Action Start { get; }
 
@@ -368,16 +477,48 @@ namespace Streamster.ClientCore.Models
 
         public Action GoToWebUrl { get; }
 
-        public Action ShowTranscoding { get; }
+        public Action ShowSettings { get; }
+
+        public Action Authenticate { get; }
+    }
+
+    public class ChannelModelStatus
+    {
+        public ChannelModelState State { get; set; }
+
+        public string TextState { get; set; } 
+
+        public string TimerState { get; set; } 
+
+        public string Bitrate { get; set; }
+
+        public AutoLoginState AutoLoginState { get; set; }
+
+        public string AutoLoginStateText { get; set; }
+
+        public ChannelModelStatus(ChannelModelState state, string textState)
+        {
+            State = state;
+            TextState = textState;
+        }
+
+        public ChannelModelStatus(ChannelModelState state, string textState, int bitrate, string timer) : this(state, textState)
+        {
+            Bitrate = $"{bitrate} Kb/s";
+            TimerState = timer;
+        }
     }
 
     public enum ChannelModelState
     {
         Idle,
+        IdleError,
+        IdleLoginError,
+
         InProgress,
+
         RunningOk,
-        RunningConnectError,
-        RunningInitError,
-        WaitingForStreamToCloud
+        RunningWait,
+        RunningError
     }
 }

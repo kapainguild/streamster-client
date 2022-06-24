@@ -1,0 +1,443 @@
+﻿<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                    xmlns:models="clr-namespace:Streamster.ClientCore.Models;assembly=Streamster.ClientCore"
+                    xmlns:support="clr-namespace:Streamster.ClientApp.Win.Support"
+                    xmlns:materialDesign="http://materialdesigninxaml.net/winfx/xaml/themes">
+    <ResourceDictionary.MergedDictionaries>
+        <ResourceDictionary Source="Common.xaml"/>
+        <ResourceDictionary Source="Transcoding.xaml"/>
+    </ResourceDictionary.MergedDictionaries>
+
+    <Style x:Key="ChannelButtons" TargetType="{x:Type Button}" BasedOn="{StaticResource MaterialDesignIconButton}">
+        <Setter Property="Foreground" Value="#a0a0a0"/>
+        <Style.Triggers>
+            <Trigger Property="IsMouseOver" Value="True">
+                <Setter  Property="Foreground" Value="White"/>
+            </Trigger>
+        </Style.Triggers>
+    </Style>
+
+    <Style x:Key="MaterialDesignFlatButton2" TargetType="{x:Type ButtonBase}" BasedOn="{StaticResource MaterialDesignFlatButton}">
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="{x:Type ButtonBase}">
+                    <Grid>
+                        <Border Name="border" Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}" CornerRadius="{Binding Path=(materialDesign:ButtonAssist.CornerRadius), RelativeSource={RelativeSource TemplatedParent}}" />
+                        <ProgressBar Name="ProgressBar" Style="{DynamicResource MaterialDesignLinearProgressBar}" Height="{TemplateBinding Height}" HorizontalAlignment="Left" VerticalAlignment="Center" Minimum="{Binding RelativeSource={RelativeSource TemplatedParent}, Path=(materialDesign:ButtonProgressAssist.Minimum)}" Maximum="{Binding RelativeSource={RelativeSource TemplatedParent}, Path=(materialDesign:ButtonProgressAssist.Maximum)}" Foreground="{Binding RelativeSource={RelativeSource TemplatedParent}, Path=(materialDesign:ButtonProgressAssist.IndicatorForeground)}" Background="{Binding RelativeSource={RelativeSource TemplatedParent}, Path=(materialDesign:ButtonProgressAssist.IndicatorBackground)}" BorderBrush="{Binding RelativeSource={RelativeSource TemplatedParent}, Path=(materialDesign:ButtonProgressAssist.IndicatorBackground)}" Value="{Binding RelativeSource={RelativeSource TemplatedParent}, Path=(materialDesign:ButtonProgressAssist.Value)}" IsIndeterminate="{Binding RelativeSource={RelativeSource TemplatedParent}, Path=(materialDesign:ButtonProgressAssist.IsIndeterminate)}" Visibility="{Binding RelativeSource={RelativeSource TemplatedParent}, Path=(materialDesign:ButtonProgressAssist.IsIndicatorVisible), Converter={StaticResource BooleanToVisibilityConverter}}" Width="{Binding RelativeSource={RelativeSource FindAncestor , AncestorType={x:Type ButtonBase}}, Path=ActualWidth}" Opacity="{Binding RelativeSource={RelativeSource TemplatedParent}, Path=(materialDesign:ButtonProgressAssist.Opacity)}">
+                            <ProgressBar.Clip>
+                                <MultiBinding Converter="{StaticResource BorderClipConverter}">
+                                    <Binding ElementName="border" Path="ActualWidth" />
+                                    <Binding ElementName="border" Path="ActualHeight" />
+                                    <Binding ElementName="border" Path="CornerRadius" />
+                                    <Binding ElementName="border" Path="BorderThickness" />
+                                </MultiBinding>
+                            </ProgressBar.Clip>
+                        </ProgressBar>
+                        <materialDesign:Ripple Content="{TemplateBinding Content}" ContentTemplate="{TemplateBinding ContentTemplate}" Focusable="False" ContentStringFormat="{TemplateBinding ContentStringFormat}" HorizontalContentAlignment="{TemplateBinding HorizontalContentAlignment}" VerticalContentAlignment="{TemplateBinding VerticalContentAlignment}" Padding="{TemplateBinding Padding}" SnapsToDevicePixels="{TemplateBinding SnapsToDevicePixels}">
+                            <materialDesign:Ripple.Clip>
+                                <MultiBinding Converter="{StaticResource BorderClipConverter}">
+                                    <Binding ElementName="border" Path="ActualWidth" />
+                                    <Binding ElementName="border" Path="ActualHeight" />
+                                    <Binding ElementName="border" Path="CornerRadius" />
+                                    <Binding ElementName="border" Path="BorderThickness" />
+                                </MultiBinding>
+                            </materialDesign:Ripple.Clip>
+                        </materialDesign:Ripple>
+                    </Grid>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsMouseOver" Value="true">
+                            <Setter TargetName="border" Value="{Binding Foreground , RelativeSource={RelativeSource Mode=TemplatedParent}, Converter={StaticResource BrushOpacityConverter}, ConverterParameter=0.9}" 
+                                    Property="Background" />
+                        </Trigger>
+                        <Trigger Property="IsEnabled" Value="false">
+                            <Setter Property="Opacity" Value="0.38" />
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <DataTemplate x:Key="ChannelModelTemplate" DataType="{x:Type models:ChannelModel}">
+        <Grid Margin="8,5" x:Name="root" >
+            <materialDesign:Card VerticalAlignment="Center">
+                <Grid Height="110" Background="#393939" x:Name="frontContent">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="110"/>
+                        <ColumnDefinition Width="120"/>
+                    </Grid.ColumnDefinitions>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="*"/>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                    </Grid.RowDefinitions>
+
+                    <Border Grid.RowSpan="4" Margin="0">
+                        <Border.Background>
+                            <LinearGradientBrush StartPoint="0,0" EndPoint="1,0" >
+
+                                <GradientStop Color="#404040" Offset="0" />
+                                <GradientStop Color="#404040" Offset="0.97" />
+                                <GradientStop Color="#393939" Offset="1.0" />
+
+                                </LinearGradientBrush>
+                        </Border.Background>
+                        <Button Style="{StaticResource EmptyButton}" 
+                                x:Name="iconButton"
+                                Command="{Binding GoToWebUrl, Converter={StaticResource CommandConverter}}"
+                                ToolTip="Click to open web URL in a web browser.&#x0a;The URL can be configured in the channel settings">
+                            <Viewbox Stretch="Uniform">
+                                <Grid Margin="0,0,3,3"  RenderTransformOrigin="0.5,0.5">
+                                    <Grid.RenderTransform>
+                                        <ScaleTransform x:Name="imageScale" ScaleX="1" ScaleY="1"/>
+                                    </Grid.RenderTransform>
+                                    <materialDesign:PackIcon x:Name="custom" Height="40" Width="40" Kind="Cogs"
+                                                         Margin="7"
+                                                 HorizontalAlignment="Center"
+                                                 Visibility="Collapsed"/>
+
+                                    <Image x:Name="logo" Stretch="Uniform" Source="{Binding Logo.Value, Converter={StaticResource ImageConverter}}"/>
+                                </Grid>
+                            </Viewbox>
+                        </Button>
+                    </Border>
+
+                    <TextBlock x:Name="nameText" Grid.Column="1" Grid.Row="0" 
+                               FontWeight="Normal"
+                               Text="{Binding Name.Value}"
+                               Foreground="#CCCCCC"
+                               Margin="12,3,10,3" 
+                               TextTrimming="CharacterEllipsis"
+                               Opacity="0.5"/>
+
+                    <StackPanel Margin="3,3,0,0" Grid.Column="1" Grid.Row="1" Orientation="Horizontal" x:Name="buttons" Opacity="0.4" VerticalAlignment="Top" HorizontalAlignment="Left">
+
+                        <Button Style="{StaticResource ChannelButtons}" 
+                                Command="{x:Static materialDesign:DialogHost.OpenDialogCommand}"
+                                ToolTip="Open transcoder settings"
+                                Width="36" Height="36">
+                            <Button.CommandParameter>
+                                <ContentControl Content="{Binding Parent.Transcoding}" 
+                                                ContentTemplate="{StaticResource TranscodingDialogContent}"/>
+                            </Button.CommandParameter>
+
+                            <materialDesign:PackIcon x:Name="transcodingIcon" Kind="PlusMinusBox" Width="24" Height="24" />
+                        </Button>
+
+                        <Button x:Name="options" Style="{StaticResource ChannelButtons}" 
+                                ToolTip="Change your channel settings"
+                                Command="{Binding ShowSettings, Converter={StaticResource OpenDialogCommandConverter}}"
+                                Width="36" Height="36">
+                            <Button.CommandParameter>
+                                <ContentControl Content="{Binding Parent.Popup.Value}"/>
+                            </Button.CommandParameter>
+                            <materialDesign:PackIcon Kind="Cog" Width="24" Height="24"/>
+                        </Button>
+
+                        <Grid Margin="4,0,0,0" Width="36" Height="36">
+                            <Button x:Name="start" Style="{StaticResource MaterialDesignIconButton}" 
+                                Command="{Binding Start, Converter={StaticResource CommandConverter}}"
+                                VerticalAlignment="Center"
+                                ToolTip="Start restreaming to the platform"
+                                Background="#206137"
+                                Visibility="Collapsed"
+                                Width="30" Height="30">
+                                <materialDesign:PackIcon Kind="PlayCircleOutline" Margin="-3" Width="36" Height="36" Foreground="White"/>
+                            </Button>
+
+                            <Button x:Name="stop" Style="{StaticResource MaterialDesignIconButton}" Command="{Binding Stop, Converter={StaticResource CommandConverter}}"
+                                Background="#612037"
+                                VerticalAlignment="Center"
+                                ToolTip="Stop restreaming"
+                                Width="30" Height="30">
+                                <materialDesign:PackIcon Kind="StopCircleOutline" Margin="-3" Width="36" Height="36" Foreground="White"/>
+                            </Button>
+
+                            <ProgressBar x:Name="inProgress" VerticalAlignment="Center"
+                                     ToolTip="We are connecting the stream to the platform"
+                                     Width="32" Height="32" Style="{StaticResource MaterialDesignCircularProgressBar}" Value="0" IsIndeterminate="True"
+                                         Visibility="Collapsed" />
+                        </Grid>
+
+                    </StackPanel>
+
+                    <TextBlock x:Name="bitrate" Text="{Binding Status.Value.Bitrate}" 
+                               Grid.Column="1" Grid.Row="2" Margin="6,3" VerticalAlignment="Bottom" HorizontalAlignment="Right"
+                               ToolTip="Bitrate to the platform"/>
+
+
+                    <Grid Grid.Row="3" Grid.ColumnSpan="3">
+
+                        <Border x:Name="stateBorder">
+                            <DockPanel>
+                                <TextBlock x:Name="timer" DockPanel.Dock="Right" Margin="0,3,6,3" HorizontalAlignment="Right" Text="{Binding Status.Value.TimerState}"/>
+                                <TextBlock x:Name="state" Margin="5,1,5,1" HorizontalAlignment="Center" Text="{Binding Status.Value.TextState}"/>
+                            </DockPanel>
+                        </Border>
+
+                        <Border x:Name="login" Background="#AA0000" Visibility="Collapsed">
+                            <DockPanel>
+                                <Button Margin="5,-10,8,4" DockPanel.Dock="Right" 
+                                        Height="26"
+                                        Content="Login" Command="{Binding Authenticate, Converter={StaticResource CommandConverter}}"/>
+                                <TextBlock Margin="10,3,6,3" Text="Not authenticated"/>
+                            </DockPanel>
+                        </Border>
+                    </Grid>
+
+                    <!--Start error cover-->
+                    <Border x:Name="startError" Grid.RowSpan="10" Grid.ColumnSpan="10" Background="#404040">
+                        <TextBlock Margin="10" HorizontalAlignment="Center" VerticalAlignment="Center" 
+                                   TextWrapping="Wrap" TextAlignment="Center"
+                                   Text="{Binding StartError.Value}" Foreground="Orange"/>
+                    </Border>
+
+                </Grid>
+            </materialDesign:Card>
+
+            <Button x:Name="delete"
+                    Opacity="0.1"
+                    HorizontalAlignment="Right"
+                    VerticalAlignment="Top"
+                    Foreground="#FF1010"
+                    Margin="0"
+                    Padding="0"
+                    Style="{StaticResource MaterialDesignFlatButton2}" 
+                    Command="{Binding Delete, Converter={StaticResource CommandConverter}}"
+                                Background="#bb0000"
+                                ToolTip="Delete channel"
+                                Width="18" Height="18">
+                <materialDesign:PackIcon Kind="Close" Width="16" Height="16" Foreground="White"/>
+            </Button>
+        </Grid>
+
+        <DataTemplate.Triggers>
+
+            <Trigger SourceName="iconButton" Property="IsMouseOver" Value="True">
+                <Trigger.EnterActions>
+                    <BeginStoryboard>
+                        <Storyboard>
+
+                            <DoubleAnimation Duration="0:0:0.15" Storyboard.TargetName="imageScale" 
+                                            Storyboard.TargetProperty="ScaleX" To="1.1" />
+                            <DoubleAnimation Duration="0:0:0.15" Storyboard.TargetName="imageScale" 
+                                            Storyboard.TargetProperty="ScaleY" To="1.1" />
+                        </Storyboard>
+                    </BeginStoryboard>
+                </Trigger.EnterActions>
+                <Trigger.ExitActions>
+                    <BeginStoryboard>
+                        <Storyboard>
+
+                            <DoubleAnimation Duration="0:0:0.15" Storyboard.TargetName="imageScale" 
+                                            Storyboard.TargetProperty="ScaleX" To="1.0" />
+
+                            <DoubleAnimation Duration="0:0:0.15" Storyboard.TargetName="imageScale" 
+                                            Storyboard.TargetProperty="ScaleY" To="1.0" />
+                        </Storyboard>
+                    </BeginStoryboard>
+                </Trigger.ExitActions>
+            </Trigger>
+
+
+            <DataTrigger Binding="{Binding IsTranscoded.Value}"  Value="True">
+                <Setter TargetName="transcodingIcon" Property="Foreground" Value="#00FF00"/>
+            </DataTrigger>
+
+            <DataTrigger Binding="{Binding StartError.Value.Length}"  Value="0">
+                <Setter TargetName="startError" Property="Visibility" Value="Collapsed"/>
+            </DataTrigger>
+
+            <DataTrigger Binding="{Binding Target.Id}" Value="{x:Null}">
+                <Setter TargetName="custom" Property="Visibility" Value="Visible"/>
+                <Setter TargetName="logo" Property="Visibility" Value="Collapsed"/>
+            </DataTrigger>
+
+            <DataTrigger Binding="{Binding Status.Value.State}" Value="Idle">
+                <Setter TargetName="start" Property="Visibility" Value="Visible"/>
+                <Setter TargetName="stop" Property="Visibility" Value="Collapsed"/>
+                <Setter TargetName="timer" Property="Margin" Value="0,-8,6,0"/>
+                <Setter TargetName="timer" Property="Foreground" Value="#0960c0"/>
+            </DataTrigger>
+
+            <DataTrigger Binding="{Binding Status.Value.State}" Value="IdleError">
+                <Setter TargetName="start" Property="Visibility" Value="Visible"/>
+                <Setter TargetName="stop" Property="Visibility" Value="Collapsed"/>
+                <Setter TargetName="timer" Property="Margin" Value="0,-8,6,0"/>
+                <Setter TargetName="timer" Property="Foreground" Value="#0960c0"/>
+                <Setter TargetName="stateBorder" Property="Background" Value="#AA0000"/>
+            </DataTrigger>
+
+            <DataTrigger Binding="{Binding Status.Value.State}" Value="IdleLoginError">
+                <Setter TargetName="start" Property="Visibility" Value="Visible"/>
+                <Setter TargetName="stop" Property="Visibility" Value="Collapsed"/>
+                <Setter TargetName="login" Property="Visibility" Value="Visible"/>
+                <Setter TargetName="stateBorder" Property="Visibility" Value="Collapsed"/>
+            </DataTrigger>
+
+            <DataTrigger Binding="{Binding Status.Value.State}" Value="InProgress">
+                <Setter TargetName="inProgress" Property="Visibility" Value="Visible"/>
+                <Setter TargetName="stop" Property="Visibility" Value="Collapsed"/>
+            </DataTrigger>
+
+            <DataTrigger Binding="{Binding Status.Value.State}" Value="RunningError">
+                <Setter TargetName="stateBorder" Property="Background" Value="#AA0000"/>
+            </DataTrigger>
+
+            <DataTrigger Binding="{Binding Status.Value.State}" Value="RunningOk">
+                <Setter TargetName="stateBorder" Property="Background" Value="DarkGreen"/>
+            </DataTrigger>
+
+            <DataTrigger Binding="{Binding Status.Value.State}" Value="RunningWait">
+                <Setter TargetName="stateBorder" Property="Background" Value="#404040"/>
+            </DataTrigger>
+
+
+            <DataTrigger Binding="{Binding IsMouseOver, ElementName=root}" Value="True">
+                <DataTrigger.EnterActions>
+                    <BeginStoryboard>
+                        <Storyboard>
+                            <DoubleAnimation Storyboard.TargetName="buttons" Storyboard.TargetProperty="Opacity" 
+                                             BeginTime="0:0:0.3" Duration="0:0:0.2" To="1.0"/>
+                            <DoubleAnimation Storyboard.TargetName="nameText" Storyboard.TargetProperty="Opacity" 
+                                             BeginTime="0:0:0.3" Duration="0:0:0.2" To="1.0"/>
+                            <DoubleAnimation Storyboard.TargetName="delete" Storyboard.TargetProperty="Opacity" 
+                                             BeginTime="0:0:0.3" Duration="0:0:0.2" To="1.0"/>
+                        </Storyboard>
+                    </BeginStoryboard>
+                </DataTrigger.EnterActions>
+
+                <DataTrigger.ExitActions>
+                    <BeginStoryboard>
+                        <Storyboard>
+                            <DoubleAnimation Storyboard.TargetName="buttons" Storyboard.TargetProperty="Opacity" 
+                                             BeginTime="0:0:1" Duration="0:0:0.2" To="0.4"/>
+                            <DoubleAnimation Storyboard.TargetName="nameText" Storyboard.TargetProperty="Opacity" 
+                                             BeginTime="0:0:1" Duration="0:0:0.2" To="0.5"/>
+                            <DoubleAnimation Storyboard.TargetName="delete" Storyboard.TargetProperty="Opacity" 
+                                             BeginTime="0:0:1" Duration="0:0:0.2" To="0.1"/>
+                        </Storyboard>
+                    </BeginStoryboard>
+                </DataTrigger.ExitActions>
+            </DataTrigger>
+        </DataTemplate.Triggers>
+    </DataTemplate>
+
+    <DataTemplate x:Key="ChannelModelTemplateSmall" DataType="{x:Type models:ChannelModel}">
+        <Border x:Name="root" Height="{Binding (support:ResponsiveHost.Calculation).Values.ChannelWidth, ElementName=root}" 
+                Width="{Binding (support:ResponsiveHost.Calculation).Values.ChannelWidth, ElementName=root}" Margin="5" Background="#404040" CornerRadius="4" BorderBrush="#101010" BorderThickness="1">
+            <Grid>
+                <Viewbox Stretch="Uniform" Margin="4" VerticalAlignment="Top">
+                    <Grid>
+                        <materialDesign:PackIcon x:Name="custom" Height="80" Width="80" Kind="Cogs"
+                                                 HorizontalAlignment="Center"
+                                                 Visibility="Collapsed"/>
+
+                        <Image x:Name="logo" Stretch="Uniform" Source="{Binding Logo.Value, Converter={StaticResource ImageConverter}}"/>
+                    </Grid>
+                </Viewbox>
+
+                <Grid x:Name="startStop" VerticalAlignment="Center" HorizontalAlignment="Center" Width="36" Height="36" Opacity="0">
+                    <Button x:Name="start" Style="{StaticResource MaterialDesignIconButton}" 
+                                Command="{Binding Start, Converter={StaticResource CommandConverter}}"
+                                VerticalAlignment="Center"
+                            Background="#206137"
+                            ToolTip="Start restreaming to the platform"
+                            Visibility="Collapsed"
+                            Width="30" Height="30">
+                        <materialDesign:PackIcon Kind="PlayCircleOutline" Margin="-3" Width="36" Height="36" Foreground="White"/>
+                    </Button>
+
+                    <Button x:Name="stop" Style="{StaticResource MaterialDesignIconButton}" Command="{Binding Stop, Converter={StaticResource CommandConverter}}"
+                                Background="#612037"
+                                VerticalAlignment="Center"
+                                ToolTip="Stop restreaming"
+                                Width="30" Height="30">
+                        <materialDesign:PackIcon Kind="StopCircleOutline" Margin="-3" Width="36" Height="36" Foreground="White"/>
+                    </Button>
+
+                    <ProgressBar x:Name="inProgress" VerticalAlignment="Center"
+                                 ToolTip="We are connecting the stream to the platform"
+                                     Width="32" Height="32" Style="{StaticResource MaterialDesignCircularProgressBar}" Value="0" IsIndeterminate="True" Visibility="Collapsed" />
+
+
+                </Grid>
+                <Border x:Name="stateBorder" BorderThickness="4" CornerRadius="3">
+                </Border>
+
+                <Border x:Name="startError" Background="#303030" >
+                    <TextBlock Margin="5,0" VerticalAlignment="Center" FontSize="10" FontWeight="Normal" HorizontalAlignment="Center" TextAlignment="Center" Foreground="Yellow" Text="{Binding StartError.Value}" TextWrapping="Wrap"/>
+                </Border>
+            </Grid>
+        </Border>
+
+        <DataTemplate.Triggers>
+            <DataTrigger Binding="{Binding StartError.Value.Length}"  Value="0">
+                <Setter TargetName="startError" Property="Visibility" Value="Collapsed"/>
+            </DataTrigger>
+
+            <DataTrigger Binding="{Binding Target.Id}" Value="{x:Null}">
+                <Setter TargetName="custom" Property="Visibility" Value="Visible"/>
+                <Setter TargetName="logo" Property="Visibility" Value="Collapsed"/>
+            </DataTrigger>
+
+            <DataTrigger Binding="{Binding Status.Value.State}" Value="Idle">
+                <Setter TargetName="start" Property="Visibility" Value="Visible"/>
+                <Setter TargetName="stop" Property="Visibility" Value="Collapsed"/>
+                <Setter TargetName="root" Property="Background" Value="#303030"/>
+            </DataTrigger>
+
+            <DataTrigger Binding="{Binding Status.Value.State}" Value="IdleError">
+                <Setter TargetName="start" Property="Visibility" Value="Visible"/>
+                <Setter TargetName="stop" Property="Visibility" Value="Collapsed"/>
+                <Setter TargetName="stateBorder" Property="BorderBrush" Value="Red"/>
+            </DataTrigger>
+
+            <DataTrigger Binding="{Binding Status.Value.State}" Value="IdleLoginError">
+                <Setter TargetName="start" Property="Visibility" Value="Visible"/>
+                <Setter TargetName="stop" Property="Visibility" Value="Collapsed"/>
+                <Setter TargetName="stateBorder" Property="BorderBrush" Value="Yellow"/>
+            </DataTrigger>
+
+            <DataTrigger Binding="{Binding Status.Value.State}" Value="InProgress">
+                <Setter TargetName="inProgress" Property="Visibility" Value="Visible"/>
+                <Setter TargetName="stop" Property="Visibility" Value="Collapsed"/>
+            </DataTrigger>
+
+            <DataTrigger Binding="{Binding Status.Value.State}" Value="RunningError">
+                <Setter TargetName="stateBorder" Property="BorderBrush" Value="Red"/>
+            </DataTrigger>
+
+            <DataTrigger Binding="{Binding Status.Value.State}" Value="RunningOk">
+                <Setter TargetName="stateBorder" Property="BorderBrush" Value="#00FF00"/>
+            </DataTrigger>
+            
+            <DataTrigger Binding="{Binding Status.Value.State}" Value="RunningWait">
+                <Setter TargetName="stateBorder" Property="BorderBrush" Value="#404040"/>
+            </DataTrigger>
+
+
+            <DataTrigger Binding="{Binding IsMouseOver, ElementName=root}" Value="True">
+                <DataTrigger.EnterActions>
+                    <BeginStoryboard>
+                        <Storyboard>
+                            <DoubleAnimation Storyboard.TargetName="startStop" Storyboard.TargetProperty="Opacity" 
+                                             BeginTime="0:0:0.0" Duration="0:0:0.2" To="1.0"/>
+                        </Storyboard>
+                    </BeginStoryboard>
+                </DataTrigger.EnterActions>
+
+                <DataTrigger.ExitActions>
+                    <BeginStoryboard>
+                        <Storyboard>
+                            <DoubleAnimation Storyboard.TargetName="startStop" Storyboard.TargetProperty="Opacity" 
+                                             BeginTime="0:0:0.0" Duration="0:0:0.2" To="0"/>
+                        </Storyboard>
+                    </BeginStoryboard>
+                </DataTrigger.ExitActions>
+            </DataTrigger>
+        </DataTemplate.Triggers>
+    </DataTemplate>
+
+</ResourceDictionary>

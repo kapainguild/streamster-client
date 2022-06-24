@@ -75,6 +75,12 @@ DLL_EXPORT(int) InputContext_Open(InputContext* handle, char* type, char* input,
 	}
 	catch (const streamer_exception& e)
 	{
+		if (input && strstr(input, "listen") && e.errorCode == -1414092869) //interuppted error code
+		{
+			Info("InputContext_Open listen timeout");
+			return GetReturnCode(e);
+		}
+
 		return LogAndReturn(e, "InputContext_Open");
 	}
 	return ErrorCodes::Ok;

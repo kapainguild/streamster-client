@@ -11,6 +11,8 @@ namespace Streamster.ClientCore.Cross
 
         string GetClientId();
 
+        string GetDeviceName();
+
         void SetHighPriorityToApplication();
 
         void OpenUrl(string url);

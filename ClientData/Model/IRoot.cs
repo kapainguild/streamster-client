@@ -27,5 +27,7 @@ namespace Streamster.ClientData.Model
         IDictionary<string, ITranscoder> Transcoders { get; set; }
 
         ISettings Settings { get; set; }
+
+        IPlatforms Platforms { get; set; }
     }
 }

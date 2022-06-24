@@ -13,14 +13,16 @@ namespace Streamster.ClientCore.Models
     class StreamerHealthCheck
     {
         private CoreData _coreData;
+        private readonly StreamingSourcesModel _streamingSourcesModel;
         private AverageIntValue _cloudInAverage;
         private AverageIntValue _cloudOutAverage;
         private Dictionary<string, IssueCache> _prevVideos = new Dictionary<string, IssueCache>();
         private Dictionary<string, IssueCache> _prevAudios = new Dictionary<string, IssueCache>();
 
-        public StreamerHealthCheck(CoreData coreData)
+        public StreamerHealthCheck(CoreData coreData, StreamingSourcesModel streamingSourcesModel)
         {
             _coreData = coreData;
+            _streamingSourcesModel = streamingSourcesModel;
         }
 
         internal void ProcessReceivier(ClientStreamer receiverStreamer, IDeviceIndicators kpi)
@@ -51,7 +53,7 @@ namespace Streamster.ClientCore.Models
                     {
                         state = IndicatorState.Error;
                     }
-                    else
+                    else if (!_streamingSourcesModel.IsExternalEncoderStreaming()) // it does not respect _coreData.Settings.Bitrate
                     {
                         var bitratePercent = (ave * 100) / _coreData.Settings.Bitrate;
 
@@ -69,7 +71,6 @@ namespace Streamster.ClientCore.Models
         {
             if(mainStreamer == null)
             {
-                kpi.CloudOut.State = IndicatorState.Disabled;
                 kpi.Encoder.State = IndicatorState.Disabled;
                 _cloudOutAverage = null;
             }
@@ -83,8 +84,7 @@ namespace Streamster.ClientCore.Models
 
                 int failedInputs = 0;
 
-                if (_coreData.Root.Settings.SelectedScene != null &&
-                    _coreData.Root.Scenes.TryGetValue(_coreData.Root.Settings.SelectedScene, out var scene) &&
+                if (_streamingSourcesModel.TryGetCurrentScene(out var scene) &&
                     scene.Owner == _coreData.ThisDeviceId)
                 {
                     ProcessInputs(stat, lastRebuildContext.Videos, "V", _prevVideos, scene.VideoIssues, s => scene.VideoIssues = s);
@@ -110,38 +110,6 @@ namespace Streamster.ClientCore.Models
 
         private void ProcessMainKpi(List<StatisticItem> stat, IDeviceIndicators kpi, TimeSpan period, int overload, int failedInputs)
         {
-            //out to cloud
-            var item = stat.FirstOrDefault(s => s.Name.Trunk == MainStreamerModel.OutputNameStreamToCloud && s.Name.TrunkPrefix == "X");
-
-            if (item == null)
-                kpi.CloudOut.State = IndicatorState.Disabled;
-            else
-            {
-                var data = (StatisticDataOfInputOutput)item.Data;
-                var bitrate = (int)(data.Bytes * 8 / period.TotalMilliseconds);
-                var ave = _cloudOutAverage.AddValue(bitrate);
-
-                IndicatorState state = IndicatorState.Ok;
-                if (data.Errors > 0)
-                {
-                    if (bitrate > 0)
-                        state = IndicatorState.Error;
-                    else
-                        state = IndicatorState.Error2;
-                }
-                else
-                {
-                    var bitratePercent = (ave * 100) / _coreData.Settings.Bitrate;
-
-                    if (bitratePercent < 60)
-                        state = IndicatorState.Warning2;
-                    else if (bitratePercent < 80)
-                        state = IndicatorState.Warning;
-                }
-
-                kpi.CloudOut.Bitrate = ave;
-                kpi.CloudOut.State = state;
-            }
 
             // encoder & inputs
             var encoder = kpi.Encoder;

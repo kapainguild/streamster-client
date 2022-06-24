@@ -84,7 +84,6 @@ namespace Streamster.ClientCore
                 ds.TopMostExtendedMode = TopMostModeConverter.GetTopMostExtendedMode(TopMostMode.Manual);
                 ThisDevice.DeviceSettings = ds;
             }
-            _manager.GetOrCreate(() => ThisDevice.DeviceSettings, v => ThisDevice.DeviceSettings = v);
             _manager.GetOrCreate(() => ThisDevice.KPIs, v => ThisDevice.KPIs = v);
             _manager.GetOrCreate(() => ThisDevice.KPIs.Cpu, v => ThisDevice.KPIs.Cpu = v);
             _manager.GetOrCreate(() => ThisDevice.KPIs.CloudIn, v => ThisDevice.KPIs.CloudIn = v);
@@ -116,11 +115,11 @@ namespace Streamster.ClientCore
             //    c.HasLocal((s, m, p) => new LocalAudioInputModel(s, this, p.Get<MainSourcesModel>()));
             //});
 
-            builder.Config<ISettings>(c =>
-            {
-                c.Property(s => s.SelectedVideo).DontCompareBeforeSet();
-                c.Property(s => s.SelectedAudio).DontCompareBeforeSet();
-            });
+            //builder.Config<ISettings>(c =>
+            //{
+            //    c.Property(s => s.SelectedVideo).DontCompareBeforeSet();
+            //    c.Property(s => s.SelectedAudio).DontCompareBeforeSet();
+            //});
 
             builder.Config<IIndicatorCpu>(c => { c.Property(s => s.Load).DontCompareBeforeSet(); });
 

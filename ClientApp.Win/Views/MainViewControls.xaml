@@ -47,7 +47,7 @@
     </Style>
 
     <DataTemplate x:Key="MainViewControls" DataType="{x:Type models:StreamSettingsModel}">
-        <Grid Margin="10,10,10,0" x:Name="root" MaxWidth="700" Background="Transparent">
+        <Grid Margin="10,10,10,10" x:Name="root" MaxWidth="700" Background="Transparent">
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="*"/>
                 <ColumnDefinition Width="Auto"/>
@@ -66,6 +66,7 @@
                                             LargeChange="100"
                                             SelectionStart="{Binding MinBitrate, Mode=OneWay}" SelectionEnd="{Binding ActualBitrate.Value}"
                                             Style="{StaticResource BitrateSlider}"
+                                            IsEnabled="{Binding IsChangeBitrateEnabled.Value}"
                                             ToolTip="Move the slider to change bitrate value"/>
                     </DockPanel>
                 </controls:ActivatingControl>

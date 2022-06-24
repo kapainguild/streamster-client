@@ -1,12 +1,24 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
-
+﻿
 namespace Streamster.ClientData.Model
 {
     public interface IIngest
     {
+        IngestType Type { get; set; }
+
         IngestData Data { get; set; }
+
+        string Owner { get; set; }
+
+        int ResetCounter { get; set; }
+
+        IIndicatorIngest In { get; set; }
+    }
+
+    public enum IngestType
+    {
+        External,
+        TcpForDevice,
+        RtmpForDevice,
     }
 
     public class IngestData
@@ -36,5 +48,10 @@ namespace Streamster.ClientData.Model
         public string Options { get; set; }
 
         public int Port { get; set; }
+    }
+
+    public interface IIndicatorIngest : IIndicatorBase
+    {
+        int Bitrate { get; set; }
     }
 }

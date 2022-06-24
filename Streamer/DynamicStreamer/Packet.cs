@@ -20,6 +20,7 @@ namespace DynamicStreamer
         [DllImport(Core.DllName)] private static extern void Packet_CopyContentFrom(IntPtr handle, IntPtr from);
         [DllImport(Core.DllName)] private static extern void Packet_InitFromBuffer(IntPtr handle, ref byte buffer, int length);
         [DllImport(Core.DllName)] private static extern void Packet_InitFromBuffer2(IntPtr handle, IntPtr buffer, int length, long pts);
+        [DllImport(Core.DllName)] private unsafe static extern void Packet_InitFromBuffer5(IntPtr handle, byte* buffer, int length, long pts, int streamIndex);
         [DllImport(Core.DllName)] private static extern void Packet_InitFromBuffer3(IntPtr handle, ref byte buffer, int length, long pts, ref PacketProperties packetProperties);
         [DllImport(Core.DllName)] private static extern int Packet_InitFromBuffer4(IntPtr handle, IntPtr buffer, int bitPerPixel, int width, int height, int sourceWidth, long pts, int checkForZero);
         [DllImport(Core.DllName)] private static extern void Packet_SetPts(IntPtr handle, long pts);
@@ -90,6 +91,24 @@ namespace DynamicStreamer
             DirectXResourceRef = new RefCounted<DirectXResource>((DirectXResource)dxRes);
             Properties.Pts = pts;
         }
+
+        internal void InitFromBuffer(ReadOnlyMemory<byte> buffer, int start, int length, long pts, int streamIndex, bool iFrame)
+        {
+            unsafe
+            {
+                var span = buffer.Span;
+                fixed (byte* pointer = &span.GetPinnableReference())
+                {
+                    Packet_InitFromBuffer5(Handle, pointer, length, pts, streamIndex);
+                }
+            }
+
+            Properties.Pts = pts;
+            Properties.StreamIndex = streamIndex;
+            Properties.Flags = iFrame ? 1 : 0; 
+            Properties.Size = length;
+        }
+
 
         internal bool InitFromBuffer(IntPtr buffer, int bitPerPixel, int width, int height, int sourceWidth, long pts, bool checkForZero)
         {

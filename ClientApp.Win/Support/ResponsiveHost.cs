@@ -91,7 +91,7 @@ namespace Streamster.ClientApp.Win.Support
                                         sizes.screenSideRight.Height < 310,
                 RightHideInfo = rightTwoColumns ?
                                         sizes.screenSideRight.Height < 250 :
-                                        sizes.screenSideRight.Height < 360,
+                                        sizes.screenSideRight.Height < 400,
                 RightHideSliders = sizes.screenSideRight.Height < 250,
                 MainAreaCaptionMargin = sizes.main.Top < HeaderHeight,
                 ScreenSourcesHidden = sizes.screen.Width < 415,
@@ -107,11 +107,11 @@ namespace Streamster.ClientApp.Win.Support
 
             if (ChannelCount > 0)
             {
-
                 var mainWidth = sizes.main.Width;
                 var mainHeight = sizes.main.Height;
                 if (res.MainAreaCaptionMargin) mainHeight -= 26;
-                if (!res.HideBitrate) mainHeight -= 41;
+                if (!res.HideBitrate) mainHeight -= 47;
+
                 mainHeight -= 20;
                 mainWidth -= 20;
 
@@ -119,40 +119,28 @@ namespace Streamster.ClientApp.Win.Support
                 if (!res.HideAddTargetButton)
                     mainWidth -= 56 + 20;
 
-                double baseWidth = 238;
-                double baseHeight = 121;
+                double baseWidth = 230+16;
+                double baseHeight = 110+10;
 
                 var count = ChannelCount;
 
-                if (ChannelFits(baseWidth, baseHeight, mainWidth, mainHeight, count))
+                if (!ChannelFits(baseWidth, baseHeight, mainWidth, mainHeight, count) &&
+                    (mainWidth * mainHeight < 200000 || mainHeight < 80))
                 {
-                    var sol = 30;
+                    res.ChannelTemplate = 1;
+
+                    if (!res.HideAddTargetButton)
+                    {
+                        res.HideAddTargetButton = true;
+                        mainWidth += 56 + 20;
+                    }
+                    res.ChannelWidth = 110;
+
                     for (int q = 0; q < 30; q++)
                     {
-                        if (!ChannelFits(baseWidth + (q + 1) * 3 + 20, baseHeight, mainWidth, mainHeight, count))
-                        {
-                            sol = q;
+                        if (ChannelFits(res.ChannelWidth + 10, res.ChannelWidth + 10, mainWidth, mainHeight, count))
                             break;
-                        }
-                    }
-                    res.ChannelWidth = baseWidth + sol * 3;
-                    res.HideChannelHintButton = res.ChannelWidth < 271;
-                }
-                else
-                {
-                    res.ChannelWidth = 238;
-
-                    if (mainWidth * mainHeight < 100000 || mainHeight < 80)
-                    {
-                        res.ChannelWidth = 104;
-                        for (int q = 0; q < 25; q++)
-                        {
-                            res.ChannelWidth -= 2;
-                            if (ChannelFits(res.ChannelWidth + 14, res.ChannelWidth + 14, mainWidth, mainHeight, count))
-                                break;
-                        }
-                        res.ChannelTemplate = 1;
-                        res.HideAddTargetButton = true;
+                        res.ChannelWidth -= 2;
                     }
                 }
 
@@ -297,7 +285,7 @@ namespace Streamster.ClientApp.Win.Support
             }
             else
             {
-                bool smallHeight = a.Height < 250;
+                bool smallHeight = a.Height < 250 || a.Height < 600 && a.Width > a.Height * 3;
 
                 if (smallHeight)
                 {
@@ -450,8 +438,6 @@ namespace Streamster.ClientApp.Win.Support
         public int ChannelTemplate { get; internal set; }
 
         public double ChannelWidth { get; internal set; }
-
-        public bool HideChannelHintButton { get; internal set; }
 
         public bool HidePromo { get; set; }
 

@@ -2,6 +2,7 @@
 using Microsoft.AspNetCore.SignalR.Client;
 using Serilog;
 using Streamster.ClientCore.Cross;
+using Streamster.ClientCore.Models.Chats;
 using Streamster.ClientCore.Services;
 using Streamster.ClientData;
 using System;
@@ -21,10 +22,13 @@ namespace Streamster.ClientCore.Models
         private readonly IUpdateManager _updateManager;
         private readonly IAppResources _appResources;
         private readonly ResourceService _resourceService;
+        private readonly StreamingSourcesModel _streamingSourcesModel;
         private readonly ModelClient _serverClient;
         private readonly IWindowStateManager _windowStateManager;
+        private readonly LocalSourcesModel _localSources;
         private bool _firstPatchReceived;
         private IDisposable _onPatchSubscription;
+        private IDisposable _onReceiveChatSubscription;
         private TaskCompletionSource<bool> _firstPatchTcs;
 
         private bool _sendInProgress;
@@ -37,10 +41,14 @@ namespace Streamster.ClientCore.Models
 
         public CoreData CoreData => _coreData;
 
+        public StreamingSourcesModel StreamingSources => _streamingSourcesModel;
+
         public MainTargetsModel Targets { get; }
 
+        public PlatformsModel Platforms { get; }
+
         public MainSettingsModel Settings { get; }
-        public SourcesModel Sources { get; }
+        
         public StreamSettingsModel StreamSettings { get; }
         public MainStreamerModel Streamer { get; }
 
@@ -61,7 +69,7 @@ namespace Streamster.ClientCore.Models
         public MainModel(RootModel root,
             MainTargetsModel targets,
             MainSettingsModel settings,
-            SourcesModel sources,
+            LocalSourcesModel sources,
             StreamSettingsModel streamSettings,
             MainStreamerModel streamer,
             MainIndicatorsModel indicators,
@@ -78,12 +86,14 @@ namespace Streamster.ClientCore.Models
             TransientMessageModel transientMessageModel,
             IAppResources appResources,
             SceneEditingModel sceneEditingModel,
-            ResourceService resourceService)
+            ResourceService resourceService,
+            PlatformsModel platforms,
+            StreamingSourcesModel streamingSourcesModel)
         {
             Root = root;
             Targets = targets;
             Settings = settings;
-            Sources = sources;
+            _localSources = sources;
             StreamSettings = streamSettings;
             Streamer = streamer;
             Indicators = indicators;
@@ -101,7 +111,9 @@ namespace Streamster.ClientCore.Models
             _appResources = appResources;
             SceneEditing = sceneEditingModel;
             _resourceService = resourceService;
-            _serverClient = new ModelClient { Filter = new FilterConfigurator(true).Build() };
+            Platforms = platforms;
+            _streamingSourcesModel = streamingSourcesModel;
+            _serverClient = new ModelClient(_coreData.GetManager(), new FilterConfigurator(true).Build());
             _coreData.GetManager().Register(_serverClient);
             _serverClient.SerializeAndClearChanges();
 
@@ -119,15 +131,17 @@ namespace Streamster.ClientCore.Models
         {
             await TaskHelper.GoToPool().ConfigureAwait(false);
             Streamer.Prepare();
-            await Sources.PrepareAsync();
+            await _localSources.PrepareAsync();
         }
 
         internal async Task StartAsync()
         {
             _onPatchSubscription?.Dispose();
+            _onReceiveChatSubscription?.Dispose();
             _firstPatchTcs = new TaskCompletionSource<bool>();
             var connection = _hubConnectionService.CreateConnection(OnConnectionChanged);
             _onPatchSubscription = connection.On<ProtocolJsonPatchPayload>(nameof(IConnectionHubClient.JsonPatch), p => OnPatchOnMainThread(p));
+            _onReceiveChatSubscription = connection.On<ReceiveChatMessagesData>(nameof(IConnectionHubClient.ReceiveChatMessages), p => Platforms.OnReceiveChatMessagesData(p));
 
             Log.Information("Connecting to hub");
             await _hubConnectionService.StartConnection();
@@ -160,17 +174,21 @@ namespace Streamster.ClientCore.Models
 
         private async Task InitializeAfterFirstPatchAsync()
         {
+            _coreData.ThisDevice.Name = _environment.GetDeviceName();
+
             _resourceService.Start();
+            await Vpn.StartAsync(); // Targets and Streamer depends on it
             Targets.Start();
-            Sources.Start();
+            _localSources.Start();
+            _streamingSourcesModel.Start();
             SceneEditing.Start();
             StreamSettings.Start();
-            await Vpn.StartAsync();
             Streamer.Start();
             Settings.Start();
             About.Start();
             _stateLoggerService.Start();
             Audio.Start();
+            Platforms.Start();
         }
 
         public async Task DisplayAsync(Task readyToDisplay, ClientVersion[] upperVersions, string appUpdatePath)

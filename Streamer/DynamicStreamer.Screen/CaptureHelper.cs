@@ -26,6 +26,7 @@ using System;
 using System.Runtime.InteropServices;
 using System.Runtime.InteropServices.WindowsRuntime;
 using Windows.Graphics.Capture;
+using WinRT;
 
 namespace DynamicStreamer.Screen
 {
@@ -60,33 +61,22 @@ namespace DynamicStreamer.Screen
 
         public static void SetWindow(this GraphicsCapturePicker picker, IntPtr hwnd)
         {
-            //var interop = picker.As<IInitializeWithWindow>();
-            var interop = (IInitializeWithWindow)(object)picker;
+            var interop = picker.As<IInitializeWithWindow>();
             interop.Initialize(hwnd);
         }
 
         public static GraphicsCaptureItem CreateItemForWindow(IntPtr hwnd)
         {
-            var factory = WindowsRuntimeMarshal.GetActivationFactory(typeof(GraphicsCaptureItem));
-            var interop = (IGraphicsCaptureItemInterop)factory;
-            var temp = typeof(GraphicsCaptureItem);           
+            var interop = GraphicsCaptureItem.As<IGraphicsCaptureItemInterop>();
             var itemPointer = interop.CreateForWindow(hwnd, GraphicsCaptureItemGuid);
-            var item = Marshal.GetObjectForIUnknown(itemPointer) as GraphicsCaptureItem;
-            Marshal.Release(itemPointer);
-
-            return item;
+            return MarshalInterface<GraphicsCaptureItem>.FromAbi(itemPointer);
         }
 
         public static GraphicsCaptureItem CreateItemForMonitor(IntPtr hmon)
         {
-            var factory = WindowsRuntimeMarshal.GetActivationFactory(typeof(GraphicsCaptureItem));
-            var interop = (IGraphicsCaptureItemInterop)factory;
-            var temp = typeof(GraphicsCaptureItem);         
+            var interop = GraphicsCaptureItem.As<IGraphicsCaptureItemInterop>();
             var itemPointer = interop.CreateForMonitor(hmon, GraphicsCaptureItemGuid);
-            var item = Marshal.GetObjectForIUnknown(itemPointer) as GraphicsCaptureItem;
-            Marshal.Release(itemPointer);
-
-            return item;
+            return MarshalInterface<GraphicsCaptureItem>.FromAbi(itemPointer);
         }
     }
 }

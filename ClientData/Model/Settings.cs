@@ -5,14 +5,6 @@ namespace Streamster.ClientData.Model
     {
         int TargetFilter { get; set; }
 
-        string RequestedVideo { get; set; }
-
-        string SelectedVideo { get; set; }
-
-        string RequestedAudio { get; set; }
-
-        string SelectedAudio { get; set; }
-
         int Bitrate { get; set; }
 
         int Fps { get; set; }
@@ -40,6 +32,8 @@ namespace Streamster.ClientData.Model
         RecordingFormat RecordingFormat { get; set; }
 
         string UserFeedback { get; set; }
+
+        bool ResetKeys { get; set; }
     }
 
     public enum RecordingFormat

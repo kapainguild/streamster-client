@@ -31,6 +31,22 @@ namespace Streamster.ClientCore
             }
         }
 
+        public T ValueWithComparison
+        {
+            get => _value;
+            set
+            {
+                if (!Equals(_value, value))
+                {
+                    var old = _value;
+
+                    _value = value;
+                    OnChange?.Invoke(old, _value);
+                    PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(this.Value)));
+                }
+            }
+        }
+
         public T SilentValue
         {
             get => _value;
@@ -39,6 +55,20 @@ namespace Streamster.ClientCore
                 var old = _value;
                 _value = value;
                 PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(this.Value)));
+            }
+        }
+
+        public T SilentAndCompared
+        {
+            get => _value;
+            set
+            {
+                if (!Equals(_value, value))
+                {
+                    var old = _value;
+                    _value = value;
+                    PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(this.Value)));
+                }
             }
         }
 

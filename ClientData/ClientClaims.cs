@@ -7,6 +7,8 @@ namespace Streamster.ClientData
 {
     public class ClientClaims
     {
+        public string UserId { get; set; }
+
         public int MaxBitrate { get; }
 
         public int MaxChannels { get; }
@@ -21,10 +23,14 @@ namespace Streamster.ClientData
 
         public string AppUpdatePath { get; set; }
 
+        public string DeviceType { get; set; }
+
         public bool HasVpn { get; set; }
 
         public ClientClaims(IEnumerable<Claim> claims)
         {
+            UserId = claims.FirstOrDefault(s => s.Type == "sub")?.Value;
+
             MaxBitrate = GetIntClaim(claims, ClientConstants.MaxBitrateClaim, 4000);
             MaxChannels = GetIntClaim(claims, ClientConstants.MaxChannelsClaim, 2);
             Transcoders = GetIntClaim(claims, ClientConstants.TranscodersClaim, 0, true);
@@ -35,6 +41,7 @@ namespace Streamster.ClientData
 
             IsDebug = claims.Any(s => s.Type == ClientConstants.DebugClaim);
             AppUpdatePath = claims.FirstOrDefault(s => s.Type == ClientConstants.AppUpdatePathClaim)?.Value;
+            DeviceType = claims.FirstOrDefault(s => s.Type == ClientConstants.ClientIdClaim)?.Value;
 
             var found = claims.FirstOrDefault(s => s.Type == ClientConstants.VpnClaim);
             if (found != null && int.TryParse(found.Value, out var vpnVersion))

@@ -28,12 +28,14 @@ namespace Streamster.ClientCore.Models
         public const string OutputNameStreamToCloud = "ToCloud";
         public static string StatStreamToCloud = $"X{OutputNameStreamToCloud}.";
         private readonly CoreData _coreData;
-        private readonly SourcesModel _sources;
+        private readonly LocalSourcesModel _localSources;
         private readonly ResourceService _resourceService;
         private readonly IAppEnvironment _appEnvironment;
         private readonly IWindowStateManager _windowStateManager;
         private readonly AudioModel _audioModel;
         private readonly IAppResources _appResource;
+        private readonly StreamingSourcesModel _streamingSourcesModel;
+        private readonly MainVpnModel _mainVpnModel;
         private readonly StreamerHealthCheck _healthCheck;
         private HardwareEncoderCheck _hardwareEncoderCheck;
         private ClientStreamer _mainStreamer;
@@ -50,23 +52,27 @@ namespace Streamster.ClientCore.Models
 
         public MainStreamerModel(CoreData coreData, 
             ScreenRendererModel screenRenderer, 
-            SourcesModel sources,
+            LocalSourcesModel sources,
             ResourceService resourceService,
             IAppEnvironment appEnvironment,
             IWindowStateManager windowStateManager,
             AudioModel audioModel,
-            IAppResources appResource)
+            IAppResources appResource,
+            StreamingSourcesModel streamingSourcesModel,
+            MainVpnModel mainVpnModel)
         {
             _coreData = coreData;
-            _sources = sources;
+            _localSources = sources;
             _resourceService = resourceService;
             _appEnvironment = appEnvironment;
             _windowStateManager = windowStateManager;
             _audioModel = audioModel;
             _appResource = appResource;
+            _streamingSourcesModel = streamingSourcesModel;
+            _mainVpnModel = mainVpnModel;
             ScreenRenderer = screenRenderer;
 
-            _healthCheck = new StreamerHealthCheck(coreData);
+            _healthCheck = new StreamerHealthCheck(coreData, streamingSourcesModel);
 
             Core.InitOnMain();
         }
@@ -134,16 +140,9 @@ namespace Streamster.ClientCore.Models
 
         public void RefreshStreamer()
         {
-            var settings = _coreData.Root.Settings;
-
-            if (settings.SelectedScene == null || !_coreData.Root.Scenes.TryGetValue(settings.SelectedScene, out var scene))
-            {
-                Log.Warning($"Bad scene '{settings.SelectedScene}'");
-                return;
-            }
-
+            bool doIStream = _streamingSourcesModel.TryGetCurrentScene(out var scene) && _streamingSourcesModel.IsMySceneSelected();
             // shutdown
-            if (scene.Owner == _coreData.ThisDeviceId)
+            if (doIStream)
             {
                 if (_coreData.ThisDevice.RequireOutgest)
                 {
@@ -168,7 +167,7 @@ namespace Streamster.ClientCore.Models
             }
 
             // start
-            if (scene.Owner == _coreData.ThisDeviceId)
+            if (doIStream)
             {
                 if (_mainStreamer == null)
                     _mainStreamer = new ClientStreamer("main", _hardwareEncoderCheck);
@@ -210,7 +209,7 @@ namespace Streamster.ClientCore.Models
                 var outgestUrl = GetIngestOutgestUrl(outgest.Data.Output);
                 //outgestUrl = outgestUrl.Replace("60", "66");
                 inputs = new[] { new VideoInputTrunkConfig("0", new VideoInputConfigFull(
-                    new InputSetup(outgest.Data.Type, outgestUrl, outgest.Data.Options, null, null, null, 2, AdjustInputType.None, true, false)), 
+                    new InputSetup(outgest.Data.Type, outgestUrl, outgest.Data.Options, null, null, null, null, 2, AdjustInputType.None, true, false)), 
                     null, PositionRect.Full, PositionRect.Full, true, 0) };
             }
 
@@ -254,7 +253,7 @@ namespace Streamster.ClientCore.Models
 
         private OutputTrunkConfig RebuildStreamingOutput()
         {
-            var ingest = _coreData.Root.Ingests.Values.FirstOrDefault();
+            var ingest = _coreData.Root.Ingests.Values.FirstOrDefault(s => s.Owner == _coreData.ThisDeviceId);
             bool startStream = ShouldStartStream();
 
             if (startStream && ingest != null)
@@ -264,7 +263,8 @@ namespace Streamster.ClientCore.Models
                 return new OutputTrunkConfig(OutputNameStreamToCloud, new OutputSetup { 
                     Type = ingest.Data.Type, 
                     Output = ingestUrl, 
-                    Options = ingest.Data.Options 
+                    Options = ingest.Data.Options,
+                    TimeoutMs = 20000, // 20 seconds before reopen
                 }, true);
             }
             return null;
@@ -284,6 +284,7 @@ namespace Streamster.ClientCore.Models
                     {
                         Type = format,
                         Output = output,
+                        TimeoutMs = 0, // no timeout check
                         Options = ""
                     }, false);
                 }
@@ -343,7 +344,7 @@ namespace Streamster.ClientCore.Models
             }
             else if (s.Source.DeviceName != null)
             {
-                var device = _sources.GetLocalAudioDevice(s.Source.DeviceName);
+                var device = _localSources.GetLocalAudioDevice(s.Source.DeviceName);
                 if (device != null)
                 {
                     var opts = DShowOptionsSelector.GetAudioOptions(device);
@@ -412,7 +413,7 @@ namespace Streamster.ClientCore.Models
 
         private VideoInputConfigBase RebuildInputSource_Device(string id, SceneItemSourceDevice device, ISceneItem item, StreamerRebuildContext rebuildContext)
         {
-            var localDevice = _sources.GetLocalVideoDevice(device.DeviceName);
+            var localDevice = _localSources.GetLocalVideoDevice(device.DeviceName);
             if (localDevice != null)
             {
                 var options = DShowOptionsSelector.GetVideoOptions(localDevice, _coreData.Settings.Fps, _coreData.Settings.Resolution, item);
@@ -466,7 +467,7 @@ namespace Streamster.ClientCore.Models
 
         private VideoInputConfigBase RebuildInputSource_Capture(string id, SceneItemSourceCapture capture, bool isWindow, StreamerRebuildContext rebuildContext)
         {
-            var ci = _sources.GetOrCreateCaptureItem(capture.Source, isWindow);
+            var ci = _localSources.GetOrCreateCaptureItem(capture.Source, isWindow);
 
             if (ci?.Wrapped != null)
             {
@@ -528,8 +529,10 @@ namespace Streamster.ClientCore.Models
             if (requested)
             {
                 if (_coreData.Settings.NoStreamWithoutVpn && 
-                    _coreData.ThisDevice.VpnState != VpnState.Connected)
+                    _coreData.ThisDevice.VpnState != VpnState.Connected &&
+                    _mainVpnModel.IsEnabled)
                 {
+                    Log.Information("Stream to cloud is not started due to NoStreamWithoutVpn");
                     return false;
                 }
             }

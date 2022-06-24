@@ -25,6 +25,7 @@
 using System;
 using System.Runtime.InteropServices;
 using Windows.Graphics.DirectX.Direct3D11;
+using WinRT;
 
 namespace DynamicStreamer.Screen
 {
@@ -81,22 +82,11 @@ namespace DynamicStreamer.Screen
 
         public static IDirect3DDevice CreateDirect3DDeviceFromSharpDXDevice(SharpDX.Direct3D11.Device d3dDevice)
         {
-            IDirect3DDevice device = null;
-
-            // Acquire the DXGI interface for the Direct3D device.
-            using (var dxgiDevice = d3dDevice.QueryInterface<SharpDX.DXGI.Device3>())
+            if (CreateDirect3D11DeviceFromDXGIDevice(d3dDevice.NativePointer, out IntPtr pUnknown) == 0)
             {
-                // Wrap the native device using a WinRT interop object.
-                uint hr = CreateDirect3D11DeviceFromDXGIDevice(dxgiDevice.NativePointer, out IntPtr pUnknown);
-
-                if (hr == 0)
-                {
-                    device = Marshal.GetObjectForIUnknown(pUnknown) as IDirect3DDevice;
-                    Marshal.Release(pUnknown);
-                }
+                return WinRT.MarshalInterface<IDirect3DDevice>.FromAbi(pUnknown);
             }
-
-            return device;
+            return null;
         }
 
         public static IDirect3DSurface CreateDirect3DSurfaceFromSharpDXTexture(SharpDX.Direct3D11.Texture2D texture)
@@ -121,7 +111,7 @@ namespace DynamicStreamer.Screen
 
         public static SharpDX.Direct3D11.Device CreateSharpDXDevice(IDirect3DDevice device)
         {
-            var access = (IDirect3DDxgiInterfaceAccess)device;
+            var access = device.As<IDirect3DDxgiInterfaceAccess>();
             var d3dPointer = access.GetInterface(ID3D11Device);
             var d3dDevice = new SharpDX.Direct3D11.Device(d3dPointer);
             return d3dDevice;
@@ -129,7 +119,7 @@ namespace DynamicStreamer.Screen
 
         public static SharpDX.Direct3D11.Texture2D CreateSharpDXTexture2D(IDirect3DSurface surface)
         {
-            var access = (IDirect3DDxgiInterfaceAccess)surface;
+            var access = surface.As<IDirect3DDxgiInterfaceAccess>();
             var d3dPointer = access.GetInterface(ID3D11Texture2D);
             var d3dSurface = new SharpDX.Direct3D11.Texture2D(d3dPointer);
             return d3dSurface;

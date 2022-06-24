@@ -29,10 +29,10 @@ namespace DeltaModel.Test
             var b3 = new DeltaModelBuilder();
             _manager3 = b3.Build<ITestModel>();
 
-            _modelClient12 = new ModelClient { Filter = new FilterConfigurator(true).Build() };
-            _modelClient21 = new ModelClient { Filter = new FilterConfigurator(true).Build() };
-            _modelClient23 = new ModelClient { Filter = new FilterConfigurator(true).Build() };
-            _modelClient32 = new ModelClient { Filter = new FilterConfigurator(true).Build() };
+            _modelClient12 = new ModelClient(_manager1, new FilterConfigurator(true).Build());
+            _modelClient21 = new ModelClient(_manager2, new FilterConfigurator(true).Build());
+            _modelClient23 = new ModelClient(_manager2, new FilterConfigurator(true).Build());
+            _modelClient32 = new ModelClient(_manager3, new FilterConfigurator(true).Build());
 
             _manager1.Register(_modelClient12);
 

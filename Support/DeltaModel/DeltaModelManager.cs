@@ -124,7 +124,7 @@ namespace Clutch.DeltaModel
             throw new InvalidOperationException($"Cannot get id for {obj} ({obj == null})");
         }
 
-        public void Register(ModelClient client)
+        public string Register(ModelClient client)
         {
             lock (this)
             {
@@ -136,6 +136,8 @@ namespace Clutch.DeltaModel
                     Type = ChangeType.Replace,
                     Serialized = Serialize(_root, client.Filter)
                 });
+
+                return client.SerializeAndClearChanges();
             }
         }
 

@@ -4,7 +4,7 @@
                     xmlns:models="clr-namespace:Streamster.ClientCore.Models;assembly=Streamster.ClientCore"
                     xmlns:support="clr-namespace:Streamster.ClientApp.Win.Support" 
                     xmlns:materialDesign="http://materialdesigninxaml.net/winfx/xaml/themes"
-                    xmlns:controlzEx="clr-namespace:ControlzEx;assembly=MaterialDesignThemes.Wpf" xmlns:controls="clr-namespace:Streamster.ClientApp.Win.Controls">
+                    xmlns:controls="clr-namespace:Streamster.ClientApp.Win.Controls">
     <ResourceDictionary.MergedDictionaries>
         <ResourceDictionary Source="Common.xaml"/>
         <ResourceDictionary Source="OnScreenStyles.xaml"/>
@@ -115,7 +115,7 @@
                                 <materialDesign:PackIcon Kind="DotsVertical" Height="24" Width="24"/>
                             </materialDesign:ToggleButtonAssist.OnContent>
                         </ToggleButton>
-                        <controlzEx:PopupEx x:Name="PART_Popup" 
+                        <materialDesign:PopupEx x:Name="PART_Popup" 
                                           IsOpen="False"
                                           CustomPopupPlacementCallback="{Binding RelativeSource={RelativeSource TemplatedParent}, Path=PopupPlacementMethod}"
                                           PlacementTarget="{Binding ElementName=PART_Toggle}"
@@ -130,7 +130,7 @@
                                                 Opacity="0" x:Name="PART_PopupContentControl">
                                 </ContentControl>
                             </Grid>
-                        </controlzEx:PopupEx>
+                        </materialDesign:PopupEx>
                     </Grid>
                     <ControlTemplate.Triggers>
                         <Trigger Property="IsPopupOpen" Value="True">
@@ -305,6 +305,10 @@
         <DataTemplate.Triggers>
             <DataTrigger Binding="{Binding (support:ResponsiveHost.Calculation).Values.RightHideSliders, ElementName=activating}" Value="True">
                 <Setter TargetName="ctrl" Property="Visibility" Value="Collapsed"/>
+            </DataTrigger>
+
+            <DataTrigger Binding="{Binding Visible.Value}" Value="False">
+                <Setter TargetName="activating" Property="Visibility" Value="Collapsed"/>
             </DataTrigger>
 
             <DataTrigger Binding="{Binding Parent.AudioSources.Count}" Value="0">

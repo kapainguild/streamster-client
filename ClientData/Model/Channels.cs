@@ -25,6 +25,12 @@ namespace Streamster.ClientData.Model
         string Timer { get; set; }
 
         string TranscoderId { get; set; }
+
+        TargetMode TargetMode { get; set; }
+
+        AutoLoginState AutoLoginState { get; set; }
+
+        bool Temporary { get; set; }
     }
 
     public enum ChannelState
@@ -33,5 +39,22 @@ namespace Streamster.ClientData.Model
         RunningOk,
         RunningInitError,
         RunningConnectError,
+        RunningNotAuthenticated
+    }
+
+    public enum TargetMode
+    {
+        ManualKey,
+        AutoLogin
+    }
+
+    public enum AutoLoginState
+    {
+        Unknown,
+        InProgress,
+        Authenticated,
+        NotAuthenticated,
+        KeyObtained,
+        KeyNotFound
     }
 }

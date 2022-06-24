@@ -81,9 +81,9 @@ namespace Streamster.ClientApp.Win.Services
 #endif
                     _coreData.RunOnMainThread(() => SetLoad(load, processes));
                 }
-                catch(Exception e)
+                catch
                 {
-                    Log.Warning(e, $"Get CPU load failed");
+                    Log.Warning($"Get CPU load failed");
                 }
                 await Task.Delay(1000, _cts.Token);
             }

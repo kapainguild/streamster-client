@@ -1,6 +1,7 @@
 ﻿using Clutch.DeltaModel;
 using Streamster.ClientCore.Cross;
 using Streamster.ClientCore.Services;
+using Streamster.ClientCore.Support;
 using Streamster.ClientData.Model;
 using System;
 using System.Collections.ObjectModel;
@@ -40,6 +41,10 @@ namespace Streamster.ClientCore.Models
 
         public Property<TrascodingComboboxValue> OriginalFpsCurrent { get; } = new Property<TrascodingComboboxValue>();
         public Property<TrascodingComboboxValue> OriginalResolutionCurrent { get; } = new Property<TrascodingComboboxValue>();
+
+        public Property<string> TranscodedDescription { get; } = new Property<string>();
+
+        public Property<string> OriginalDescription { get; } = new Property<string>();
 
         public string TariffUrl { get; private set; }
 
@@ -86,7 +91,11 @@ namespace Streamster.ClientCore.Models
             if (claims.TranscoderOutputLimit.Height < transcoder.Resolution.Height)
                 transcoder.Resolution = Resolutions[0];
 
-            MaxResolution = $"Original stream's resolution exceeds maximum allowed {Resolutions[0].Width}x{Resolutions[0].Height}. TRANSCODING WILL NOT WORK.";
+            var maxInputResolution = OriginalResolutions.FirstOrDefault(s => s.Good)?.Value as Resolution;
+
+            var maxInputResolutionString = maxInputResolution != null ? $"{maxInputResolution.Width}x{maxInputResolution.Height}" : "1920:1080";
+
+            MaxResolution = $"Original stream's resolution exceeds maximum allowed {maxInputResolutionString}. TRANSCODING WILL NOT WORK.";
             MaxFps = $"Original stream's FPS (frames per second) exceeds maximum allowed {claims.TranscoderInputLimit.Fps}. TRANSCODING WILL NOT WORK.";
 
             OriginalFpsCurrent.OnChange = (a, b) =>
@@ -127,6 +136,9 @@ namespace Streamster.ClientCore.Models
 
             OriginalFpsCurrent.SilentValue = OriginalFpss.FirstOrDefault(s => (int)s.Value == settings.Fps);
             OriginalResolutionCurrent.SilentValue = OriginalResolutions.FirstOrDefault(s => ((Resolution)s.Value).Equals(settings.Resolution));
+
+            TranscodedDescription.Value = $"{transcoder.Resolution.Width}x{transcoder.Resolution.Height}x{transcoder.Fps}fps @ {transcoder.Bitrate}kbps";
+            OriginalDescription.Value = $"{settings.Resolution.Width}x{settings.Resolution.Height}x{settings.Fps}fps @ {settings.Bitrate}kbps";
 
             TranscodingMessageType message = TranscodingMessageType.None;
             if (!TranscodingEnabled)
@@ -174,12 +186,6 @@ namespace Streamster.ClientCore.Models
                 return false;
 
             return channel.TranscoderId == _transId;
-        }
-
-        public TranscodingModel SetCurrent(ChannelModel channelModel)
-        {
-
-            return this;
         }
 
         internal void SetTranscoding(IChannel source, bool val)

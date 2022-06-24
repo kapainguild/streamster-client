@@ -1,16 +1,18 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFramework>netcoreapp3.1</TargetFramework>
+	<TargetFramework>net6.0-windows10.0.22000.0</TargetFramework>
     <LangVersion>9.0</LangVersion>
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <LangVersion>10.0</LangVersion>
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|AnyCPU'">
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <LangVersion>10.0</LangVersion>
   </PropertyGroup>
 
   <ItemGroup>
@@ -55,6 +57,7 @@
   <ItemGroup>
     <ProjectReference Include="..\DynamicStreamer.Cef\DynamicStreamer.Cef.csproj" />
     <ProjectReference Include="..\DynamicStreamer.Extension\DynamicStreamer.Extension.csproj" />
+    <ProjectReference Include="..\DynamicStreamer.Rtmp\DynamicStreamer.Rtmp.csproj" />
     <ProjectReference Include="..\DynamicStreamer.Screen\DynamicStreamer.Screen.csproj" />
   </ItemGroup>
 

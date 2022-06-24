@@ -2,6 +2,7 @@
 using Clutch.DeltaModel;
 using Streamster.ClientCore.Logging;
 using Streamster.ClientCore.Models;
+using Streamster.ClientCore.Models.Chats;
 using Streamster.ClientCore.Services;
 
 namespace Streamster.ClientCore
@@ -32,9 +33,8 @@ namespace Streamster.ClientCore
                 .Add<MainTargetsModel>()
                 .Add<MainSettingsModel>()
                 .Add<MainStreamerModel>()
-                .Add<MainFiltersModel>()
                 .Add<MainIndicatorsModel>()
-                .Add<SourcesModel>()
+                .Add<LocalSourcesModel>()
                 .Add<ScreenRendererModel>()
                 .Add<MainAboutModel>()
                 .Add<MainVpnModel>()
@@ -42,7 +42,10 @@ namespace Streamster.ClientCore
                 .Add<SceneEditingModel>()
                 .Add<AudioModel>()
                 .Add<StreamSettingsModel>()
-                .Add<TranscodingModel>();
+                .Add<TranscodingModel>()
+                .Add<PlatformsModel>()
+                .Add<ExternalEncoderModel>()
+                .Add<StreamingSourcesModel>();
         }
     }
 }

@@ -13,6 +13,7 @@
         <ResourceDictionary Source="MainViewIndicators.xaml"/>
         <ResourceDictionary Source="MainViewAbout.xaml"/>
         <ResourceDictionary Source="EditingView.xaml"/>
+        <ResourceDictionary Source="Chats/ChatsView.xaml"/>
     </ResourceDictionary.MergedDictionaries>
 
     <DataTemplate DataType="{x:Type models:ConnectionFailedModel}">
@@ -151,71 +152,137 @@
         </DataTemplate.Triggers>
     </DataTemplate>
 
+    <Style TargetType="{x:Type ListBoxItem}" x:Key="SourceSelectionContainerStyle" BasedOn="{StaticResource {x:Type ListBoxItem}}">
+        <Style.Triggers>
+            <Trigger Property="IsSelected" Value="True">
+                <Setter Property="Background" Value="{DynamicResource PrimaryHueMidBrush}"/>
+            </Trigger>
+        </Style.Triggers>
+    </Style>
+           
+
     <DataTemplate DataType="{x:Type models:MainModel}" >
         <Border BorderBrush="#1883D7" BorderThickness="1" x:Name="root" Opacity="0">
-            <support:ResponsiveHost x:Name="responsiveHost" Focusable="False" LayoutType="{Binding StreamSettings.SelectedLayout.Value}"
-                                    ChannelCount="{Binding CoreData.Root.Channels.Values.Count}">
                 <Grid>
                     <materialDesign:DialogHost Style="{StaticResource StreamsterDialogHost}" CloseOnClickAway="False"
                                                IsOpen="{Binding IsDialogShown.Value}" DialogContent="{Binding DialogContent.Value}">
-                        <materialDesign:DialogHost Style="{StaticResource StreamsterDialogHost}" CloseOnClickAway="True">
+                        <materialDesign:DialogHost Style="{StaticResource StreamsterDialogHost}" CloseOnClickAway="True"
+                                                   support:Behaviors.IsCloseAware="True">
                             <materialDesign:DrawerHost IsRightDrawerOpen="{Binding IsChecked, ElementName=SettingsToggle}" materialDesign:ShadowAssist.ShadowDepth="Depth0">
                                 <materialDesign:DrawerHost IsRightDrawerOpen="{Binding IsChecked, ElementName=AboutToggle}" materialDesign:ShadowAssist.ShadowDepth="Depth0">
-                                    <support:ResponsivePanel x:Name="responsivePanel">
-                                        <Border support:ResponsivePanel.ResponsiveType="ScreenArea" Background="Black">
-                                        </Border>
-                                        <Border support:ResponsivePanel.ResponsiveType="Screen" WindowChrome.IsHitTestVisibleInChrome="True" support:ResizableWindowBehavior.WindowMoveEnabled="{Binding SceneEditing.DragIsNotRequired.Value}">
-                                            <ContentControl Focusable="False" Content="{Binding}" ContentTemplate="{StaticResource MainViewScreen}"/>
-                                        </Border>
-                                        
-                                        <Border support:ResponsivePanel.ResponsiveType="ScreenLeftSide">
-                                            <ContentControl x:Name="indicators" Focusable="False" Content="{Binding Indicators}" ContentTemplate="{StaticResource NormalSizeIndicators}"/>
-                                        </Border>
-                                        <Border support:ResponsivePanel.ResponsiveType="ScreenRightSide">
-                                            <DockPanel Margin="0,45,0,0">
-                                                <StackPanel x:Name="rightButtons"  DockPanel.Dock="Top" VerticalAlignment="Top" HorizontalAlignment="Right" Margin="0,0,6,0" >
-                                                    <ToggleButton  x:Name="SettingsToggle" Style="{StaticResource MaterialDesignIconForegroundButton}" ToolTip="Settings">
-                                                        <materialDesign:PackIcon Kind="Cog" Height="32" Width="32" />
-                                                    </ToggleButton>
-                                                    <ToggleButton Margin="0,5,0,0" x:Name="AboutToggle" Style="{StaticResource MaterialDesignIconForegroundButton}" ToolTip="About Streamster">
-                                                        <materialDesign:PackIcon Kind="InformationOutline" Height="32" Width="32" />
-                                                    </ToggleButton>
-                                                </StackPanel>
-                                                <ContentControl Focusable="False" Content="{Binding Audio}" ContentTemplate="{StaticResource AudioControl}"/>
-                                            </DockPanel>
-                                        </Border>
-                                        <Border x:Name="MainArea" support:ResponsivePanel.ResponsiveType="MainArea" Background="#202020">
-                                            <Grid>
-                                                <DockPanel x:Name="mainAreaRoot">
-                                                    <ContentControl DockPanel.Dock="Top" Focusable="False" ContentTemplate="{StaticResource MainViewControls}" Content="{Binding StreamSettings}"/>
-                                                    <TextBlock x:Name="promo" DockPanel.Dock="Top" HorizontalAlignment="Center" Margin="0,-2,0,0" FontWeight="Normal" FontSize="12">
-                                                        <Hyperlink NavigateUri="{Binding StreamSettings.PromoUrl.Value}" support:HyperlinkExtensions.IsExternal="true" Style="{StaticResource hlStyle}">
-                                                           <Run Text="{Binding StreamSettings.Promo.Value}"/> 
-                                                        </Hyperlink>
-                                                    </TextBlock>
-                                                    <ContentControl Focusable="False" ContentTemplate="{StaticResource MainViewTargets}" Content="{Binding Targets}"/>
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*" MinWidth="300"/>
+                                        <ColumnDefinition x:Name="splitterColumn" Width="8"/>
+                                        <ColumnDefinition x:Name="platformsColumn" Width="*" />
+                                    </Grid.ColumnDefinitions>
+                                    <support:ResponsiveHost x:Name="responsiveHost" Grid.ColumnSpan="3"
+                                                            Focusable="False" LayoutType="{Binding StreamSettings.SelectedLayout.Value}"
+                                                    ChannelCount="{Binding CoreData.Root.Channels.Values.Count}">
+
+                                        <support:ResponsivePanel x:Name="responsivePanel">
+                                            <Border support:ResponsivePanel.ResponsiveType="ScreenArea" Background="Black">
+                                            </Border>
+                                            <Border support:ResponsivePanel.ResponsiveType="Screen" WindowChrome.IsHitTestVisibleInChrome="True" support:ResizableWindowBehavior.WindowMoveEnabled="{Binding SceneEditing.DragIsNotRequired.Value}">
+                                                <ContentControl Focusable="False" Content="{Binding}" ContentTemplate="{StaticResource MainViewScreen}"/>
+                                            </Border>
+
+                                            <Border support:ResponsivePanel.ResponsiveType="ScreenLeftSide">
+                                                <ContentControl x:Name="indicators" Focusable="False" Content="{Binding Indicators}" ContentTemplate="{StaticResource NormalSizeIndicators}"/>
+                                            </Border>
+                                            <Border support:ResponsivePanel.ResponsiveType="ScreenRightSide">
+                                                <DockPanel Margin="0,45,0,0">
+                                                    <StackPanel x:Name="rightButtons"  DockPanel.Dock="Top" VerticalAlignment="Top" HorizontalAlignment="Right" Margin="0,0,6,0" >
+                                                        <ToggleButton  x:Name="SettingsToggle" Style="{StaticResource MaterialDesignIconForegroundButton}" ToolTip="Settings"
+                                                                       ToolTipService.Placement="Left">
+                                                            <materialDesign:PackIcon Kind="Cog" Height="32" Width="32" />
+                                                        </ToggleButton>
+                                                        <ToggleButton Margin="0,5,0,0" x:Name="AboutToggle" Style="{StaticResource MaterialDesignIconForegroundButton}" ToolTip="About Streamster"
+                                                                      ToolTipService.Placement="Left">
+                                                            <materialDesign:PackIcon Kind="InformationOutline" Height="32" Width="32" />
+                                                        </ToggleButton>
+
+                                                        <ToggleButton Margin="0,5,0,0" x:Name="ChatToggle" Style="{StaticResource MaterialDesignIconForegroundButton}" ToolTip="Chats"
+                                                                      ToolTipService.Placement="Left"
+                                                                      IsChecked="{Binding Platforms.IsChatsOpened.Value}">
+                                                            <materialDesign:PackIcon x:Name="ChatToggleIcon" Kind="MessageText" Height="32" Width="32" />
+                                                        </ToggleButton>
+
+                                                        <materialDesign:PopupBox x:Name="SourceSelection" 
+                                                                                 PlacementMode="BottomAndAlignRightEdges"
+                                                                                 ToolTipService.Placement="Left"
+                                                                                 PopupMode="Click"
+                                                                                 Margin="0,10,0,5"
+                                                                                 Width="32"
+                                                                                 Height="32"
+                                                                                 HorizontalAlignment="Center"
+                                                                                 ToolTip="Select Source" Visibility="Visible">      
+                                                            <materialDesign:PopupBox.ToggleContent>
+                                                                <materialDesign:PackIcon Width="32" Height="32" Kind="SourceRepository" Foreground="White"/>
+                                                            </materialDesign:PopupBox.ToggleContent>
+                                                            <ListBox ItemsSource="{Binding StreamingSources.Sources}"
+                                                                     SelectedItem="{Binding StreamingSources.SelectedSource.Value}"
+                                                                     ItemContainerStyle="{StaticResource SourceSelectionContainerStyle}">
+                                                                <ListBox.ItemTemplate>
+                                                                    <DataTemplate DataType="{x:Type models:StreamingSource}">
+                                                                        <StackPanel Orientation="Horizontal">
+                                                                            <materialDesign:PackIcon x:Name="onlineIcon" Margin="6,0,10,0" Kind="Circle" Foreground="#aaaaaa"/>
+                                                                            <TextBlock Text="{Binding Name}"/>
+                                                                            <TextBlock Margin="10,0" Text="{Binding State.Value}"/>
+                                                                        </StackPanel>
+                                                                        <DataTemplate.Triggers>
+                                                                            <DataTrigger Binding="{Binding IsOnline}" Value="True">
+                                                                                <Setter TargetName="onlineIcon" Property="Foreground" Value="#40FF40"/>
+                                                                            </DataTrigger>
+                                                                        </DataTemplate.Triggers>
+                                                                    </DataTemplate>
+                                                                </ListBox.ItemTemplate>
+                                                            </ListBox>
+                                                        </materialDesign:PopupBox>
+                                                    </StackPanel>
+                                                    <ContentControl Focusable="False" Content="{Binding Audio}" ContentTemplate="{StaticResource AudioControl}"/>
                                                 </DockPanel>
+                                            </Border>
+                                            <Border x:Name="MainArea" support:ResponsivePanel.ResponsiveType="MainArea" Background="#202020">
+                                                <Grid>
+                                                    <DockPanel x:Name="mainAreaRoot">
+                                                        <ContentControl DockPanel.Dock="Top" Focusable="False" ContentTemplate="{StaticResource MainViewControls}" Content="{Binding StreamSettings}"/>
+                                                        <TextBlock x:Name="promo" DockPanel.Dock="Top" HorizontalAlignment="Center" 
+                                                                   Margin="0,0,0,0" FontWeight="Normal" FontSize="12">
+                                                            <Hyperlink NavigateUri="{Binding StreamSettings.PromoUrl.Value}" support:HyperlinkExtensions.IsExternal="true" Style="{StaticResource hlStyle}">
+                                                               <Run Text="{Binding StreamSettings.Promo.Value}"/> 
+                                                            </Hyperlink>
+                                                        </TextBlock>
+                                                        <ContentControl Focusable="False" ContentTemplate="{StaticResource MainViewTargets}" Content="{Binding Targets}"/>
+                                                    </DockPanel>
 
-                                                <ContentControl Focusable="False" Content="{Binding TransientMessage}" ContentTemplate="{StaticResource MainTransientMessage}" HorizontalAlignment="Center" VerticalAlignment="Bottom" Margin="0,0,0,0"/>
+                                                    <ContentControl Focusable="False" Content="{Binding TransientMessage}" ContentTemplate="{StaticResource MainTransientMessage}" HorizontalAlignment="Center" VerticalAlignment="Bottom" Margin="0,0,0,0"/>
 
-                                            </Grid>
-                                        </Border>
+                                                </Grid>
+                                            </Border>
 
-                                        <ContentControl support:ResponsivePanel.ResponsiveType="MainEditing" Focusable="False" Content="{Binding SceneEditing}" ContentTemplate="{StaticResource BackgroundOfEditing}"/>
+                                            <ContentControl support:ResponsivePanel.ResponsiveType="MainEditing" Focusable="False" Content="{Binding SceneEditing}" ContentTemplate="{StaticResource BackgroundOfEditing}"/>
 
-                                        <ContentControl support:ResponsivePanel.ResponsiveType="Editing" Focusable="False" Content="{Binding SceneEditing}" ContentTemplate="{StaticResource MainEditing}"/>
+                                            <ContentControl support:ResponsivePanel.ResponsiveType="Editing" Focusable="False" Content="{Binding SceneEditing}" ContentTemplate="{StaticResource MainEditing}"/>
 
-                                        <Border support:ResponsivePanel.ResponsiveType="Notifications" Background="Black"></Border>
+                                            <Border support:ResponsivePanel.ResponsiveType="Notifications" Background="Black"></Border>
 
-                                    </support:ResponsivePanel>
-                                    <materialDesign:DrawerHost.RightDrawerContent>
+                                        </support:ResponsivePanel>
+                                    </support:ResponsiveHost>
+
+                                    <GridSplitter x:Name="splitter" Grid.Column="1" ResizeDirection="Columns" Background="#010101"
+                                                  Visibility="Collapsed"
+                                                  HorizontalAlignment="Stretch" VerticalAlignment="Stretch"/>
+                                    <ContentControl x:Name="platforms" Grid.Column="2" Focusable="False" Content="{Binding Platforms}" Visibility="Collapsed"/>
+                                </Grid>
+                                <materialDesign:DrawerHost.RightDrawerContent>
                                         <Border Width="400">
                                             <DockPanel Margin="10,35,1,10">
                                                 <DockPanel DockPanel.Dock="Top">
                                                     <ToggleButton DockPanel.Dock="Left" Style="{StaticResource MaterialDesignIconForegroundButton}" 
                                                                   IsChecked="{Binding IsChecked, ElementName=AboutToggle, Converter={StaticResource NotConverter}}"
                                                                   ToolTip="Close the panel">
-                                                        <materialDesign:PackIcon Kind="ArrowRight" Height="32" Width="32" />
+                                                    <materialDesign:PackIcon Kind="ArrowRight" Height="32" Width="32" />
                                                     </ToggleButton>
                                                     <TextBlock Margin="0,0,80,3" VerticalAlignment="Center" HorizontalAlignment="Center" 
                                                                Text="About" Style="{StaticResource MaterialDesignHeadline5TextBlock}"/>
@@ -251,15 +318,33 @@
                         <ContentControl HorizontalAlignment="Right" Focusable="False" Content="{Binding Root.WindowStateManager.Model}"/>
                     </Grid>
                 </Grid>
-            </support:ResponsiveHost>
+            
         </Border>
 
         <DataTemplate.Triggers>
+            <DataTrigger Binding="{Binding Platforms.IsChatsOpened.Value}" Value="True">
+                <Setter TargetName="responsiveHost" Property="Grid.ColumnSpan" Value="1"/>
+                <Setter TargetName="splitter" Property="Visibility" Value="Visible"/>
+                <Setter TargetName="platforms" Property="Visibility" Value="Visible"/>
+                <Setter TargetName="ChatToggle" Property="Visibility" Value="Collapsed"/>
+                <Setter TargetName="platformsColumn" Property="MinWidth" Value="300"/>
+            </DataTrigger>
             <DataTrigger Binding="{Binding StreamSettings.SelectedLayout.Value}" Value="ScreenOnly"> <!--This is required to correctly switch between layouts-->
                 <Setter TargetName="MainArea" Property="Visibility" Value="Collapsed"/>
             </DataTrigger>
+
+            <DataTrigger Binding="{Binding Platforms.ChatsEnabled}" Value="False">
+                <Setter TargetName="ChatToggle" Property="Visibility" Value="Collapsed"/>
+            </DataTrigger>
+            
             <DataTrigger Binding="{Binding (support:ResponsiveHost.Calculation).Values.RightHideInfo, ElementName=responsiveHost}" Value="True">
                 <Setter TargetName="AboutToggle" Property="Visibility" Value="Collapsed"/>
+                <Setter TargetName="ChatToggle" Property="Visibility" Value="Collapsed"/>
+                <Setter TargetName="SourceSelection" Property="Visibility" Value="Collapsed"/>
+            </DataTrigger>
+
+            <DataTrigger Binding="{Binding StreamingSources.SourcesShown.Value}" Value="False">
+                <Setter TargetName="SourceSelection" Property="Visibility" Value="Collapsed"/>
             </DataTrigger>
 
             <DataTrigger Binding="{Binding (support:ResponsiveHost.Calculation).Values.RightHideSettings, ElementName=responsiveHost}" Value="True">
@@ -271,8 +356,11 @@
             </DataTrigger>
 
             <DataTrigger Binding="{Binding (support:ResponsiveHost.Calculation).Values.HidePromo, ElementName=responsiveHost}" Value="True">
-                <Setter TargetName="promo" Property="Visibility" Value="Hidden"/>
-                <Setter TargetName="promo" Property="Height" Value="5"/>
+                <Setter TargetName="promo" Property="Visibility" Value="Collapsed"/>
+            </DataTrigger>
+
+            <DataTrigger Binding="{Binding StreamSettings.Promo.Value}" Value="{x:Null}">
+                <Setter TargetName="promo" Property="Visibility" Value="Collapsed"/>
             </DataTrigger>
 
             <DataTrigger Binding="{Binding (support:ResponsiveHost.Calculation).Values.IndicatorsHorizontal, ElementName=responsiveHost}" Value="True">

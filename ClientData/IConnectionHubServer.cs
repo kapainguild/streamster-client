@@ -10,10 +10,21 @@ namespace Streamster.ClientData
         Task JsonPatch(ProtocolJsonPatchPayload payload);
 
         Task Logs(ProtocolLogPayload payload);
+
+        Task SendChatMessage(ChatMessageToSend msg);
     }
 
     public class ProtocolLogPayload
     {
         public string[] Logs { get; set; }
     }
+
+
+    public class ChatMessageToSend
+    {
+        public string ChatId { get; set; }
+
+        public string Msg { get; set; }
+    }
+
 }

@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.Linq;
 using System.Runtime.InteropServices;
 
@@ -13,6 +12,8 @@ namespace DynamicStreamer.Contexts
 
         public string Options { get; set; }
 
+        public int TimeoutMs { get; set; } // 0 - no timeout check
+
         public OutputStreamProperties[] OutputStreamProps { get; set; }
 
         public override bool Equals(object obj)
@@ -22,6 +23,7 @@ namespace DynamicStreamer.Contexts
                 return Type == setup.Type &&
                    Output == setup.Output &&
                    Options == setup.Options &&
+                   TimeoutMs == setup.TimeoutMs &&
                    OutputStreamProps.SequenceEqual(setup.OutputStreamProps);
             }
             return false;
@@ -39,6 +41,9 @@ namespace DynamicStreamer.Contexts
         private IntPtr _handle;
         private ReadInterruptCallbackFunction _readInterruptCallbackFunction;
         private bool _interrupted;
+        private DateTime _startOperationTime = DateTime.MaxValue;
+        private int _timeoutMs = 0;
+        private string _title = "Unknown";
 
         private bool _inOpenOrRead = false;
 
@@ -58,6 +63,7 @@ namespace DynamicStreamer.Contexts
         {
             _readInterruptCallbackFunction = new ReadInterruptCallbackFunction(OnReadInterruptCallback);
             _inOpenOrRead = true;
+            _timeoutMs = setup.TimeoutMs;
             int res = OutputContext_Open(
                 _handle,
                 Core.StringToBytes(setup.Type),
@@ -68,29 +74,44 @@ namespace DynamicStreamer.Contexts
                 Marshal.GetFunctionPointerForDelegate(_readInterruptCallbackFunction));
             IsOpened = res >= 0;
             _inOpenOrRead = false;
+            _title = $"({setup.Type} {setup.Output})";
 
-            Core.Checked(res, "Open output failed");
+            Core.Checked(res, $"Open output failed {_title}");
         }
 
         private int OnReadInterruptCallback()
         {
-            //note.  it is called from Open and from Read and from Write_trailer!
-            if (_interrupted && _inOpenOrRead)
-                return 1;
+            if (_inOpenOrRead) //Note.  it is called from Open and from Read and from Write_trailer!
+            {
+                if (_interrupted)
+                    return 1;
+
+                if (_timeoutMs > 0 && (DateTime.UtcNow - _startOperationTime).TotalMilliseconds > _timeoutMs)
+                {
+                    Core.LogError($"Long write (> {_timeoutMs}ms) detected for {_title}");
+                    return 1;
+                }
+            }
             return 0;
         }
 
         public ErrorCodes Write(Packet packet, int stream)
         {
             _inOpenOrRead = true;
+            _startOperationTime = DateTime.UtcNow;
             var res = OutputContext_Write(_handle, packet.Handle, stream);
+            _startOperationTime = DateTime.MaxValue;
             _inOpenOrRead = false;
+
+            if (res == ErrorCodes.TimeoutOrInterrupted && _interrupted)
+                throw new OperationCanceledException();
             return res;
         }
 
         public void CloseOutput()
         {
             IsOpened = false;
+            Core.LogInfo($"Closing output {_title}");
             OutputContext_Delete(_handle);
             _handle = OutputContext_Create();
         }
@@ -99,6 +120,7 @@ namespace DynamicStreamer.Contexts
         {
             if (_handle != IntPtr.Zero)
             {
+                Core.LogInfo($"Disposing output {_title}");
                 OutputContext_Delete(_handle);
                 _handle = IntPtr.Zero;
             }

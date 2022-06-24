@@ -2,6 +2,7 @@
 using Serilog;
 using Streamster.ClientCore.Cross;
 using Streamster.ClientCore.Services;
+using Streamster.ClientData;
 using Streamster.ClientData.Model;
 using System;
 using System.Collections.ObjectModel;
@@ -13,10 +14,11 @@ namespace Streamster.ClientCore.Models
     public class SceneEditingModel
     {
         private readonly StreamSettingsModel _streamSettings;
+        private readonly StreamingSourcesModel _streamingSourcesModel;
 
         public CoreData CoreData { get; }
 
-        public SourcesModel Sources { get; }
+        public LocalSourcesModel LocalSources { get; }
 
         public IAppEnvironment Environment { get; }
         public ResourceService ResourceService { get; }
@@ -43,14 +45,18 @@ namespace Streamster.ClientCore.Models
 
         public Property<bool> DragIsNotRequired { get; } = new Property<bool>(true);
 
-        public SceneEditingModel(CoreData coreData, SourcesModel sources, IAppEnvironment environment, ResourceService resourceService, IImageHelper imageHelper, StreamSettingsModel streamSettings)
+        public Property<bool> EditingEnabled { get; } = new Property<bool>(true);
+
+        public SceneEditingModel(CoreData coreData, LocalSourcesModel sources, IAppEnvironment environment, ResourceService resourceService, 
+            IImageHelper imageHelper, StreamSettingsModel streamSettings, StreamingSourcesModel streamingSourcesModel)
         {
             CoreData = coreData;
-            Sources = sources;
+            LocalSources = sources;
             Environment = environment;
             ResourceService = resourceService;
             ImageHelper = imageHelper;
             _streamSettings = streamSettings;
+            _streamingSourcesModel = streamingSourcesModel;
             AddLayer = SelectAddLayer;
 
             Close = DoClose;
@@ -65,13 +71,14 @@ namespace Streamster.ClientCore.Models
 
         public void Start()
         {
-            CreateAndSelectScene();
+            CreateSceneIfNeeded();
             RefreshItems();
 
             CoreData.Subscriptions.SubscribeForAnyProperty<IInputDevice>((i, c, e, r) => UpdateMainContent(EditingUpdateType.Sources));
             CoreData.Subscriptions.SubscribeForProperties<IDevice>( s => s.Displays, (i, c, e) => UpdateMainContent(EditingUpdateType.Sources));
             CoreData.Subscriptions.SubscribeForProperties<IDevice>(s => s.Windows, (i, c, e) => UpdateMainContent(EditingUpdateType.Sources));
             CoreData.Subscriptions.SubscribeForProperties<IScene>(s => s.VideoIssues, (i, c, e) => UpdateIssues());
+            CoreData.Subscriptions.SubscribeForProperties<ISettings>(s => s.SelectedScene, (i, c, e) => RefreshItems());
 
             CoreData.Subscriptions.SubscribeForAnyProperty<ISceneItem>((a, b, c, d) =>
             {
@@ -85,15 +92,18 @@ namespace Streamster.ClientCore.Models
 
         private void UpdateIssues()
         {
-            var issues = SceneState.Scene.VideoIssues;
-
-            foreach (var item in Items)
+            if (SceneState != null)
             {
-                var issue = issues != null ? issues.FirstOrDefault(s => s.Id == item.Id) : null;
-                if (issue == null)
-                    item.SourceIssue.Value = null;
-                else
-                    item.SourceIssue.Value = GetIssueString(issue.Desc);
+                var issues = SceneState.Scene.VideoIssues;
+
+                foreach (var item in Items)
+                {
+                    var issue = issues != null ? issues.FirstOrDefault(s => s.Id == item.Id) : null;
+                    if (issue == null)
+                        item.SourceIssue.Value = null;
+                    else
+                        item.SourceIssue.Value = GetIssueString(issue.Desc);
+                }
             }
         }
 
@@ -130,55 +140,17 @@ namespace Streamster.ClientCore.Models
             MainContent.Value = page;
         }
 
-        private void CreateAndSelectScene()
+        private void CreateSceneIfNeeded()
         {
-            var root = CoreData.Root;
-            var selected = CoreData.Settings.SelectedScene;
-            IScene selectedScene = null;
-            var newId = IdGenerator.New();
-            if (root.Scenes.Count == 0)
+            // try first my scene
+            var myScene = CoreData.Root.Scenes.Values.FirstOrDefault(s => s.Owner == CoreData.ThisDeviceId);
+            if (myScene == null)
             {
-                if (root.Settings.SelectedVideo != null)
-                {
-                    selectedScene = MigrateToScenes();
-                    root.Settings.SelectedVideo = null;
-                    root.Settings.SelectedAudio = null;
-                }
-                else
-                {
-                    selectedScene = CreateDefaultScene(null, null, false);
-                }
+                var id = IdGenerator.New();
+                CoreData.Root.Scenes[id] = CreateDefaultScene();
 
-                root.Scenes[newId] = selectedScene;
-                root.Settings.SelectedScene = newId;
-            }
-            else
-            {
-                if (selected != null && root.Scenes.TryGetValue(selected, out var scene))
-                {
-                    if (scene.Owner == CoreData.ThisDeviceId ||
-                        IsDeviceOnline(scene.Owner))
-                    {
-                        selectedScene = scene; // this is main scenario
-                    }
-                }
-
-                if (selectedScene == null)
-                {
-                    // try first my scene
-                    var firstMyScene = root.Scenes.Values.FirstOrDefault(s => s.Owner == CoreData.ThisDeviceId);
-                    if (firstMyScene != null)
-                    {
-                        selectedScene = firstMyScene;
-                        root.Settings.SelectedScene = CoreData.GetId(firstMyScene);
-                    }
-                    else
-                    {
-                        selectedScene = CreateDefaultScene(null, null, false);
-                        root.Scenes[newId] = selectedScene;
-                        root.Settings.SelectedScene = newId;
-                    }
-                }
+                if (CoreData.Settings.SelectedScene == null)
+                    _streamingSourcesModel.SelectScene(id);
             }
         }
 
@@ -213,31 +185,11 @@ namespace Streamster.ClientCore.Models
             SelectItem(Items.FirstOrDefault(s => s.Id == shortId));
         }
 
-        private IScene MigrateToScenes()
+        private IScene CreateDefaultScene()
         {
-            var root = CoreData.Root;
-
             bool hFlip = false;
-            var selectedVideo = root.Settings.SelectedVideo;
-            IInputDevice video = null;
-            if (selectedVideo != null && root.VideoInputs.TryGetValue(selectedVideo, out var vi) && vi.Owner == CoreData.ThisDeviceId)
-            {
-                video = CoreData.ThisDevice.VideoInputs.Values.FirstOrDefault(s => s.Name == vi.Name); // TODO: migrate filters
-                hFlip = vi.Filters?.FlipH ?? false;
-            }
-
-            var selectedAudio = root.Settings.SelectedAudio;
-            IInputDevice audio = null;
-            if (selectedAudio != null && root.AudioInputs.TryGetValue(selectedAudio, out var ai) && ai.Owner == CoreData.ThisDeviceId)
-                audio = CoreData.ThisDevice.AudioInputs.Values.FirstOrDefault(s => s.Name == ai.Name);
-
-            return CreateDefaultScene(video, audio, hFlip);
-        }
-
-        private IScene CreateDefaultScene(IInputDevice video, IInputDevice audio, bool hFlip)
-        {
-            video = video ?? Sources.GetBestDefaultVideo();
-            audio = audio ?? Sources.GetBestDefaultAudio();
+            var video = LocalSources.GetBestDefaultVideo();
+            var audio = LocalSources.GetBestDefaultAudio();
 
             IScene scene = CoreData.Create<IScene>();
             scene.Owner = CoreData.ThisDeviceId;
@@ -277,17 +229,12 @@ namespace Streamster.ClientCore.Models
             return scene;
         }
 
-        private bool IsDeviceOnline(string deviceId)
-        {
-            return deviceId != null && CoreData.Root.Devices.TryGetValue(deviceId, out var device) && device.State == DeviceState.Online;
-        }
-
         private void RefreshItems()
         {
-            if (CoreData.Settings.SelectedScene != null &&
-                CoreData.Root.Scenes.TryGetValue(CoreData.Settings.SelectedScene, out var scene) &&
-                CoreData.Root.Devices.TryGetValue(scene.Owner, out var device)) 
+            if (_streamingSourcesModel.TryGetCurrentSceneDevice(out var scene, out var device) &&
+                ClientConstants.SupportsSceneEditing(device.Type)) 
             {
+                EditingEnabled.Value = true;
                 SceneState = new SceneState(scene, device, device == CoreData.ThisDevice);
                 var newSelection = ListHelper.UpdateCollectionWithSelection(CoreData,
                     scene.Items.Values.OrderByDescending(s => s.ZOrder).ToList(),
@@ -312,9 +259,10 @@ namespace Streamster.ClientCore.Models
             }
             else
             {
-                // this is not possible in theory
+                SceneState = null;
+                EditingEnabled.Value = false;
                 Items.Clear();
-                SelectItem(null);
+                DoClose();
             }
         }
 
@@ -369,7 +317,7 @@ namespace Streamster.ClientCore.Models
 
         public void RefreshEditingMode()
         {
-            var on = AddLayerSelected.Value || SelectedItem.Value != null;
+            var on = (AddLayerSelected.Value || SelectedItem.Value != null) && EditingEnabled.Value;
             if (EditingMode.Value != on)
             {
                 EditingMode.Value = on;
@@ -404,7 +352,8 @@ namespace Streamster.ClientCore.Models
             m.Maximize.Execute = () => m.Model.Rect = SceneRect.Full();
             m.Delete = () =>
             {
-                if (SceneState.Scene.Items.TryGetValue(modelId, out var item))
+                if (SceneState != null && 
+                    SceneState.Scene.Items.TryGetValue(modelId, out var item))
                 {
                     Log.Information($"Removing source '{item?.Source}'");
                     SceneState.Scene.Items.Remove(modelId);

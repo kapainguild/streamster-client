@@ -73,7 +73,7 @@
     <DataTemplate x:Key="EditingOnScreen" DataType="{x:Type models:MainModel}">
 
         <controls:SceneEditor x:Name="root" Margin="0" Style="{StaticResource EditorStyle}">
-            <Grid VerticalAlignment="Top">
+            <Grid VerticalAlignment="Stretch">
                 <Border Margin="-400" x:Name="CatcherOfMouseEventOutside" Background="Transparent" />
                 <ItemsControl ItemsSource="{Binding SceneEditing.Items}" ItemTemplate="{StaticResource SceneItemBottom}">
                     <ItemsControl.ItemsPanel>
@@ -88,7 +88,8 @@
                     </ItemsControl.ItemContainerStyle>
                 </ItemsControl>
 
-                <Button HorizontalAlignment="Center"
+                <Button Margin="0,60"
+                        HorizontalAlignment="Center"
                         VerticalAlignment="Center" 
                         Content="Recover preview"
                         Style="{StaticResource MaterialDesignOutlinedButton}"

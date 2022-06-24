@@ -1,6 +1,7 @@
 ﻿using DynamicStreamer.Contexts;
 using DynamicStreamer.Extension;
 using DynamicStreamer.Extensions.DesktopAudio;
+using DynamicStreamer.Extensions.Rtmp;
 using DynamicStreamer.Extensions.ScreenCapture;
 using DynamicStreamer.Extensions.WebBrowser;
 using DynamicStreamer.Queues;
@@ -28,7 +29,6 @@ namespace DynamicStreamer.Nodes
         private int _analyzeAttempt;
         private TimerSubscription _observer;
 
-        private DateTime _lastInputCycle = DateTime.MaxValue;
         private DateTime _lastOpenCycle = DateTime.MaxValue;
         private bool _openThreadDenied;
 
@@ -77,8 +77,8 @@ namespace DynamicStreamer.Nodes
                 lock (this)
                 {
                     var last = _inputThreadCurrentContext;
-                    bool sameConfig = last != null && last.ContextSetup.Equals(setup);
-                    bool sameDevice = last != null && last.ContextSetup.Input.Equals(setup.Input);
+                    bool sameConfig = last != null && Equals(last.ContextSetup, setup);
+                    bool sameDevice = last != null && Equals(last.ContextSetup.Input, setup.Input);
                     if (!sameConfig)
                         Core.LogInfo($"Change {_name}: {last?.ContextSetup} >> {setup}");
 
@@ -216,6 +216,7 @@ namespace DynamicStreamer.Nodes
         private void OnInputThread()
         {
             int seqNumber = 0;
+            bool suspend = false;
 
             while (_inputThreadIsRunning)
             {
@@ -225,6 +226,7 @@ namespace DynamicStreamer.Nodes
                 {
                     if (_inputThreadPendingContext != null)
                     {
+                        suspend = false;
                         //Core.LogInfo($"Updating context on {Name}");
 
                         contextChanged = !ReferenceEquals(_inputThreadPendingContext?.Context?.Instance, _inputThreadCurrentContext?.Context?.Instance);
@@ -248,7 +250,16 @@ namespace DynamicStreamer.Nodes
                 if (contextToClose != null)
                     contextToClose.Dispose();
 
-                if (_inputThreadCurrentContext == null)
+                if (suspend)
+                {
+                    lock (_statisticKeeper)
+                    {
+                        _statisticKeeper.Data.Errors++;
+                        _statisticKeeper.Data.ErrorType = InputErrorType.GracefulClose;
+                    }
+                    Thread.Sleep(50);
+                }
+                else if (_inputThreadCurrentContext == null)
                     Thread.Sleep(50);
                 else
                 {
@@ -285,6 +296,18 @@ namespace DynamicStreamer.Nodes
                         seqNumber++;
                         _inputThreadCurrentContext.OutputQueue.Enqueue(new Data<Packet>(packet, _inputThreadCurrentContext.Version, seqNumber, PayloadTrace.Create(Name, null, seqNumber)) { SourceId = packet.Properties.StreamIndex });
                     }
+                    catch (GracefulCloseException)
+                    {
+                        _streamer.PacketPool.Back(packetToDispose);
+                        _inputThreadCurrentContext.IsOpened = false;
+                        Core.LogInfo($"'{Name}' gracefully closed");
+                        lock (_statisticKeeper)
+                        {
+                            _statisticKeeper.Data.Errors++;
+                            _statisticKeeper.Data.ErrorType = InputErrorType.GracefulClose;
+                        }
+                        suspend = true;
+                    }
                     catch (OperationCanceledException)
                     {
                         _streamer.PacketPool.Back(packetToDispose);
@@ -319,6 +342,9 @@ namespace DynamicStreamer.Nodes
 
             if (contextSetup.Type == ScreenCaptureContext.Name)
                 return new ScreenCaptureContext(_streamer);
+
+            if (contextSetup.Type == RtmpInputContext.Name)
+                return new RtmpInputContext(_streamer);
 
             return new InputContext();
         }

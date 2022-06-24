@@ -22,14 +22,28 @@ namespace Streamster.ClientApp.Win.Support
         public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture) => throw new NotImplementedException();
     }
 
+    public class OpenDialogCommandConverter : IValueConverter
+    {
+        public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
+        {
+            return new TransientCommand((c) =>
+            {
+                ((Action)value)();
+                ((ICommand)DialogHost.OpenDialogCommand).Execute(c);
+            });
+        }
+
+        public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture) => throw new NotImplementedException();
+    }
+
     public class CloseDialogCommandConverter : IValueConverter
     {
         public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
         {
             return new TransientCommand(() =>
             {
-                ((ICommand)DialogHost.CloseDialogCommand).Execute(parameter);
                 ((Action)value)();
+                ((ICommand)DialogHost.CloseDialogCommand).Execute(parameter);
             });
         }
 

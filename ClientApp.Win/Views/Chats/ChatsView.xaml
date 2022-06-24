@@ -1,0 +1,195 @@
+﻿<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                    xmlns:chats="clr-namespace:Streamster.ClientCore.Models.Chats;assembly=Streamster.ClientCore" 
+                    xmlns:materialDesign="http://materialdesigninxaml.net/winfx/xaml/themes"
+                    xmlns:support="clr-namespace:Streamster.ClientApp.Win.Support">
+    <ResourceDictionary.MergedDictionaries>
+        <ResourceDictionary Source="../Common.xaml"/>
+    </ResourceDictionary.MergedDictionaries>
+
+    <DataTemplate DataType="{x:Type chats:ClientChatMessage}" x:Key="ChatMessage">
+        <Border x:Name="root" Margin="2,2,30,1" CornerRadius="10,10,10,10" BorderBrush="#808080" Background="#152530" HorizontalAlignment="Left">
+            <DockPanel>
+                <TextBlock x:Name="author" Margin="8,5,8,0" DockPanel.Dock="Top" Text="{Binding Author}" FontWeight="Normal" TextWrapping="Wrap"
+                           Visibility="Collapsed"
+                           FontSize="9" Foreground="#b0b000"/>
+                <TextBlock Margin="8,5" Text="{Binding Message}" Foreground="#dddddd" FontWeight="Normal" TextWrapping="Wrap"/>
+            </DockPanel>
+        </Border>
+        <DataTemplate.Triggers>
+            <MultiDataTrigger>
+                <MultiDataTrigger.Conditions>
+                    <Condition Binding="{Binding Self}" Value="True"/>
+                    <Condition Binding="{Binding First}" Value="True"/>
+                </MultiDataTrigger.Conditions>
+                <Setter TargetName="root" Property="Margin" Value="30,5,2,1"/>
+                <Setter TargetName="root" Property="CornerRadius" Value="10,1,10,10"/>
+                <Setter TargetName="root" Property="HorizontalAlignment" Value="Right"/>
+                <Setter TargetName="root" Property="Background" Value="#153025"/>
+            </MultiDataTrigger>
+            
+            <MultiDataTrigger>
+                <MultiDataTrigger.Conditions>
+                    <Condition Binding="{Binding Self}" Value="False"/>
+                    <Condition Binding="{Binding First}" Value="True"/>
+                </MultiDataTrigger.Conditions>
+                <Setter TargetName="root" Property="Margin" Value="2,5,30,1"/>
+                <Setter TargetName="root" Property="CornerRadius" Value="1,10,10,10"/>
+                <Setter TargetName="author" Property="Visibility" Value="Visible"/>
+            </MultiDataTrigger>
+
+            <MultiDataTrigger>
+                <MultiDataTrigger.Conditions>
+                    <Condition Binding="{Binding Self}" Value="True"/>
+                    <Condition Binding="{Binding First}" Value="False"/>
+                </MultiDataTrigger.Conditions>
+                <Setter TargetName="root" Property="Margin" Value="30,2,2,1"/>
+                <Setter TargetName="root" Property="HorizontalAlignment" Value="Right"/>
+                <Setter TargetName="root" Property="Background" Value="#153025"/>
+            </MultiDataTrigger>
+
+        </DataTemplate.Triggers>
+    </DataTemplate>
+    
+    <DataTemplate DataType="{x:Type chats:ChatModel}" x:Key="ChatTemplate">
+        <Border Background="#101010" Margin="0,5,3,0">
+            <DockPanel>
+                <Border DockPanel.Dock="Top" Background="#303030">
+                    <DockPanel>
+                        <Image DockPanel.Dock="Left" x:Name="logo" Margin="5,0" Height="30" Source="{Binding Logo.Value, Converter={StaticResource ImageConverter}}"/>
+                        <Button DockPanel.Dock="Right" Margin="5,5,5,5" 
+                                  Style="{StaticResource MaterialDesignIconForegroundButton}" 
+                                                                      Width="30" Height="30"
+                                Command="{Binding Close, Converter={StaticResource CommandConverter}}"
+                                                                      ToolTip="Close chats">
+                            <materialDesign:PackIcon Kind="Close" Height="20" Width="20" />
+                        </Button>
+                        <TextBlock VerticalAlignment="Center" Text="{Binding Title}" TextTrimming="CharacterEllipsis"/>
+                    </DockPanel>
+                </Border>
+                <Border>
+                    <Grid>
+                        <TextBlock Margin="20" x:Name="initializing" Visibility="Collapsed" Text="Initializing..." />
+                        <TextBlock Margin="20" x:Name="connecting" Visibility="Collapsed" Text="Connecting..." />
+
+                        <StackPanel Margin="20" x:Name="notAuthenticated" Visibility="Collapsed" >
+                            <Button HorizontalAlignment="Left" Content="Login" Command="{Binding Authenticate, Converter={StaticResource CommandConverter}}"/>
+                        </StackPanel>
+
+                        <DockPanel x:Name="connected" Margin="20" >
+                            <DockPanel DockPanel.Dock="Bottom">
+                                <Button DockPanel.Dock="Right" Height="28" Margin="5,0,0,0" Content="Send" Command="{Binding SendMessage, Converter={StaticResource CommandConverter}}"/>
+                                <TextBox Text="{Binding Message.Value, UpdateSourceTrigger=PropertyChanged}" 
+                                         materialDesign:HintAssist.Hint="Say something...">
+                                    <TextBox.InputBindings>
+                                        <KeyBinding Key="Enter" Command="{Binding SendMessage, Converter={StaticResource CommandConverter}}"/>
+                                    </TextBox.InputBindings>
+                                </TextBox>
+                            </DockPanel>
+                            <ItemsControl ItemsSource="{Binding Messages}" ItemTemplate="{StaticResource ChatMessage}"
+                                          Margin="0,0,-15,5">
+                                <ItemsControl.ItemsPanel>
+                                    <ItemsPanelTemplate>
+                                        <VirtualizingStackPanel IsVirtualizing="True" VirtualizationMode="Recycling" />
+                                    </ItemsPanelTemplate>
+                                </ItemsControl.ItemsPanel>
+                                <ItemsControl.Template>
+                                    <ControlTemplate TargetType="ItemsControl">
+                                        <ScrollViewer CanContentScroll="True" Focusable="False" support:AutoScrollBehavior.AutoScroll="True">
+                                            <ItemsPresenter />
+                                        </ScrollViewer>
+                                    </ControlTemplate>
+                                </ItemsControl.Template>
+                            </ItemsControl>
+                        </DockPanel>
+                        
+
+                    </Grid>
+                </Border>
+                
+            </DockPanel>
+            
+        </Border>
+
+        <DataTemplate.Triggers>
+            <DataTrigger Binding="{Binding State.Value}" Value="Initializing">
+                <Setter TargetName="initializing" Property="Visibility" Value="Visible"/>
+            </DataTrigger>
+
+            <DataTrigger Binding="{Binding State.Value}" Value="Connecting">
+                <Setter TargetName="connecting" Property="Visibility" Value="Visible"/>
+            </DataTrigger>
+            
+            <DataTrigger Binding="{Binding State.Value}" Value="Connected">
+                <Setter TargetName="connected" Property="Visibility" Value="Visible"/>
+            </DataTrigger>
+
+            <DataTrigger Binding="{Binding State.Value}" Value="NotAuthenticated">
+                <Setter TargetName="notAuthenticated" Property="Visibility" Value="Visible"/>
+            </DataTrigger>
+        </DataTemplate.Triggers>
+    </DataTemplate>
+
+
+    <DataTemplate DataType="{x:Type chats:PlatformsModel}">
+
+        <Border Background="#1A1A1A">
+            <DockPanel>
+                <Border DockPanel.Dock="Top" Height="30" Background="#101010" >
+                </Border>
+
+                <DockPanel DockPanel.Dock="Top">
+                    <TextBlock DockPanel.Dock="Left" Margin="10,0,15,0" VerticalAlignment="Center" Text="Chats" Foreground="#808089"/>
+                    <ToggleButton DockPanel.Dock="Right" Margin="0,5,10,5" 
+                                  Style="{StaticResource MaterialDesignIconForegroundButton}" 
+                                                                      IsChecked="{Binding IsChatsOpened.Value}"
+                                                                      Width="30" Height="30"
+                                                                      ToolTip="Close chats">
+                        <materialDesign:PackIcon Kind="ArrowCollapseRight" Height="20" Width="20" />
+                    </ToggleButton>
+                    <ItemsControl ItemsSource="{Binding ChatsToAdd}" Margin="0,6,0,0">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate DataType="{x:Type chats:ChatToAdd}">
+                                <Button Margin="0,0,10,1" Style="{StaticResource MaterialDesignOutlinedButton}" 
+                                        Command="{Binding Add, Converter={StaticResource CommandConverter}}"
+                                        Padding="3,0,6,0">
+                                    <StackPanel Orientation="Horizontal">
+                                        <materialDesign:PackIcon Kind="Plus" Height="24" Width="24" />
+                                        <TextBlock Text="{Binding Title}" VerticalAlignment="Center" Margin="2,0,0,0" FontWeight="Normal"/>
+                                    </StackPanel>
+                                </Button>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                        <ItemsControl.ItemsPanel>
+                            <ItemsPanelTemplate>
+                                <WrapPanel Orientation="Horizontal"/>
+                            </ItemsPanelTemplate>
+                        </ItemsControl.ItemsPanel>
+                    </ItemsControl>
+                </DockPanel>
+                <Border Background="#1A1A1A">
+                    <Grid>
+                        <TextBlock x:Name="SupportedChannels" 
+                                   Margin="20"
+                                   TextWrapping="Wrap"
+                                   TextAlignment="Center"
+                                   Text="{Binding SupportedChannels}" Visibility="Collapsed"/>
+                        <ItemsControl ItemsSource="{Binding Chats}" ItemTemplate="{StaticResource ChatTemplate}">
+                            <ItemsControl.ItemsPanel>
+                                <ItemsPanelTemplate>
+                                    <UniformGrid Columns="{Binding Chats.Count}"/>
+                                </ItemsPanelTemplate>
+                            </ItemsControl.ItemsPanel>
+                        </ItemsControl>
+                    </Grid>
+                </Border>
+            </DockPanel>
+        </Border>
+        <DataTemplate.Triggers>
+            <DataTrigger Binding="{Binding HasSupportedChannels.Value}" Value="False">
+                <Setter TargetName="SupportedChannels" Property="Visibility" Value="Visible"/>
+            </DataTrigger>
+        </DataTemplate.Triggers>
+    </DataTemplate>
+    
+</ResourceDictionary>

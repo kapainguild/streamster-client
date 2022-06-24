@@ -11,6 +11,7 @@ extern "C"
 	DLL_EXPORT(void) Packet_CopyContentFrom(AVPacket* packet, AVPacket* from);
 	DLL_EXPORT(void) Packet_InitFromBuffer(AVPacket* packet, uint8_t* from, int length);
 	DLL_EXPORT(void) Packet_InitFromBuffer2(AVPacket* packet, uint8_t* from, int length, int64_t pts);
+	DLL_EXPORT(void) Packet_InitFromBuffer5(AVPacket* packet, uint8_t* from, int length, int64_t pts, int streamIndex);
 	DLL_EXPORT(void) Packet_InitFromBuffer3(AVPacket* packet, uint8_t* from, int length, int64_t pts, PacketProperties* PacketProperties);
 	DLL_EXPORT(int) Packet_InitFromBuffer4(AVPacket* packet, uint8_t* from, int bitPerPixel, int width, int height, int sourceWidth, int64_t pts, int checkForZero);
 	DLL_EXPORT(void) Packet_RescaleTimebase(AVPacket* packet, AVRational* from, AVRational* to, PacketProperties* PacketProperties);
@@ -205,6 +206,15 @@ DLL_EXPORT(void) Packet_InitFromBuffer2(AVPacket* packet, uint8_t* from, int len
 	packet->dts = pts;
 	packet->pts = pts;
 }
+
+DLL_EXPORT(void) Packet_InitFromBuffer5(AVPacket* packet, uint8_t* from, int length, int64_t pts, int streamIndex)
+{
+	Packet_InitFromBuffer(packet, from, length);
+	packet->dts = pts;
+	packet->pts = pts;
+	packet->stream_index = streamIndex;
+}
+
 
 DLL_EXPORT(void) Packet_SetPts(AVPacket* packet, int64_t pts)
 {

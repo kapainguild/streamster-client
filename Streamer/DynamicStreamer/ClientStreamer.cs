@@ -122,6 +122,7 @@ namespace DynamicStreamer
                                                                     Type = trunkConfig.OutputSetup.Type,
                                                                     Output = trunkConfig.OutputSetup.Output,
                                                                     Options = trunkConfig.OutputSetup.Options,
+                                                                    TimeoutMs = trunkConfig.OutputSetup.TimeoutMs,
                                                                     OutputStreamProps = outputStreams.ToArray()
                                                                 }, trunkConfig.RequireBitrateControl ? _bitrateController : null))
                     changed = true;

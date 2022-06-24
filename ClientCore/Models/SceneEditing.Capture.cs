@@ -203,7 +203,7 @@ namespace Streamster.ClientCore.Models
 
         private async Task SelectAsync()
         {
-            var res = await _model.Sources.SelectFromUi();
+            var res = await _model.LocalSources.SelectFromUi();
             if (res != null)
                 DoSelect(res);
         }

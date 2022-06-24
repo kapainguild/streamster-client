@@ -14,6 +14,7 @@ namespace Streamster.ClientCore.Models
         private bool _promoIsShown;
 
         private readonly TransientMessageModel _transientMessage;
+        private readonly StreamingSourcesModel _streamingSourcesModel;
         private int _vpnMessage = -1;
 
         private LayoutType _lastLayout = LayoutType.Standart;
@@ -37,6 +38,8 @@ namespace Streamster.ClientCore.Models
 
         public Property<int> ActualBitrate { get; } = new Property<int>();
 
+        public Property<bool> IsChangeBitrateEnabled { get; } = new Property<bool>(true);
+
         public Property<IndicatorState> ActualBitrateState { get; } = new Property<IndicatorState>();
 
         public Action<object> SelectResolution { get; }
@@ -55,6 +58,8 @@ namespace Streamster.ClientCore.Models
 
         public Property<LayoutType> SelectedLayout { get; } = new Property<LayoutType>(LayoutType.Standart);
 
+        private Dictionary<string, BitrateInfo> _bitratesByDevices = new Dictionary<string, BitrateInfo>();
+
         public List<SettingsSelectorData<LayoutType>> LayoutTypes { get; } = new List<SettingsSelectorData<LayoutType>>
         {
             new SettingsSelectorData<LayoutType> { Value = LayoutType.NoScreen, DisplayName = "No preview" },
@@ -71,13 +76,15 @@ namespace Streamster.ClientCore.Models
             ConnectionService connectionService,
             RootModel rootModel,
             TransientMessageModel transientMessage,
-            MainVpnModel vpn)
+            MainVpnModel vpn,
+            StreamingSourcesModel streamingSourcesModel)
         {
             CoreData = coreData;
             _connectionService = connectionService;
             _rootModel = rootModel;
             _transientMessage = transientMessage;
             Vpn = vpn;
+            _streamingSourcesModel = streamingSourcesModel;
             SelectResolution = o => CoreData.Settings.Resolution = (Resolution)o;
             SelectLayout = o =>
             {
@@ -86,18 +93,37 @@ namespace Streamster.ClientCore.Models
             };
             SelectFps = o => CoreData.Settings.Fps = (int)o;
             ShowPreview = () => SelectedLayout.Value = _lastLayout;
-
-
-            SetActualBitrate(0, IndicatorState.Disabled);
         }
 
-        internal void SetActualBitrate(int ave, IndicatorState state)
+        internal void SetActualBitrate(int ave, IndicatorState state, DeviceIndicatorsModel localDevice)
         {
-            if (ave < MinBitrate + 30)
-                ave = MinBitrate + 30;
+            _bitratesByDevices[localDevice.DeviceId] = new BitrateInfo { Bitrate = ave, IndicatorState = state, Updated = DateTime.UtcNow };
 
-            ActualBitrate.Value = ave;
-            ActualBitrateState.Value = state;
+            RefreshBitrate();
+        }
+
+        private void RefreshBitrate()
+        {
+            if (_streamingSourcesModel.TryGetCurrentScene(out var scene) && 
+                _bitratesByDevices.TryGetValue(scene.Owner, out var info) &&
+                DateTime.UtcNow - info.Updated < TimeSpan.FromSeconds(3))
+            {
+                var bitrate = info.Bitrate;
+                if (bitrate < MinBitrate + 30)
+                    bitrate = MinBitrate + 30;
+
+                ActualBitrate.Value = bitrate;
+                ActualBitrateState.Value = info.IndicatorState;
+
+                bool externalEncoder = scene.Owner == ClientConstants.ExternalClientId;
+                IsChangeBitrateEnabled.Value = !externalEncoder;
+            }
+            else
+            {
+                ActualBitrate.Value = MinBitrate;
+                ActualBitrateState.Value = IndicatorState.Disabled;
+                IsChangeBitrateEnabled.Value = true;
+            }
         }
 
         internal void Start()
@@ -113,17 +139,18 @@ namespace Streamster.ClientCore.Models
             CoreData.Subscriptions.SubscribeForProperties<IDevice>(s => s.VpnState, (i, c, p) => RefreshControls());
 
             RefreshPromo();
+            RefreshControls();
         }
 
         private void RefreshControls()
         {
             ChangeStreamParamsDisabled.Value = CoreData.Settings.IsRecordingRequested || CoreData.Settings.StreamingToCloudStarted;
 
+            RefreshBitrate();
+
             if (CoreData.Settings.NoStreamWithoutVpn)
             {
-                if (CoreData.Root.Settings.SelectedScene != null &&
-                    CoreData.Root.Scenes.TryGetValue(CoreData.Root.Settings.SelectedScene, out var scene) && 
-                    scene.Owner == CoreData.ThisDeviceId)
+                if (_streamingSourcesModel.IsMySceneSelected())
                 {
                     if (CoreData.ThisDevice.VpnState == VpnState.Idle)
                         _vpnMessage = _transientMessage.Show("VPN is OFF. Streaming is not possible.", TransientMessageType.Error, false);
@@ -149,5 +176,14 @@ namespace Streamster.ClientCore.Models
                 }, "Show promo");
             }
         }
+    }
+
+    class BitrateInfo
+    {
+        public DateTime Updated { get; set; }
+
+        public int Bitrate { get; set; }
+
+        public IndicatorState IndicatorState { get; set; }
     }
 }

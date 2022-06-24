@@ -19,6 +19,7 @@ namespace Streamster.ClientCore.Models
         public CoreData CoreData { get; }
         public StreamSettingsModel StreamSettings { get; }
         public TranscodingModel Transcoding { get; }
+        public ExternalEncoderModel ExternalEncoder { get; }
         public List<SettingsSelectorData<StreamingToCloudBehavior>> StreamingToCloudBehaviors { get; } = new List<SettingsSelectorData<StreamingToCloudBehavior>>
         {
             new SettingsSelectorData<StreamingToCloudBehavior> { Value = StreamingToCloudBehavior.AppStart, DisplayName = "App is started" },
@@ -108,11 +109,12 @@ namespace Streamster.ClientCore.Models
         public bool UserHasVpn { get; set; }
 
         public MainSettingsModel(LocalSettingsService localSettings, CoreData coreData, StreamSettingsModel streamSettings, ConnectionService connectionService,
-            TranscodingModel transcoding)
+            TranscodingModel transcoding, ExternalEncoderModel externalEncoder)
         {
             CoreData = coreData;
             StreamSettings = streamSettings;
             Transcoding = transcoding;
+            ExternalEncoder = externalEncoder;
             _connectionService = connectionService;
             AutoLogon.SilentValue = localSettings.Settings.AutoLogon; // TODO: what is is not registred and not save password
             AutoLogon.OnChange = async (o, n) => await localSettings.ChangeSettingsUnconditionally(s => s.AutoLogon = n);
@@ -178,6 +180,8 @@ namespace Streamster.ClientCore.Models
             HardwareAdapters.Clear();
             adapters.ToList().ForEach(s => HardwareAdapters.Add(s.Name));
             HardwareAdapter.Value = HardwareAdapters.Contains(CoreData.ThisDevice.DeviceSettings.RendererAdapter) ? CoreData.ThisDevice.DeviceSettings.RendererAdapter : adapters.FirstOrDefault()?.Name;
+
+            ExternalEncoder.Start();
         }
 
         public static bool IsValidRecordingPath(string pathForRecordings)

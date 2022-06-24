@@ -219,7 +219,7 @@ namespace Streamster.ClientApp.Win.Services
             }
             else
             {
-                int dx = 1080;
+                int dx = 1090;
                 int dy = 786;
 
                 if (dy > wa.Height)

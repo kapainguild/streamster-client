@@ -4,7 +4,7 @@
                     xmlns:support="clr-namespace:Streamster.ClientApp.Win.Support"
                     xmlns:materialDesign="http://materialdesigninxaml.net/winfx/xaml/themes"
                     xmlns:converters="clr-namespace:MaterialDesignThemes.Wpf.Converters;assembly=MaterialDesignThemes.Wpf"
-                    xmlns:controlzEx="clr-namespace:ControlzEx;assembly=MaterialDesignThemes.Wpf" xmlns:controls="clr-namespace:Streamster.ClientApp.Win.Controls">
+                    xmlns:controls="clr-namespace:Streamster.ClientApp.Win.Controls">
     <ResourceDictionary.MergedDictionaries>
         <ResourceDictionary Source="Common.xaml"/>
         <ResourceDictionary Source="BitrateSlider.xaml"/>
@@ -99,7 +99,7 @@
                                       ToolTipService.Placement="{Binding RelativeSource={RelativeSource FindAncestor, AncestorType=materialDesign:PopupBox}, Path=(ToolTipService.Placement)}"
                                       Content="{TemplateBinding ToggleContent}" ContentTemplate="{TemplateBinding ToggleContentTemplate}">
                         </ToggleButton>
-                        <controlzEx:PopupEx x:Name="PART_Popup" 
+                        <materialDesign:PopupEx x:Name="PART_Popup" 
                                           IsOpen="False"
                                           CustomPopupPlacementCallback="{Binding RelativeSource={RelativeSource TemplatedParent}, Path=PopupPlacementMethod}"
                                           PlacementTarget="{Binding ElementName=PART_Toggle}"
@@ -114,7 +114,7 @@
                                                 Opacity="0" x:Name="PART_PopupContentControl">
                                 </ContentControl>
                             </Grid>
-                        </controlzEx:PopupEx>
+                        </materialDesign:PopupEx>
                     </Grid>
                     <ControlTemplate.Triggers>
                         <Trigger SourceName="PART_Toggle" Property="IsMouseOver" Value="True">

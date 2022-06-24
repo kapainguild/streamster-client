@@ -1,10 +1,12 @@
-﻿using System;
+﻿using DynamicStreamer.Rtmp;
+using System;
 
 namespace DynamicStreamer.Contexts
 {
-    public record InputSetup(string Type, string Input, string Options = "", object ObjectInput = null, DirectXContext Dx = null, 
+    public record InputSetup(string Type, string Input, string Options = "", RtmpTransferData RtmpTransferData = null, object ObjectInput = null, DirectXContext Dx = null, 
         InputSetupNoneResetingOptions NoneResetingOptions = null, int ExpectedNumberOfStreams = 1,
-        AdjustInputType AdjustInputType = AdjustInputType.None, bool FirstStreamOnly = true, bool UseFpsQueue = true)
+        AdjustInputType AdjustInputType = AdjustInputType.None, bool FirstStreamOnly = true, bool UseFpsQueue = true, 
+        int BitrateLimit = 0)
     {
         public override string ToString() => $"{Type} {Input} {Options} {ObjectInput}";
     }
@@ -48,4 +50,7 @@ namespace DynamicStreamer.Contexts
 
         public void Interrupt();
     }
+
+    public class GracefulCloseException : Exception { }
+
 }

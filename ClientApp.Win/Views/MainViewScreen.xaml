@@ -6,7 +6,6 @@
     <ResourceDictionary.MergedDictionaries>
         <ResourceDictionary Source="Common.xaml"/>
         <ResourceDictionary Source="OnScreenStyles.xaml"/>
-        <ResourceDictionary Source="MainViewFilters.xaml"/>
         <ResourceDictionary Source="EditingOnScreen.xaml"/>
         <ResourceDictionary Source="EditingView.Styles.xaml"/>
     </ResourceDictionary.MergedDictionaries>
@@ -276,6 +275,12 @@
 
             <DataTrigger Binding="{Binding SceneEditing.AddLayerSelected.Value}" Value="true">
                 <Setter TargetName="addLayer" Property="Background" Value="{StaticResource OnScreenBackgroundPressed}"/>
+            </DataTrigger>
+
+            <DataTrigger Binding="{Binding SceneEditing.EditingEnabled.Value}" Value="false">
+                <Setter TargetName="editing" Property="Visibility" Value="Collapsed"/>
+                <Setter TargetName="fps" Property="Visibility" Value="Collapsed"/>
+                <Setter TargetName="resolution" Property="Visibility" Value="Collapsed"/>
             </DataTrigger>
 
             <DataTrigger Binding="{Binding StreamSettings.ChangeStreamParamsDisabled.Value}" Value="True">

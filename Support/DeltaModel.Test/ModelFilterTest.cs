@@ -20,15 +20,12 @@ namespace DeltaModel.Test
         [Fact]
         public void AddReplaceRemoveAndApplyChanges()
         {
-            var modelClient = new ModelClient
-            {
-                Filter = new FilterConfigurator(true)
+            var modelClient = new ModelClient(_manager, 
+                                 new FilterConfigurator(true)
                                 .Allow<ILevel1>(c => c.Deny(t => t.IntValue))
                                 .Allow<ILevel2>(c => c.Allow(t => t.Level3))
                                 .Build()
-            };
-            _manager.Register(modelClient);
-
+            );
             _manager.Root.Level1 = _manager.Create<ILevel1>();
             _manager.Root.Level1.IntValue = 42;
             _manager.Root.Level1.StringValue = "43";
@@ -51,7 +48,8 @@ namespace DeltaModel.Test
             level1.Dictionary2["some"].Level3 = new Level3 { IntValue = 44 };
             _manager.Root.Dictionary1[5] = level1;
 
-            _manager2.ApplyChanges(modelClient, modelClient.SerializeAndClearChanges());
+            var changes = _manager.Register(modelClient);
+            _manager2.ApplyChanges(modelClient, changes);
             Assert.Equal(0, _manager2.Root.Level1.IntValue);
             Assert.Equal("43", _manager2.Root.Level1.StringValue);
             Assert.Equal(Guid.Empty, _manager2.Root.Level1.Level2.GuidValue);

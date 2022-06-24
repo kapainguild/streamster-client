@@ -17,13 +17,15 @@
     <support:CommandConverter x:Key="CommandConverter"/>
 
     <support:CloseDialogCommandConverter x:Key="CloseDialogCommandConverter"/>
+    <support:OpenDialogCommandConverter x:Key="OpenDialogCommandConverter"/>
     <support:DelayedCloseDialogCommandConverter x:Key="DelayedCloseDialogCommandConverter"/>
     <support:MultiplyConverter x:Key="MultiplyConverter"/>
     <support:OpenFileCommandConverter x:Key="OpenFileCommandConverter"/>
     <support:OpenLutCommandConverter x:Key="OpenLutCommandConverter"/>
     <support:Minimum0 x:Key="Minimum0"/>
     <support:Maximum0 x:Key="Maximum0"/>
-    
+    <support:InverseBooleanConverter x:Key="InverseBooleanConverter"/>
+
 
     <support:ImageConverter x:Key="ImageConverter"/>
 
@@ -36,6 +38,34 @@
                 </ControlTemplate>
             </Setter.Value>
         </Setter>
+    </Style>
+
+    <!-- Fixes issue with transparent background of the context menu-->
+    <Style TargetType="{x:Type ContextMenu}" BasedOn="{StaticResource MaterialDesignMenu}">
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="{x:Type MenuBase}">
+                    <AdornerDecorator CacheMode="{Binding RelativeSource={RelativeSource Self}, Path=(materialDesign:ShadowAssist.CacheMode)}">
+                        <Grid>
+                            <Border Background="{TemplateBinding Background}" Margin="3" CornerRadius="2" Effect="{DynamicResource MaterialDesignShadowDepth1}"></Border>
+                            <Border Margin="3" Background="Transparent">
+                                <ScrollViewer x:Name="SubMenuScrollViewer" Style="{DynamicResource {ComponentResourceKey ResourceId=MenuScrollViewer, TypeInTargetAssembly={x:Type FrameworkElement}}}">
+                                    <Grid RenderOptions.ClearTypeHint="Enabled" Margin="0 16">
+                                        <ItemsPresenter
+                                            x:Name="ItemsPresenter"
+                                            KeyboardNavigation.DirectionalNavigation="Cycle"
+                                            Grid.IsSharedSizeScope="True"
+                                            SnapsToDevicePixels="{TemplateBinding SnapsToDevicePixels}"
+                                            KeyboardNavigation.TabNavigation="Cycle" />
+                                    </Grid>
+                                </ScrollViewer>
+                            </Border>
+                        </Grid>
+                    </AdornerDecorator>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+        <Setter Property="Background" Value="{DynamicResource MaterialDesignPaper}"/>
     </Style>
 
 

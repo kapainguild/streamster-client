@@ -1,4 +1,6 @@
-﻿using System;
+﻿using MaterialDesignThemes.Wpf;
+using Streamster.ClientCore.Support;
+using System;
 using System.Collections.Generic;
 using System.Text;
 using System.Windows;
@@ -15,15 +17,21 @@ namespace Streamster.ClientApp.Win.Support
             typeof(Behaviors),
             new FrameworkPropertyMetadata(default(bool), FrameworkPropertyMetadataOptions.Inherits));
 
-        public static bool GetIsActivated(DependencyObject element)
-        {
-            return (bool)element.GetValue(IsActivatedProperty);
-        }
+        public static bool GetIsActivated(DependencyObject element) => (bool)element.GetValue(IsActivatedProperty);
+        public static void SetIsActivated(DependencyObject element, bool value) => element.SetValue(IsActivatedProperty, value);
 
-        public static void SetIsActivated(DependencyObject element, bool value)
-        {
-            element.SetValue(IsActivatedProperty, value);
-        }
+
+
+        public static readonly DependencyProperty IsCloseAwareProperty = DependencyProperty.RegisterAttached(
+            "IsCloseAware",
+            typeof(bool),
+            typeof(Behaviors),
+            new PropertyMetadata(OnIsCloseAwareChanged));
+
+        public static bool GetIsCloseAware(DependencyObject element) => (bool)element.GetValue(IsCloseAwareProperty);
+        public static void SetIsCloseAware(DependencyObject element, bool value) => element.SetValue(IsCloseAwareProperty, value);
+
+
 
         public static readonly DependencyProperty DoubleValueProperty = DependencyProperty.RegisterAttached("DoubleValue", typeof(double), typeof(Behaviors));
         public static void SetDoubleValue(UIElement element, double value) => element.SetValue(DoubleValueProperty, value);
@@ -96,6 +104,23 @@ namespace Streamster.ClientApp.Win.Support
                 element.MouseLeave -= ElementOnMouseLeave;
             }
         }
+
+        private static void OnIsCloseAwareChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
+        {
+            if (d is DialogHost dh)
+            {
+                dh.DialogClosingCallback = (s, e) =>
+                {
+                    if (dh.DialogContent is ICloseAware ca)
+                        ca.Close();
+
+                    if (dh.DialogContent is ContentControl cc &&
+                        cc.Content is ICloseAware ca2)
+                        ca2.Close();
+                };
+            }
+        }
+
 
         private static void ElementOnMouseLeave(object sender, MouseEventArgs mouseEventArgs)
         {

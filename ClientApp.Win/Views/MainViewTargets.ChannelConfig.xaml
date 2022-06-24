@@ -1,0 +1,450 @@
+﻿<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                    xmlns:models="clr-namespace:Streamster.ClientCore.Models;assembly=Streamster.ClientCore"
+                    xmlns:support="clr-namespace:Streamster.ClientApp.Win.Support"
+                    xmlns:materialDesign="http://materialdesigninxaml.net/winfx/xaml/themes">
+    <ResourceDictionary.MergedDictionaries>
+        <ResourceDictionary Source="Common.xaml"/>
+        <ResourceDictionary Source="Transcoding.xaml"/>
+        <ResourceDictionary Source="MainViewTargets.Styles.xaml"/>
+    </ResourceDictionary.MergedDictionaries>
+
+    <Style x:Key="MaterialDesignChoiceChipRadioButton" TargetType="{x:Type RadioButton}">
+        <Setter Property="Foreground" Value="{DynamicResource MaterialDesignBody}" />
+        <Setter Property="Background" Value="{DynamicResource MaterialDesignBody}" />
+        <Setter Property="BorderThickness" Value="0" />
+        <Setter Property="SnapsToDevicePixels" Value="True" />
+        <Setter Property="Cursor" Value="Hand" />
+        <Setter Property="Height" Value="32" />
+        <Setter Property="MinWidth" Value="46" />
+        <Setter Property="HorizontalAlignment" Value="Left" />
+        <Setter Property="FontSize" Value="13" />
+        <Setter Property="Margin" Value="4" />
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="{x:Type RadioButton}">
+                    <ControlTemplate.Resources>
+                        <Style TargetType="{x:Type materialDesign:PackIcon}" >
+                            <Setter Property="FrameworkElement.Width" Value="22" />
+                            <Setter Property="FrameworkElement.Height" Value="22" />
+                        </Style>
+                    </ControlTemplate.Resources>
+                    <Grid ClipToBounds="True">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="*" />
+                        </Grid.ColumnDefinitions>
+                        <Border CornerRadius="16" Background="{DynamicResource MaterialDesignChipBackground}" Grid.ColumnSpan="2" />
+                        <Border x:Name="MouseOverBorder"
+                                Opacity="0"
+                                CornerRadius="16"
+                                Grid.ColumnSpan="2"
+                                Grid.Column="0"
+                                Background="{TemplateBinding Foreground, Converter={StaticResource BrushRoundConverter}}" />
+                        <Border x:Name="SelectedBackgroundBorder"
+                                Opacity="0"
+                                CornerRadius="16"
+                                Grid.ColumnSpan="2"
+                                Grid.Column="0"
+                                Background="{TemplateBinding Background}" />
+                        <ContentControl Content="{TemplateBinding Content}"
+                                        ContentTemplate="{TemplateBinding ContentTemplate}"
+                                        ContentTemplateSelector="{TemplateBinding ContentTemplateSelector}"
+                                        ContentStringFormat="{TemplateBinding ContentTemplateSelector}"
+                                        x:Name="Content"
+                                        IsTabStop="False"
+                                        VerticalAlignment="Center"
+                                        HorizontalAlignment="Center"
+                                        Margin="10 0 10 0"
+                                        Grid.Column="1" />
+                        <VisualStateManager.VisualStateGroups>
+                            <VisualStateGroup Name="CommonStates">
+                                <VisualStateGroup.Transitions>
+                                    <VisualTransition GeneratedDuration="0:0:0.3" To="Normal">
+                                        <VisualTransition.GeneratedEasingFunction>
+                                            <CircleEase EasingMode="EaseOut" />
+                                        </VisualTransition.GeneratedEasingFunction>
+                                    </VisualTransition>
+                                </VisualStateGroup.Transitions>
+                                <VisualState Name="Normal" />
+                                <VisualState Name="MouseOver">
+                                    <Storyboard>
+                                        <DoubleAnimation Storyboard.TargetName="MouseOverBorder"
+                                                         Storyboard.TargetProperty="Opacity"
+                                                         To="0.1" Duration="0" />
+                                    </Storyboard>
+                                </VisualState>
+                                <VisualState Name="Disabled" />
+                            </VisualStateGroup>
+                            <VisualStateGroup Name="CheckStates">
+                                <VisualStateGroup.Transitions>
+                                    <VisualTransition To="Checked">
+                                        <Storyboard>
+                                            <DoubleAnimation Storyboard.TargetName="SelectedBackgroundBorder"
+                                                             Storyboard.TargetProperty="Opacity"
+                                                             To="0.2" Duration="0:0:0.2" />
+                                        </Storyboard>
+                                    </VisualTransition>
+                                    <VisualTransition To="CheckedUnfocused">
+                                        <Storyboard>
+                                            <DoubleAnimation Storyboard.TargetName="SelectedBackgroundBorder"
+                                                             Storyboard.TargetProperty="Opacity"
+                                                             To="0.2" Duration="0:0:0.2" />
+                                        </Storyboard>
+                                    </VisualTransition>
+                                    <VisualTransition To="Unchecked">
+                                        <Storyboard>
+                                            <DoubleAnimation Storyboard.TargetName="SelectedBackgroundBorder"
+                                                             Storyboard.TargetProperty="Opacity"
+                                                             To="0" Duration="0:0:0.2" />
+                                        </Storyboard>
+                                    </VisualTransition>
+                                </VisualStateGroup.Transitions>
+                                <VisualState Name="Checked">
+                                    <Storyboard>
+                                        <DoubleAnimation Storyboard.TargetName="SelectedBackgroundBorder"
+                                                         Storyboard.TargetProperty="Opacity"
+                                                         To="0.2" Duration="0" />
+                                    </Storyboard>
+                                </VisualState>
+                                <VisualState Name="CheckedUnfocused">
+                                    <Storyboard>
+                                        <DoubleAnimation Storyboard.TargetName="SelectedBackgroundBorder"
+                                                         Storyboard.TargetProperty="Opacity"
+                                                         To="0.2" Duration="0" />
+                                    </Storyboard>
+                                </VisualState>
+                                <VisualState Name="Unchecked">
+                                    <Storyboard>
+                                        <DoubleAnimation Storyboard.TargetName="SelectedBackgroundBorder"
+                                                         Storyboard.TargetProperty="Opacity"
+                                                         To="0" Duration="0" />
+                                    </Storyboard>
+                                </VisualState>
+                            </VisualStateGroup>
+                        </VisualStateManager.VisualStateGroups>
+                    </Grid>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsEnabled" Value="False">
+                            <Setter Property="Opacity" Value=".56" />
+                        </Trigger>
+                        <Trigger Property="IsChecked" Value="False">
+                            <Setter Property="Foreground" Value="{DynamicResource MaterialDesignBody}" />
+                            <Setter Property="BorderBrush" Value="{DynamicResource MaterialDesignDivider}" />
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+
+    <Style x:Key="SectionWithTitle" TargetType="{x:Type HeaderedContentControl}">
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="{x:Type HeaderedContentControl}">
+                    <DockPanel Margin="0,10,15,25">
+                        <ContentPresenter Margin="15,4,0,0" Width="110" DockPanel.Dock="Left" ContentSource="Header" HorizontalAlignment="Left"
+                                          VerticalAlignment="Top"
+                                          TextElement.Foreground="#aaaaaa">
+                        </ContentPresenter>
+                        <ContentPresenter ContentSource="Content" HorizontalAlignment="Stretch">
+                        </ContentPresenter>
+                    </DockPanel>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <Style x:Key="MaterialDesignFilterChipPrimaryOutlineCheckBox" TargetType="CheckBox" BasedOn="{StaticResource MaterialDesignFilterChipOutlineCheckBox}">
+        <Setter Property="Foreground" Value="{DynamicResource PrimaryHueDarkBrush}" />
+        <Setter Property="BorderBrush" Value="{DynamicResource PrimaryHueMidBrush}" />
+        <Setter Property="Background" Value="{DynamicResource PrimaryHueLightBrush}" />
+
+        <Style.Triggers>
+            <MultiDataTrigger>
+                <MultiDataTrigger.Conditions>
+                    <Condition Binding="{Binding IsChecked, RelativeSource={RelativeSource Self}}" Value="True" />
+                </MultiDataTrigger.Conditions>
+                <Setter Property="Foreground" Value="{DynamicResource PrimaryHueLightBrush}" />
+                <Setter Property="Background" Value="{DynamicResource PrimaryHueDarkBrush}" />
+            </MultiDataTrigger>
+        </Style.Triggers>
+    </Style>
+
+
+    <DataTemplate DataType="{x:Type models:TargetConfig}">
+        <materialDesign:DialogHost Style="{StaticResource StreamsterDialogHost}" CloseOnClickAway="True"
+                                                   support:Behaviors.IsCloseAware="True">
+        <Border MaxWidth="600" RenderOptions.BitmapScalingMode="LowQuality" HorizontalAlignment="Stretch">
+            <Grid>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="*"/>
+                    <RowDefinition Height="Auto"/>
+                </Grid.RowDefinitions>
+                <Border Width="600" Grid.Row="0"/>
+                
+                <Border Grid.Row="0">
+                    <DockPanel>
+                        <Border>
+                            <Grid Margin="5,0,0,0">
+                                <materialDesign:PackIcon x:Name="custom" Height="48" Width="48" Kind="Cogs"
+                                                 HorizontalAlignment="Center"
+                                                 Visibility="Collapsed"/>
+
+                                <Image Height="48" DockPanel.Dock="Left" x:Name="logo" Stretch="Uniform" Source="{Binding ChannelModel.Logo.Value, Converter={StaticResource ImageConverter}}"/>
+                            </Grid>
+                            
+                        </Border>
+                        <!--Title with close-->
+                        <Button DockPanel.Dock="Right" IsCancel="True" Command="{Binding Cancel, Converter={StaticResource CloseDialogCommandConverter}}"
+                                Style="{StaticResource MaterialDesignIconForegroundButton}">
+                            <materialDesign:PackIcon Kind="Close" />
+                        </Button>
+                        <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
+                            <TextBlock FontSize="18" DockPanel.Dock="Left" x:Name="action" VerticalAlignment="Center" Text="Edit - "  Margin="8,0,0,0" />
+                            <TextBlock FontSize="18" VerticalAlignment="Center" Text="{Binding ChannelModel.Name.Value}" TextTrimming="CharacterEllipsis"  Margin="0,0,8,0"/>
+                        </StackPanel>
+                    </DockPanel>
+
+                </Border>
+
+                <Border Grid.Row="1" Margin="2,0" Background="{DynamicResource MaterialDesignToolBarBackground}">
+                    <ScrollViewer HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto">
+
+                        <StackPanel Margin="0,10" x:Name="optionsPanel">
+                            <HeaderedContentControl Header="Name" Style="{StaticResource SectionWithTitle}">
+                                <TextBox Text="{Binding ChannelModel.Name.Value, UpdateSourceTrigger=PropertyChanged}" 
+                                         Style="{StaticResource ChannelTextBoxStyle}"
+                                            materialDesign:HintAssist.HelperText="Give any short name or leave default">
+                                </TextBox>
+                            </HeaderedContentControl>
+
+                            <HeaderedContentControl Header="Web shortcut" Style="{StaticResource SectionWithTitle}">
+                                <DockPanel>
+                                    <Button DockPanel.Dock="Right" Style="{StaticResource MaterialDesignOutlinedButton}"
+                                            Margin="10,-2,0,-5" Height="26" Padding="10,0"
+                                            Command="{Binding ChannelModel.GoToWebUrl, Converter={StaticResource CommandConverter}}">
+                                        <StackPanel Orientation="Horizontal" >
+                                            <materialDesign:PackIcon Kind="OpenInBrowser" 
+                                                                     Height="20" Width="20"
+                                                                     VerticalAlignment="Center"
+                                                                      Margin="0,0,4,0"/>
+                                            <TextBlock Text="Test" VerticalAlignment="Center" />
+                                        </StackPanel>
+                                    </Button>
+                                    <TextBox Text="{Binding ChannelModel.WebUrl.Value, UpdateSourceTrigger=PropertyChanged}" 
+                                             Style="{StaticResource ChannelTextBoxStyle}"
+                                             support:Behaviors.TextBoxHasPasteButton="True"
+                                            materialDesign:HintAssist.HelperText="Configure link to your account for quick access from the main page">
+                                    </TextBox>
+                                </DockPanel>
+                            </HeaderedContentControl>
+
+                            <HeaderedContentControl Style="{StaticResource SectionWithTitle}">
+                                <HeaderedContentControl.Header>
+                                    <TextBlock x:Name="targetTitle" Margin="0,16,0,0" Text="Target" TextElement.Foreground="#aaaaaa"/>
+                                </HeaderedContentControl.Header>
+                                <DockPanel>
+                                    <StackPanel x:Name="targetModePanel" Margin="-4,0,0,0" Orientation="Horizontal" DockPanel.Dock="Top"
+                                                Visibility="Collapsed">
+                                        <CheckBox Content="Manual" Style="{StaticResource MaterialDesignFilterChipCheckBox}"
+                                                  IsChecked="{Binding ChannelModel.AutoLoginMode.Value, Converter={StaticResource InverseBooleanConverter}}"/>
+                                        <CheckBox Content="Login &amp; Forget" Style="{StaticResource MaterialDesignFilterChipCheckBox}"
+                                                  IsChecked="{Binding ChannelModel.AutoLoginMode.Value}"/>
+                                    </StackPanel>
+                                    <Grid Margin="0,10,0,0">
+                                        <StackPanel x:Name="manual" Visibility="Visible">
+                                            <DockPanel>
+                                                <TextBlock Margin="0,10,0,0" Text="RTMP Url" Width="80" Foreground="#aaaaaa"/>
+                                                <TextBox x:Name="rtmpUrl" Text="{Binding ChannelModel.RtmpUrl.Value, UpdateSourceTrigger=PropertyChanged}" 
+                                                     Margin="0,5"
+                                                     materialDesign:HintAssist.HelperText="You can provide rtmp url here. We recommend to leave it as default"
+                                                 Style="{StaticResource ChannelTextBoxStyle}"
+                                                 support:Behaviors.TextBoxHasPasteButton="True"
+                                                 ToolTip="Rtmp Url provided by streaming platform. You can check tutorial below on how to get the url"/>
+                                            </DockPanel>
+
+                                            <DockPanel Margin="0,20,0,0">
+                                                <TextBlock Margin="0,10,0,0" Text="RTMP Key" Width="80" Foreground="#aaaaaa"/>
+                                                <TextBox x:Name="rtmpKey" Text="{Binding ChannelModel.Source.Key, UpdateSourceTrigger=PropertyChanged}" 
+                                                     Margin="0,5"
+                                                     Style="{StaticResource ChannelTextBoxStyle}"
+                                                         materialDesign:HintAssist.HelperText="Provide key or stream name"
+                                                     support:Behaviors.TextBoxHasPasteButton="True"
+                                                     ToolTip="Rtmp Url provided by streaming platform. You can check tutorial below on how to get the url">
+                                                </TextBox>
+                                            </DockPanel>
+
+                                            <TextBlock x:Name="gotoHelp" DockPanel.Dock="Right"  HorizontalAlignment="Left" Margin="0,20,0,0" ToolTip="Opens help in web browser">
+                                                <Hyperlink Command="{Binding ChannelModel.GoToHelp, Converter={StaticResource CommandConverter}}"  Style="{StaticResource hlStyle}">
+                                                    <Run Text="You are not sure how to get the values? Check out our help"/> 
+                                                </Hyperlink>
+                                            </TextBlock>
+                                        </StackPanel>
+                                        <StackPanel x:Name="autoLogin" Visibility="Collapsed">
+                                            <StackPanel Margin="0,-8,0,0">
+                                                <TextBlock Text="You can login to the service and then we will get configuration automatically. Please not that we are not storing any password on our side." 
+                                                           TextWrapping="WrapWithOverflow"
+                                                           Foreground="#aaaaaa"/>
+
+                                                <StackPanel Margin="0,10,0,0" Orientation="Horizontal">
+                                                    <Button Content="Login" HorizontalAlignment="Left" Command="{Binding ChannelModel.Authenticate, Converter={StaticResource CommandConverter}}"/>
+
+                                                    <StackPanel Margin="30,0,0,0" Orientation="Horizontal" VerticalAlignment="Center" >
+                                                        <materialDesign:PackIcon x:Name="autoLoginIcon" Kind="ProgressAlert" Width="16" Foreground="#CCCCCC"/>
+                                                        <TextBlock x:Name="autoLoginText" Margin="4,0,0,0" Text="{Binding ChannelModel.Status.Value.AutoLoginStateText}" 
+                                                                   Foreground="#CCCCCC"/>
+                                                    </StackPanel>
+                                                </StackPanel>
+                                            </StackPanel>
+                                        </StackPanel>
+                                    </Grid>
+                                </DockPanel>
+                            </HeaderedContentControl>
+
+                            <!--TRANSCODING-->
+                            <HeaderedContentControl Style="{StaticResource SectionWithTitle}">
+                                <HeaderedContentControl.Header>
+                                    <TextBlock Text="Transcoding" Margin="0,9,0,0" TextElement.Foreground="#aaaaaa"/>
+                                </HeaderedContentControl.Header>
+                                <Grid>
+                                    <StackPanel Margin="0,0,0,0" x:Name="TranscodingDisabled" Visibility="Collapsed">
+                                        <TextBlock Margin="0,14,0,5" Foreground="#a0a0a0" Text="Transcoding is not included in your pricing plan" 
+                                                   TextWrapping="Wrap" />
+
+                                        <TextBlock x:Name="promo" Margin="0,-2,0,0" FontWeight="Normal">
+                                            <Hyperlink NavigateUri="{Binding ChannelModel.Parent.Transcoding.TariffUrl}" support:HyperlinkExtensions.IsExternal="true" Style="{StaticResource hlStyle}">
+                                                <Run Text="Discover available pricing plans"/> 
+                                            </Hyperlink>    
+                                        </TextBlock>
+
+                                    </StackPanel>
+
+                                    <StackPanel x:Name="TranscodingEnabled">
+                                        <StackPanel Margin="-5,0,0,0" Orientation="Horizontal">
+                                            <CheckBox Style="{StaticResource MaterialDesignFilterChipCheckBox}" Height="40"
+                                                  IsChecked="{Binding ChannelModel.IsTranscoded.Value, Converter={StaticResource InverseBooleanConverter}}">
+                                                <StackPanel Margin="3,0">
+                                                    <TextBlock Text="Original" FontSize="12"/>
+                                                    <TextBlock Text="{Binding ChannelModel.Parent.Transcoding.OriginalDescription.Value}"/>
+                                                </StackPanel>
+                                            </CheckBox>
+                                            <CheckBox Style="{StaticResource MaterialDesignFilterChipCheckBox}" Height="40"
+                                                  IsChecked="{Binding ChannelModel.IsTranscoded.Value}">
+                                                <StackPanel Margin="3,0">
+                                                    <TextBlock Text="Transcoded" FontSize="12"/>
+                                                    <TextBlock Text="{Binding ChannelModel.Parent.Transcoding.TranscodedDescription.Value}"/>
+                                                </StackPanel>
+                                            </CheckBox>
+                                        </StackPanel>
+
+                                        <Button Margin="0,8,0,0" DockPanel.Dock="Right"
+                                                HorizontalAlignment="Left"
+                                                Content="Open transcoder settings" Command="{x:Static materialDesign:DialogHost.OpenDialogCommand}"
+                                                Style="{StaticResource MaterialDesignOutlinedButton}"
+                                                Foreground="#609EFF">
+                                            <Button.CommandParameter>
+                                                    <ContentControl Content="{Binding ChannelModel.Parent.Transcoding}" ContentTemplate="{StaticResource TranscodingDialogContent}"/>
+                                            </Button.CommandParameter>
+                                        </Button>
+                                    </StackPanel>
+
+                                </Grid>
+                                
+                            </HeaderedContentControl>
+
+                        </StackPanel>
+                    </ScrollViewer>
+                </Border>
+
+
+                <Border Grid.Row="2" Margin="8">
+                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" >
+                        <Button x:Name="firstButton" Content="Close" Margin="8,0"
+                                Command="{Binding Ok, Converter={StaticResource CloseDialogCommandConverter}}"/>
+                        <Button x:Name="secondButton" Content="Cancel" Margin="8,0" Style="{StaticResource MaterialDesignOutlinedButton}" Visibility="Collapsed"
+                                Command="{Binding Cancel, Converter={StaticResource CloseDialogCommandConverter}}"/>
+                    </StackPanel>
+                </Border>
+            </Grid>
+        </Border>
+        </materialDesign:DialogHost>
+        <DataTemplate.Triggers>
+
+            <DataTrigger Binding="{Binding ChannelModel.Status.Value.AutoLoginState}" Value="NotAuthenticated">
+                <Setter TargetName="autoLoginIcon" Property="Foreground" Value="Red"/>
+                <Setter TargetName="autoLoginText" Property="Foreground" Value="Red"/>
+                <Setter TargetName="autoLoginIcon" Property="Kind" Value="AlertCircle"/>
+            </DataTrigger>
+
+            <DataTrigger Binding="{Binding ChannelModel.Status.Value.AutoLoginState}" Value="KeyNotFound">
+                <Setter TargetName="autoLoginIcon" Property="Foreground" Value="Red"/>
+                <Setter TargetName="autoLoginText" Property="Foreground" Value="Red"/>
+                <Setter TargetName="autoLoginIcon" Property="Kind" Value="AlertCircle"/>
+            </DataTrigger>
+
+            <DataTrigger Binding="{Binding ChannelModel.Status.Value.AutoLoginState}" Value="KeyObtained">
+                <Setter TargetName="autoLoginIcon" Property="Foreground" Value="Green"/>
+                <Setter TargetName="autoLoginText" Property="Foreground" Value="Green"/>
+                <Setter TargetName="autoLoginIcon" Property="Kind" Value="CheckboxMarkedCircle"/>
+            </DataTrigger>
+
+            <DataTrigger Binding="{Binding ChannelModel.AutoLoginMode.Value}" Value="True">
+                <Setter TargetName="manual" Property="Visibility" Value="Collapsed"/>
+                <Setter TargetName="autoLogin" Property="Visibility" Value="Visible"/>
+            </DataTrigger>
+
+            <DataTrigger Binding="{Binding ChannelModel.SupportsAutoLogin}" Value="True">
+                <Setter TargetName="targetModePanel" Property="Visibility" Value="Visible"/>
+                <Setter TargetName="targetTitle" Property="Margin" Value="0,9,0,0"/>
+                
+            </DataTrigger>
+
+            <DataTrigger Binding="{Binding Add}" Value="True">
+                <Setter TargetName="action" Property="Text" Value="Add - "/>
+                <Setter TargetName="firstButton" Property="Content" Value="Add channel"/>
+                <Setter TargetName="secondButton" Property="Visibility" Value="Visible"/>
+            </DataTrigger>
+            
+            <DataTrigger Binding="{Binding ChannelModel.Target.Id}" Value="{x:Null}">
+                <Setter TargetName="custom" Property="Visibility" Value="Visible"/>
+                <Setter TargetName="logo" Property="Visibility" Value="Collapsed"/>
+                <Setter TargetName="gotoHelp" Property="Visibility" Value="Collapsed"/>
+            </DataTrigger>
+
+            <DataTrigger Binding="{Binding ChannelModel.Parent.Transcoding.TranscodingEnabled}"  Value="False">
+                <Setter TargetName="TranscodingEnabled" Property="Visibility" Value="Collapsed"/>
+                <Setter TargetName="TranscodingDisabled" Property="Visibility" Value="Visible"/>
+            </DataTrigger>
+
+            <DataTrigger Binding="{Binding ChannelModel.RtmpKey.Value.Length}" Value="0">
+                <Setter TargetName="rtmpKey" Property="Foreground" Value="#FF4444"/>
+                <Setter TargetName="rtmpKey" Property="BorderBrush" Value="#FF4444"/>
+            </DataTrigger>
+
+            <DataTrigger Binding="{Binding ChannelModel.NeedsRtmpUrl}" Value="True">
+                <Setter TargetName="rtmpUrl" Property="materialDesign:HintAssist.HelperText" Value="Provide rtmp url"/>
+            </DataTrigger>
+
+            <DataTrigger Binding="{Binding ChannelModel.RtmpUrlHasWrongFormat.Value}" Value="True">
+                <Setter TargetName="rtmpUrl" Property="Foreground" Value="#FF4444"/>
+                <Setter TargetName="rtmpUrl" Property="BorderBrush" Value="#FF4444"/>
+                <Setter TargetName="rtmpUrl" Property="materialDesign:HintAssist.HelperText" Value="Provide rtmp url in correct format like 'rtmp://host.com/app'"/>
+            </DataTrigger>
+
+            <DataTrigger Binding="{Binding ChannelModel.RtmpUrl.Value.Length}" Value="0">
+                <Setter TargetName="rtmpUrl" Property="Foreground" Value="#FF4444"/>
+                <Setter TargetName="rtmpUrl" Property="BorderBrush" Value="#FF4444"/>
+                <Setter TargetName="rtmpUrl" Property="materialDesign:HintAssist.HelperText" Value="Provide none-empty rtmp url"/>
+            </DataTrigger>
+            
+
+
+            <DataTrigger Binding="{Binding IsTranscoded.Value}"  Value="True">
+            </DataTrigger>
+
+        </DataTemplate.Triggers>
+    </DataTemplate>
+</ResourceDictionary>

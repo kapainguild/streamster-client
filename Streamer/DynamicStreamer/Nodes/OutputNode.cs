@@ -126,9 +126,6 @@ namespace DynamicStreamer.Nodes
                                             if (writeTime.TotalMilliseconds > 300)
                                                 Core.LogWarning($"Long send {(int)writeTime.TotalMilliseconds}ms", "Long send");
 
-                                            if (writeRes == ErrorCodes.TimeoutOrInterrupted)
-                                                throw new OperationCanceledException();
-
                                             ProcessWriteResult(writeRes, packet, size, sourceId);
                                         }
                                         else
@@ -175,13 +172,20 @@ namespace DynamicStreamer.Nodes
         {
             if (writeRes < 0) // note that res can be here as "Interrupted"
             {
-                if (writeRes == ErrorCodes.InvalidArgument && _initialErrorCounter < 8) //TODO: check why. Is due to 'Application provided invalid, non monotonically increasing dts to muxer in stream 1' when restream is started before stream to cloud
+                if (writeRes == ErrorCodes.TimeoutOrInterrupted)
+                {
+                    Core.LogWarning($"TimeoutOrInterrupted on output {Name}");
+                    _errorCounter = 0;
+                    _currentContext.Context.Instance.CloseOutput();
+                }
+                else if (writeRes == ErrorCodes.InvalidArgument && _initialErrorCounter < 8) //TODO: check why. Is due to 'Application provided invalid, non monotonically increasing dts to muxer in stream 1' when restream is started before stream to cloud
                 {
                     _initialErrorCounter++;
                     Core.LogWarning($"skip error {sourceId} {packet.Properties.Dts} {packet.Properties.Pts}");
                 }
                 else
                 {
+                    Core.LogWarning($"Error {writeRes} on output {Name}");
                     _errorCounter += 5;
                     if (_errorCounter > 50)
                     {

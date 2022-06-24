@@ -1,5 +1,6 @@
 ﻿using DynamicStreamer.Queues;
 using Serilog;
+using Streamster.ClientData;
 using Streamster.ClientData.Model;
 using System;
 using System.Collections.Generic;
@@ -14,6 +15,7 @@ namespace Streamster.ClientCore.Models
         public CoreData CoreData { get; set; }
 
         private SceneState _sceneState;
+        private readonly StreamingSourcesModel _streamingSourcesModel;
 
         public ObservableCollection<AudioSourceModel> AudioSources { get; } = new ObservableCollection<AudioSourceModel>();
 
@@ -23,9 +25,10 @@ namespace Streamster.ClientCore.Models
 
         public AudioItemModel Desktop { get; private set; } 
 
-        public AudioModel(CoreData coreData)
+        public AudioModel(CoreData coreData, StreamingSourcesModel streamingSourcesModel)
         {
             CoreData = coreData;
+            _streamingSourcesModel = streamingSourcesModel;
             Mic = new AudioItemModel(false, this);
             Desktop = new AudioItemModel(true, this);
         }
@@ -42,14 +45,16 @@ namespace Streamster.ClientCore.Models
             Desktop.VolumeControl.OnChange = (o, n) => GetSceneAudio(true).Volume = GetDbFromPercent(n);
 
             CoreData.Subscriptions.SubscribeForAnyProperty<IInputDevice>((i, c, e, r) => UpdateAudioSources());
-            CoreData.Subscriptions.SubscribeForAnyProperty<ISceneAudio>((a, b, c, d) =>
-            {
-                RefreshItems();
-                UpdateAudioSources();
-            });
+            CoreData.Subscriptions.SubscribeForAnyProperty<ISceneAudio>((a, b, c, d) => RefreshAll());
 
             CoreData.Subscriptions.SubscribeForProperties<IScene>(s => s.AudioIssues, (i, c, e) => RefreshItems());
+            CoreData.Subscriptions.SubscribeForProperties<ISettings>(s => s.SelectedScene, (i, c, e) => RefreshAll());
 
+            RefreshAll();
+        }
+
+        private void RefreshAll()
+        {
             RefreshItems();
             UpdateAudioSources();
         }
@@ -117,30 +122,47 @@ namespace Streamster.ClientCore.Models
 
         private void RefreshItems()
         {
-            if (CoreData.Settings.SelectedScene != null &&
-                CoreData.Root.Scenes.TryGetValue(CoreData.Settings.SelectedScene, out var scene) &&
-                CoreData.Root.Devices.TryGetValue(scene.Owner, out var device))
+            if (_streamingSourcesModel.TryGetCurrentSceneDevice(out var scene, out var device))
             {
                 _sceneState = new SceneState(scene, device, device == CoreData.ThisDevice);
 
-                var desktop = GetSceneAudio(true);
-                Desktop.Muted.SilentValue = desktop.Muted;
-                Desktop.VolumeControl.SilentValue = GetPercentFromDb(desktop.Volume);
-                Desktop.VolumeLevelAvailable.Value = _sceneState.IsLocal;
-
-                var mic = GetSceneAudio(false);
-                Mic.Muted.SilentValue = mic.Muted;
-                Mic.VolumeControl.SilentValue = GetPercentFromDb(mic.Volume);
-                Mic.VolumeLevelAvailable.Value = _sceneState.IsLocal;
-
-                if (mic.Source.DeviceName?.DeviceId == null)
-                    Mic.Name.SilentValue = "[Microphone is not selected]";
-                else if (_sceneState.Device.AudioInputs.TryGetValue(mic.Source.DeviceName.DeviceId, out var input))
-                    Mic.Name.SilentValue = input.Name;
+                if (device.Type == ClientConstants.ExternalClientId)
+                {
+                    Desktop.Visible.ValueWithComparison = false;
+                    Mic.Visible.ValueWithComparison = false;
+                }
                 else
-                    Mic.Name.SilentValue = "[Microphone not found]";
+                {
+                    Desktop.Visible.ValueWithComparison = true;
+                    Mic.Visible.ValueWithComparison = true;
 
-                RefreshIssues(scene);
+                    var desktop = GetSceneAudio(true);
+                    if (desktop != null)
+                    {
+                        Desktop.Muted.SilentValue = desktop.Muted;
+                        Desktop.VolumeControl.SilentValue = GetPercentFromDb(desktop.Volume);
+                    }
+                    Desktop.VolumeLevelAvailable.Value = _sceneState.IsLocal;
+
+                    var mic = GetSceneAudio(false);
+                    if (mic != null)
+                    {
+                        Mic.Muted.SilentValue = mic.Muted;
+                        Mic.VolumeControl.SilentValue = GetPercentFromDb(mic.Volume);
+                    }
+                    Mic.VolumeLevelAvailable.Value = _sceneState.IsLocal;
+
+                    if (mic == null)
+                        Mic.Name.SilentValue = "[Microphone not available]";
+                    else if (mic.Source.DeviceName?.DeviceId == null)
+                        Mic.Name.SilentValue = "[Microphone is not selected]";
+                    else if (_sceneState.Device.AudioInputs.TryGetValue(mic.Source.DeviceName.DeviceId, out var input))
+                        Mic.Name.SilentValue = input.Name;
+                    else
+                        Mic.Name.SilentValue = "[Microphone not found]";
+
+                    RefreshIssues(scene);
+                }
             }
         }
 
@@ -180,6 +202,8 @@ namespace Streamster.ClientCore.Models
         }
 
         public bool IsDesktop { get; }
+
+        public Property<bool> Visible { get; } = new Property<bool>();
 
         public AudioModel Parent { get; }
 

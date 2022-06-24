@@ -30,6 +30,8 @@ namespace DynamicStreamer
 
         public int CODEC_ID_PNG;
         public int CODEC_ID_MJPEG;
+        public int CODEC_ID_H264;
+        public int CODEC_ID_AAC;
         public int CODEC_ID_RAWVIDEO;
         public int CODEC_ID_PCM_S16LE;
         public int CODEC_ID_PCM_F32LE;

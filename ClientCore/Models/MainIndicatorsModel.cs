@@ -149,7 +149,7 @@ namespace Streamster.ClientCore.Models
             var state = cloudOut.State;
 
             var bitrate = state == IndicatorState.Disabled ? 0 : cloudOut.Bitrate;
-            _streamSettings.SetActualBitrate(bitrate, cloudOut.State);
+            _streamSettings.SetActualBitrate(bitrate, state, localDevice);
 
             var r = localDevice.CloudOut;
             r.State.Value = state;
@@ -283,8 +283,12 @@ namespace Streamster.ClientCore.Models
             {
                 if (Devices.Count <= 1)
                     device.Name.Value = null;
+                else if (device.DeviceId == _coreData.ThisDeviceId)
+                    device.Name.Value = "local";
+                else if (_coreData.Root.Devices.TryGetValue(device.DeviceId, out var d))
+                    device.Name.Value = StreamingSourcesModel.GetShortName(d);
                 else
-                    device.Name.Value = device.DeviceId == _coreData.ThisDeviceId ? "local" : "remote";
+                    device.Name.Value = "???";
             }
         }
 

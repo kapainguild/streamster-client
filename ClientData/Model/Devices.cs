@@ -7,17 +7,13 @@ namespace Streamster.ClientData.Model
     {
         string Name { get; set; }
 
+        string Type { get; set; }
+
         DeviceState State { get; set; }
-
-        bool PreviewVideo { get; set; } // remove
-
-        bool PreviewAudio { get; set; }// remove
 
         RequireOutgestType RequireOutgestType { get; set; }
 
         bool RequireOutgest { get; set; }
-
-        bool DisplayVideoHidden { get; set; }
 
         string AssignedOutgest { get; set; }
 
@@ -54,7 +50,7 @@ namespace Streamster.ClientData.Model
 
     public enum PluginFlags
     {
-        Lovense = 1
+        Lovense = 1,
     }
 
     public enum RequireOutgestType

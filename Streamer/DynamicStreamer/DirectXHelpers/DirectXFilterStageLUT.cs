@@ -62,7 +62,7 @@ namespace DynamicStreamer.DirectXHelpers
 
         private static unsafe SharpDX.Direct3D11.Resource CreateTexture1D(DirectXContext dx, CubeData cube)
         {
-            var buf = cube.Data.Select(s => new Half(s).RawValue).ToArray();
+            var buf = cube.Data.Select(s => new SharpDX.Half(s).RawValue).ToArray();
 
             fixed (ushort* ptr = buf)
             {
@@ -94,7 +94,7 @@ namespace DynamicStreamer.DirectXHelpers
 
         private static unsafe SharpDX.Direct3D11.Resource CreateTexture3D(DirectXContext dx, CubeData cube)
         {
-            var buf = cube.Data.Select(s => new Half(s).RawValue).ToArray();
+            var buf = cube.Data.Select(s => new SharpDX.Half(s).RawValue).ToArray();
 
             fixed (ushort* ptr = buf)
             {

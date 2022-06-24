@@ -123,5 +123,10 @@ namespace Streamster.ClientApp.Win
                 Log.Error(e, $"Failed to PreventSleepMode");
             }
         }
+
+        public string GetDeviceName()
+        {
+            return Environment.MachineName;
+        }
     }
 }

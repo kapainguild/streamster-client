@@ -18,7 +18,8 @@ namespace DynamicStreamer.Nodes
     {
         None,
         Error,
-        InUse
+        InUse,
+        GracefulClose
     }
 
     public class StatisticDataOfInputOutput : StatisticData

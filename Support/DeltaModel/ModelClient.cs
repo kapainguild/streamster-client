@@ -9,6 +9,12 @@ namespace Clutch.DeltaModel
     {
         private List<Change> _changes = new List<Change>();
 
+        public ModelClient(DeltaModelManager manager, Filter filter)
+        {
+            Manager = manager;
+            Filter = filter;
+        }
+
         public Filter Filter { get; set; }
 
         public DeltaModelManager Manager { get; internal set; }
@@ -16,22 +22,6 @@ namespace Clutch.DeltaModel
         public void AddChange(Change change)
         { 
             _changes.Add(change);
-        }
-
-        public string SerializeAndClearChanges(out List<Change> changes)
-        {
-            lock (Manager)
-            {
-                if (_changes.Count > 0)
-                {
-                    changes = _changes.ToList();
-                    var result = Change.SerializeChanges(_changes);
-                    _changes.Clear();
-                    return result;
-                }
-                changes = null;
-                return null;
-            }
         }
 
         public string SerializeAndClearChanges()

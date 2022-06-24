@@ -4,7 +4,7 @@
                     xmlns:data="clr-namespace:Streamster.ClientData.Model;assembly=Streamster.ClientData"
                     xmlns:support="clr-namespace:Streamster.ClientApp.Win.Support" 
                     xmlns:materialDesign="http://materialdesigninxaml.net/winfx/xaml/themes"
-                    xmlns:controlzEx="clr-namespace:ControlzEx;assembly=MaterialDesignThemes.Wpf" xmlns:oxy="http://oxyplot.org/wpf">
+                    xmlns:oxy="http://oxyplot.org/wpf">
     <ResourceDictionary.MergedDictionaries>
         <ResourceDictionary Source="Common.xaml"/>
         <ResourceDictionary Source="OnScreenStyles.xaml"/>
@@ -54,7 +54,7 @@
                                 <ContentPresenter x:Name="smallValue" Margin="0,0,0,5" HorizontalAlignment="Center" VerticalAlignment="Bottom" Content="{TemplateBinding SmallContent}"/>
                             </Grid>
                         </ToggleButton>
-                        <controlzEx:PopupEx x:Name="PART_Popup" 
+                        <materialDesign:PopupEx x:Name="PART_Popup" 
                                           IsOpen="{Binding IsChecked, ElementName=toggle}"
                                           PlacementTarget="{Binding ElementName=toggle}"
                                         HorizontalOffset="0"
@@ -74,7 +74,7 @@
                                     <ContentPresenter x:Name="content" Margin="10,27,10,10" Content="{TemplateBinding Content}" ContentTemplate="{TemplateBinding ContentTemplate}"/>
                                 </Grid>
                             </ToggleButton>
-                        </controlzEx:PopupEx>
+                        </materialDesign:PopupEx>
                     </Grid>
                     <ControlTemplate.Triggers>
                         <Trigger Property="State" Value="Ok">
@@ -149,7 +149,7 @@
                                 </StackPanel>
                             </Grid>
                         </ToggleButton>
-                        <controlzEx:PopupEx x:Name="PART_Popup" 
+                        <materialDesign:PopupEx x:Name="PART_Popup" 
                                           IsOpen="{Binding IsChecked, ElementName=toggle}"
                                           PlacementTarget="{Binding ElementName=toggle}"
                                         HorizontalOffset="0"
@@ -169,7 +169,7 @@
                                     <ContentPresenter x:Name="content" Margin="10,27,10,10" Content="{TemplateBinding Content}" ContentTemplate="{TemplateBinding ContentTemplate}"/>
                                 </Grid>
                             </ToggleButton>
-                        </controlzEx:PopupEx>
+                        </materialDesign:PopupEx>
                     </Grid>
                     <ControlTemplate.Triggers>
                         <Trigger SourceName="toggle" Property="IsChecked" Value="True">
