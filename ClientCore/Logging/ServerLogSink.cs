@@ -41,22 +41,18 @@ namespace Streamster.ClientCore.Logging
                 _batches.Dequeue();
             }
 
-            if (_service.Connection?.State == HubConnectionState.Connected)
+            try
             {
-                try
+                while (_batches.Count > 0)
                 {
-                    while (_batches.Count > 0)
-                    {
-                        var toSend = _batches.Peek();
-                        await _service.Connection.InvokeAsync(nameof(IConnectionHubServer.Logs), new ProtocolLogPayload
-                        {
-                            Logs = toSend
-                        });
+                    var toSend = _batches.Peek();
+                    if (await _service.InvokeAsync(nameof(IConnectionHubServer.Logs), new ProtocolLogPayload { Logs = toSend }))
                         _batches.Dequeue();
-                    }
+                    else
+                        break;
                 }
-                catch { }
             }
+            catch { }
         }
 
         private LogEvent ChangeLevel(LogEvent s)

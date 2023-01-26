@@ -83,7 +83,7 @@ namespace Streamster.ClientCore.Models.Chats
                 Id = id,
                 TargetId = remote.TargetId,
                 Title = title,
-                Close = () => _coreData.Root.Platforms.Chats.Remove(id),
+                Close = () => _coreData.Root.Platforms.Chats.Remove(id)
             };
 
             chat.Authenticate = () => Authenticate(chat.TargetId);
@@ -91,7 +91,7 @@ namespace Streamster.ClientCore.Models.Chats
             {
                 if (!string.IsNullOrEmpty(chat.Message.Value))
                 {
-                    _hubConnectionService.Connection.InvokeAsync(nameof(IConnectionHubServer.SendChatMessage), new ChatMessageToSend { ChatId = id, Msg = chat.Message.Value });
+                    _ = _hubConnectionService.InvokeAsync(nameof(IConnectionHubServer.SendChatMessage), new ChatMessageToSend { ChatId = id, Msg = chat.Message.Value });
                     chat.Message.Value = "";
                 }
             };

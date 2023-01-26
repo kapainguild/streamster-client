@@ -87,7 +87,7 @@ namespace Streamster.ClientCore.Models
                 //    int q = 0;
                 //}
                 _streamerLogger.Write(severity, pattern, message, exception);
-            });
+            }, (s, st) => new OutputContext());
 
             _hardwareEncoderCheck = new HardwareEncoderCheck();
             _hardwareEncoderCheck.Start();
@@ -185,7 +185,7 @@ namespace Streamster.ClientCore.Models
                 }
 
                 if (_receiverStreamer == null)
-                    _receiverStreamer = new ClientStreamer("main", _hardwareEncoderCheck);
+                    _receiverStreamer = new ClientStreamer("receiver", _hardwareEncoderCheck);
 
                 _receiverStreamer.StartUpdate(GetReceiverStreamerConfig(_receiverStreamer.GetDxFailureCounter()));
             }
@@ -194,9 +194,9 @@ namespace Streamster.ClientCore.Models
         private void ShutdownStreamer(ClientStreamer streamer, string info)
         {
             Log.Information($"Shutting down: {info}");
-            streamer.StopFrameProcessing();
             streamer.BlockingUpdate(new ClientStreamerConfig(null, null, null, null, null, null, 0.0, Disposing: true));
             streamer.Dispose();
+            streamer.StopFrameProcessing();
             Log.Information($"Shut down: {info}");
         }
 
@@ -209,7 +209,7 @@ namespace Streamster.ClientCore.Models
                 var outgestUrl = GetIngestOutgestUrl(outgest.Data.Output);
                 //outgestUrl = outgestUrl.Replace("60", "66");
                 inputs = new[] { new VideoInputTrunkConfig("0", new VideoInputConfigFull(
-                    new InputSetup(outgest.Data.Type, outgestUrl, outgest.Data.Options, null, null, null, null, 2, AdjustInputType.None, true, false)), 
+                    new InputSetup(outgest.Data.Type, outgestUrl, outgest.Data.Options, null, null, null, null, 1, AdjustInputType.None, true, false)), 
                     null, PositionRect.Full, PositionRect.Full, true, 0) };
             }
 
@@ -235,7 +235,7 @@ namespace Streamster.ClientCore.Models
 
             var result = new ClientStreamerConfig
             (
-                scene.Items.Select(s => RebuildSceneVideo(s.Key, s.Value, rebuildContext)).ToArray(),
+                scene.Items.Where(s => s.Value.Source != null).Select(s => RebuildSceneVideo(s.Key, s.Value, rebuildContext)).ToArray(),
                 scene.Audios.Select(s => RebuildSceneAudio(s.Key, s.Value, rebuildContext)).Where(s => s != null).ToArray(),
 
                 RebuildVideoEncoder(videoBitrate, false),

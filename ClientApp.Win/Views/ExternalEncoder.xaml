@@ -54,7 +54,7 @@
                                 Content="Copy" Style="{StaticResource MaterialDesignOutlinedButton}" HorizontalAlignment="Left" VerticalAlignment="Bottom"/>
 
                             <StackPanel Grid.Column="0" Grid.Row="2">
-                                <TextBlock Text="Rtmp key" Margin="0,30,0,10" FontWeight="Bold" Foreground="#AAAAAA"/>
+                                <TextBlock Text="Stream key" Margin="0,30,0,10" FontWeight="Bold" Foreground="#AAAAAA"/>
                                 <TextBox Grid.Column="0" Grid.Row="2" Margin="10,0,0,0" Text="{Binding Key.Value}" IsReadOnly="True" 
                                      BorderBrush="#505050"/>
                             </StackPanel>

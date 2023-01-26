@@ -20,10 +20,11 @@ namespace DynamicStreamer
         private TimerSubscription _timerSubscription = null;
         private int encoder_drc_buffer_size;
         private int encoder_drc_positive_counter;
-        private double encoder_drc_ratio;
+        private double encoder_drc_ratio = 1.0;
         private string _trunkId;
 		private int _configuredBitrate = 1000;
 		private LinkedList<BitrateControllerMeasurement> _measurements = new LinkedList<BitrateControllerMeasurement>();
+        //private int _bufferSize;
 
         public BitrateController(StreamerBase<TConfig> clientStreamer, Func<TConfig, double, TConfig> updater)
         {
@@ -36,12 +37,18 @@ namespace DynamicStreamer
             ShutDown();
 
             _reader = reader;
+			//reader.NotifyPacket = OnPacket;
             _timerSubscription = _clientStreamer.Subscribe(990, OnTimer);
         }
 
+		//private void OnPacket(Packet packet, int stream, int bufferSize)
+		//{
+		//	_bufferSize = bufferSize;
+		//}
+
         private void OnTimer()
         {
-			int buffer = _reader.BufferSize;
+			int buffer = _reader.BufferSize; //_bufferSize;
 			int delta = buffer - encoder_drc_buffer_size;
 
 			var stat = _clientStreamer.ResourceManager.GetStatistics(out var period);
@@ -141,7 +148,6 @@ namespace DynamicStreamer
 				Reconnected();
 			}
             _reader = null;
-			
 		}
 
         public void Reconnected()

@@ -1,4 +1,5 @@
 ﻿using Clutch.DeltaModel;
+using DynamicStreamer;
 using Microsoft.AspNetCore.SignalR.Client;
 using Serilog;
 using Streamster.ClientCore.Cross;
@@ -27,9 +28,8 @@ namespace Streamster.ClientCore.Models
         private readonly IWindowStateManager _windowStateManager;
         private readonly LocalSourcesModel _localSources;
         private bool _firstPatchReceived;
-        private IDisposable _onPatchSubscription;
-        private IDisposable _onReceiveChatSubscription;
         private TaskCompletionSource<bool> _firstPatchTcs;
+        private AfterReconnectData _afterReconnectData;
 
         private bool _sendInProgress;
 
@@ -136,15 +136,10 @@ namespace Streamster.ClientCore.Models
 
         internal async Task StartAsync()
         {
-            _onPatchSubscription?.Dispose();
-            _onReceiveChatSubscription?.Dispose();
             _firstPatchTcs = new TaskCompletionSource<bool>();
-            var connection = _hubConnectionService.CreateConnection(OnConnectionChanged);
-            _onPatchSubscription = connection.On<ProtocolJsonPatchPayload>(nameof(IConnectionHubClient.JsonPatch), p => OnPatchOnMainThread(p));
-            _onReceiveChatSubscription = connection.On<ReceiveChatMessagesData>(nameof(IConnectionHubClient.ReceiveChatMessages), p => Platforms.OnReceiveChatMessagesData(p));
-
+            
             Log.Information("Connecting to hub");
-            await _hubConnectionService.StartConnection();
+            await _hubConnectionService.StartConnection(OnConnectionChanged, p => OnPatchOnMainThread(p), p => Platforms.OnReceiveChatMessagesData(p));
             Log.Information("Connected to hub");
         }
 
@@ -169,6 +164,18 @@ namespace Streamster.ClientCore.Models
                     DialogContent.Value = new ConnectionFailedModel();
                 }
                 IsDialogShown.Value = true;
+
+                _coreData.RunOnMainThread(() => StoreAfterReconnectData());
+            }
+        }
+
+        private void StoreAfterReconnectData()
+        {
+            if (_streamingSourcesModel.IsMySceneSelected())
+            {
+                _afterReconnectData = new AfterReconnectData(_coreData.Root.Settings.StreamingToCloudStarted,
+                    _coreData.Root.Channels.Where(s => s.Value.IsOn).Select(s => s.Key).ToArray());
+                Log.Information($"Storing After reconnect model (streamToCloud={_afterReconnectData.StreamToCloud}, runningChannels = {_afterReconnectData.RunningChannelIds.Length})");
             }
         }
 
@@ -226,7 +233,7 @@ namespace Streamster.ClientCore.Models
                 Log.Error(failed, "Startup failure");
 
                 await Task.Delay(1050); 
-                await _hubConnectionService.ReleaseConnection();
+                await _hubConnectionService.StopConnection();
                 throw new ConnectionServiceException("Application failed to initialize. Please contact administrator.", failed);
             }
         }
@@ -287,7 +294,25 @@ namespace Streamster.ClientCore.Models
         {
             Log.Debug($"{{---{payload.Changes}");
             if (_firstPatchReceived)
+            {
                 _coreData.GetManager().ApplyChanges(_serverClient, payload.Changes);
+                if (payload.Reset) // this is maybe reconnect
+                {
+                    // if it is reconnect to new server
+                    var recover = _afterReconnectData;
+                    _afterReconnectData = null;
+                    if (recover != null)
+                    {
+                        Log.Information($"Restoring After reconnect model (streamToCloud={recover.StreamToCloud}, runningChannels = {recover.RunningChannelIds.Length})");
+                        _coreData.Settings.StreamingToCloudStarted = recover.StreamToCloud;
+                        foreach (var id in recover.RunningChannelIds)
+                        {
+                            if (_coreData.Root.Channels.TryGetValue(id, out var ch))
+                                ch.IsOn = true;
+                        }
+                    }
+                }
+            }
             else if (payload.Reset)
                 await OnInitialPatch(payload);
             else
@@ -362,17 +387,15 @@ namespace Streamster.ClientCore.Models
             var changes = _serverClient.SerializeAndClearChanges();
             if (changes != null)
             {
-                var state = _hubConnectionService.Connection.State;
-                if (state == HubConnectionState.Connected || state == HubConnectionState.Connecting)
+                if (await _hubConnectionService.InvokeAsync(nameof(IConnectionHubServer.JsonPatch), new ProtocolJsonPatchPayload { Changes = changes }))
                 {
                     Log.Debug($"---}} {changes}");
-                    await _hubConnectionService.Connection.InvokeAsync(nameof(IConnectionHubServer.JsonPatch), new ProtocolJsonPatchPayload { Changes = changes });
                     _ignoreWarningSendPatch = false;
                 }
                 else
                 {
                     if (!_ignoreWarningSendPatch)
-                        Log.Warning($"Send patch ignored due to state '{state}'");
+                        Log.Warning($"Send patch ignored due to connection state");
                     _ignoreWarningSendPatch = true;
                 }
 
@@ -458,4 +481,6 @@ namespace Streamster.ClientCore.Models
 
         public bool CustomView { get; set; }
     }
+
+    public record AfterReconnectData(bool StreamToCloud, string[] RunningChannelIds);
 }

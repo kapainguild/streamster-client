@@ -190,25 +190,12 @@
                 <Border Style="{StaticResource GroupBorderStyle}">
                     <StackPanel Margin="20,15" >
 
-                        <TextBlock Text="Got something to say about our application and service? Something good or bad? Please share your thoughts with us:" 
-                                   TextWrapping="Wrap" FontWeight="Normal" TextAlignment="Justify"/>
-
-                        <Button Command="{x:Static materialDesign:DialogHost.OpenDialogCommand}" Style="{StaticResource MaterialDesignOutlinedButton}" 
-                                HorizontalAlignment="Left"
-                                Margin="0,8,0,13">
-                            <Button.CommandParameter>
-                                <ContentControl Content="{Binding}" ContentTemplate="{StaticResource LeaveFeedbackDialogContent}"/>
-                            </Button.CommandParameter>
-                            <Run Text="Leave feedback"/>
-                        </Button>
-
                         <TextBlock x:Name="ticket" HorizontalAlignment="Left" Margin="0,0,0,0" ToolTip="Terms and conditions of the Streamster service"
                                    TextWrapping="Wrap" FontWeight="Normal" TextAlignment="Justify">
-                            In case of urgent matters please 
+                            Have any issues in using the service or the application? Please 
                             <Hyperlink NavigateUri="{Binding Root.AppData.CreateTicketUrl}" support:HyperlinkExtensions.IsExternal="true" Style="{StaticResource hlStyle}">
-                                <Run Text="create a ticket"/> 
-                            </Hyperlink>
-                            on our site.
+                                <Run Text="Create a ticket"/> 
+                            </Hyperlink>.
                         </TextBlock>
                     </StackPanel>
                 </Border>

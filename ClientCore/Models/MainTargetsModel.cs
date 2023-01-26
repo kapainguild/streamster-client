@@ -20,7 +20,7 @@ namespace Streamster.ClientCore.Models
         private readonly ConnectionService _connectionService;
         private readonly IAppResources _resources;
         private readonly StreamingSourcesModel _streamingSourcesModel;
-        private readonly MainVpnModel _mainVpnModel;
+        private readonly IAppEnvironment _appEnvironment;
 
         public TargetFilterModel[] Filters { get; private set; }
 
@@ -40,11 +40,12 @@ namespace Streamster.ClientCore.Models
 
         public Action AddTarget { get; }
 
-        public ObservableCollection<IChannel> VisibleChannels { get; } = new ObservableCollection<IChannel>();
+        public ObservableCollection<ChannelModel> Channels { get; } = new ObservableCollection<ChannelModel>();
 
         public MainTargetsModel(StaticFilesCacheService staticFilesCacheService, CoreData coreData, ConnectionService connectionService, 
             IAppResources resources,
-            TranscodingModel transcoding, PlatformsModel platformsModel, StreamingSourcesModel streamingSourcesModel, MainVpnModel mainVpnModel)
+            TranscodingModel transcoding, PlatformsModel platformsModel, StreamingSourcesModel streamingSourcesModel, 
+            IAppEnvironment appEnvironment)
         {
             _staticFilesCacheService = staticFilesCacheService;
             CoreData = coreData;
@@ -55,7 +56,7 @@ namespace Streamster.ClientCore.Models
             Transcoding = transcoding;
             PlatformsModel = platformsModel;
             _streamingSourcesModel = streamingSourcesModel;
-            _mainVpnModel = mainVpnModel;
+            _appEnvironment = appEnvironment;
             CustomTarget = CoreData.Create<ITarget>(s =>
             {
                 s.Flags = TargetFlags.Key | TargetFlags.Url;
@@ -65,8 +66,6 @@ namespace Streamster.ClientCore.Models
 
             AddTarget = () => { Popup.Value = new TargetSelectPopup { Content = this }; };
         }
-
-        private void RefreshAllChannels() => CoreData.Root.Channels.Values.ToList().ForEach(s => RefreshChannelState(s));
 
         internal void Start()
         {
@@ -110,17 +109,26 @@ namespace Streamster.ClientCore.Models
             });
 
             UpdateFilter();
-            UpdateVisibleChannels();
-            RefreshAllChannels();
 
-            CoreData.Subscriptions.SubscribeForAnyProperty<IChannel>((s, c, p, v) => { RefreshChannelState(s); UpdateVisibleChannels(); });
-            CoreData.Subscriptions.SubscribeForProperties<ISettings>(s => s.StreamingToCloudStarted, (a, b, c) => RefreshAllChannels());
-            CoreData.Subscriptions.SubscribeForAnyProperty<ISettings>((a, b, c, d) => RefreshAllChannels());
+            RefreshChannelList();
+
+            CoreData.Subscriptions.SubscribeForType<IChannel>((s, c) => { RefreshChannelList(); });
+            CoreData.Subscriptions.SubscribeForAnyProperty<IChannel>((s, c, p, v) => { RefreshChannelState(Channels.FirstOrDefault(a => a.Source == s)); });
+            CoreData.Subscriptions.SubscribeForAnyProperty<ISettings>((a, b, c, d) => RefreshAllChannelStates());
         }
 
-        private void UpdateVisibleChannels()
+
+        private void RefreshAllChannelStates() => Channels.ToList().ForEach(s => RefreshChannelState(s));
+
+
+        private void RefreshChannelList()
         {
-            ListHelper.UpdateCollection(CoreData, CoreData.Root.Channels.Values.Where(s => !s.Temporary).ToList(), VisibleChannels, t => CoreData.GetId(t), (a, b) => a);
+            ListHelper.UpdateCollection(CoreData, CoreData.Root.Channels.Values.ToList(), Channels, t => t.Id, (a, b) =>
+            {
+                var model = new ChannelModel(a, b, _appEnvironment, CoreData, this);
+                RefreshChannelState(model);
+                return model;
+            }, s => s.Source);
         }
 
         public void StartChannel(ChannelModel channelModel)
@@ -156,22 +164,22 @@ namespace Streamster.ClientCore.Models
             channelModel.StartError.Value = "";
         }, "");
 
-        private void RefreshChannelState(IChannel s)
+        public void RefreshChannelState(ChannelModel model)
         {
-            var model = CoreData.GetLocal<ChannelModel>(s);
-
             if (model == null)
                 return;
 
-            model.AutoLoginMode.SilentAndCompared = model.SupportsAutoLogin && s.TargetMode == TargetMode.AutoLogin;
-            model.Name.SilentAndCompared = s.Name == null ? model.Target.Name : s.Name; 
-            model.WebUrl.SilentAndCompared = s.WebUrl == null ? model.Target.WebUrl : s.WebUrl;
-            model.RtmpKey.SilentAndCompared = s.Key == null ? "" : s.Key;
-            model.RtmpUrl.SilentAndCompared = s.RtmpUrl == null ? (model.Target.DefaultRtmpUrl ?? "") : s.RtmpUrl;
-            model.RtmpUrlHasWrongFormat.SilentAndCompared = !IsOkRtmpFormat(model.RtmpUrl.Value);
-            model.IsTranscoded.SilentAndCompared = Transcoding.IsTranscoded(s);
+            var channel = model.Source;
 
-            model.Status.Value = GetStatus(s, model);
+            model.AutoLoginMode.SilentAndCompared = model.SupportsAutoLogin && channel.TargetMode == TargetMode.AutoLogin;
+            model.Name.SilentAndCompared = channel.Name == null ? model.Target.Name : channel.Name; 
+            model.WebUrl.SilentAndCompared = channel.WebUrl == null ? model.Target.WebUrl : channel.WebUrl;
+            model.RtmpKey.SilentAndCompared = channel.Key == null ? "" : channel.Key;
+            model.RtmpUrl.SilentAndCompared = channel.RtmpUrl == null ? (model.Target.DefaultRtmpUrl ?? "") : channel.RtmpUrl;
+            model.RtmpUrlHasWrongFormat.SilentAndCompared = !IsOkRtmpFormat(model.RtmpUrl.Value);
+            model.IsTranscoded.SilentAndCompared = Transcoding.IsTranscoded(channel);
+
+            model.Status.Value = GetStatus(channel, model);
         }
 
         private ChannelModelStatus GetStatus(IChannel ch, ChannelModel model)
@@ -308,28 +316,19 @@ namespace Streamster.ClientCore.Models
 
         private void CreateChannelFromTarget(TargetModel model)
         {
-            CleanTemporary();
-
             var id = IdGenerator.New();
             var channel = CoreData.Create<IChannel>(s => s.TargetId = model?.Source?.Id);
-            channel.Temporary = true;
-            CoreData.Root.Channels[id] = channel;
 
-            var local = CoreData.GetLocal<ChannelModel>(channel);
+            var local = new ChannelModel(channel, id, _appEnvironment, CoreData, this);
+            RefreshChannelState(local);
             var title = model?.Source?.Name ?? "Custom channel";
             Popup.Value = new TargetConfig
             {
                 Add = true,
                 ChannelModel = local,
-                Ok = () => { channel.Temporary = false; },
-                Cancel = () => { CleanTemporary(); }
+                Ok = () => { CoreData.Root.Channels[id] = channel; },
+                Cancel = () => { }
             };
-        }
-
-        private void CleanTemporary()
-        {
-            var toRemove = CoreData.Root.Channels.Where(c => c.Value.Temporary).ToList();
-            toRemove.ForEach(s => CoreData.Root.Channels.Remove(s.Key));
         }
 
         internal void Remove(ChannelModel channelModel)
@@ -389,10 +388,11 @@ namespace Streamster.ClientCore.Models
 
     public class ChannelModel
     {
-        public ChannelModel(IChannel source, IAppEnvironment environment, CoreData coreData, MainTargetsModel parent)
+        public ChannelModel(IChannel source, string id, IAppEnvironment environment, CoreData coreData, MainTargetsModel parent)
         {
             Source = source;
             Parent = parent;
+            Id = id;
 
             var targetId = source.TargetId;
 
@@ -425,15 +425,25 @@ namespace Streamster.ClientCore.Models
                 Cancel = () => { }
             };
 
-            WebUrl.OnChange = (o, n) => Source.WebUrl = n == Target.WebUrl ? null : n;
-            Name.OnChange = (o, n) => Source.Name = n == Target.Name ? null : n;
-            RtmpUrl.OnChange = (o, n) => Source.RtmpUrl = n == Target.DefaultRtmpUrl ? null : n;
-            RtmpKey.OnChange = (o, n) => Source.Key = n == "" ? null : n;
-            AutoLoginMode.OnChange = (o, n) => Source.TargetMode = n ? TargetMode.AutoLogin : TargetMode.ManualKey;
-            IsTranscoded.OnChange = (o, n) => Parent.Transcoding.SetTranscoding(Source, n);
+            WebUrl.OnChange = (o, n) => Update(() => Source.WebUrl = n == Target.WebUrl ? null : n); 
+            Name.OnChange = (o, n) => Update(() => Source.Name = n == Target.Name ? null : n);
+            RtmpUrl.OnChange = (o, n) => Update(() => Source.RtmpUrl = n == Target.DefaultRtmpUrl ? null : n); 
+            RtmpKey.OnChange = (o, n) => Update(() => Source.Key = n == "" ? null : n);
+            AutoLoginMode.OnChange = (o, n) => Update(() => Source.TargetMode = n ? TargetMode.AutoLogin : TargetMode.ManualKey);
+            IsTranscoded.OnChange = (o, n) => Update(() => Parent.Transcoding.SetTranscoding(Source, n));
 
             TaskHelper.RunUnawaited(() => parent.GetImageAsync(Logo, source.TargetId), "Get image for channel");
         }
+
+        private void Update(Action onUpdate)
+        {
+            onUpdate();
+            Parent.RefreshChannelState(this);
+        }
+
+
+
+        public string Id { get; }
 
         public ITarget Target { get; }
 

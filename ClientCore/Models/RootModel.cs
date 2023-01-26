@@ -91,8 +91,7 @@ namespace Streamster.ClientCore.Models
             await Task.Run(() => Log.CloseAndFlush());
             // no loging after this point
             
-            if (_hubConnectionService.Connection != null)
-                await _hubConnectionService.Connection.DisposeAsync();
+            await _hubConnectionService.StopConnection();
 
             await _mainVpnModel.StopAsync();
         }

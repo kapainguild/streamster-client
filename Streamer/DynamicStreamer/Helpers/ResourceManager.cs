@@ -11,8 +11,8 @@ namespace DynamicStreamer.Helpers
     public class ResourceManager : IDisposable
     {
         private IStreamerBase _streamer;
-        private readonly TimerSubscription _timer5s;
-        private readonly TimerSubscription _timer1s;
+        private TimerSubscription _timer5s;
+        private TimerSubscription _timer1s;
         private StreamerRuntimeConfig _runtimeConfig = new StreamerRuntimeConfig();
         private int _lastVersionConfigDump = -1;
         private int _configDumpCounter = -1;
@@ -118,7 +118,10 @@ namespace DynamicStreamer.Helpers
 
         public void Dispose()
         {
-            _timer5s.Unsubscribe();
+            _timer1s?.Unsubscribe();
+            _timer1s = null;
+            _timer5s?.Unsubscribe();
+            _timer5s = null;
         }
     }
 }

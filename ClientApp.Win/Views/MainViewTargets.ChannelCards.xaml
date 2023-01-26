@@ -187,7 +187,7 @@
                     </Grid>
 
                     <!--Start error cover-->
-                    <Border x:Name="startError" Grid.RowSpan="10" Grid.ColumnSpan="10" Background="#404040">
+                    <Border x:Name="startError" Grid.RowSpan="10" Grid.ColumnSpan="10" Background="#604040">
                         <TextBlock Margin="10" HorizontalAlignment="Center" VerticalAlignment="Center" 
                                    TextWrapping="Wrap" TextAlignment="Center"
                                    Text="{Binding StartError.Value}" Foreground="Orange"/>

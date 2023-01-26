@@ -37,12 +37,12 @@ namespace Streamster.ClientCore.Models
         {
             SourceSelectionOpened.OnChange = (o, n) => CoreData.ThisDevice.PreviewAudioSources = n;
             
-            Mic.Muted.OnChange = (o, n) => GetSceneAudio(false).Muted = n;
-            Mic.VolumeControl.OnChange = (o, n) => GetSceneAudio(false).Volume = GetDbFromPercent(n);
+            Mic.Muted.OnChange = (o, n) => ChangeSceneAudio(false, s => s.Muted = n);
+            Mic.VolumeControl.OnChange = (o, n) => ChangeSceneAudio(false, s => s.Volume = GetDbFromPercent(n));
             
             Desktop.Name.Value = "Desktop Audio";
-            Desktop.Muted.OnChange = (o, n) => GetSceneAudio(true).Muted = n;
-            Desktop.VolumeControl.OnChange = (o, n) => GetSceneAudio(true).Volume = GetDbFromPercent(n);
+            Desktop.Muted.OnChange = (o, n) => ChangeSceneAudio(true, s => s.Muted = n);
+            Desktop.VolumeControl.OnChange = (o, n) => ChangeSceneAudio(true, s => s.Volume = GetDbFromPercent(n));
 
             CoreData.Subscriptions.SubscribeForAnyProperty<IInputDevice>((i, c, e, r) => UpdateAudioSources());
             CoreData.Subscriptions.SubscribeForAnyProperty<ISceneAudio>((a, b, c, d) => RefreshAll());
@@ -51,6 +51,13 @@ namespace Streamster.ClientCore.Models
             CoreData.Subscriptions.SubscribeForProperties<ISettings>(s => s.SelectedScene, (i, c, e) => RefreshAll());
 
             RefreshAll();
+        }
+
+        private void ChangeSceneAudio(bool desktop, Action<ISceneAudio> action)
+        {
+            var audio = GetSceneAudio(desktop);
+            if (audio != null)
+                action(audio);
         }
 
         private void RefreshAll()
@@ -98,7 +105,8 @@ namespace Streamster.ClientCore.Models
                 (s, id) => new AudioSourceModel(id,
                                 s,
                                 () => Select(id), 
-                                new Property<bool>()));
+                                new Property<bool>()),
+                a => a.Model);
 
             AudioSources.ToList().ForEach(s => s.IsSelected.Value = s.Id == selectedId);
         }
@@ -133,15 +141,16 @@ namespace Streamster.ClientCore.Models
                 }
                 else
                 {
-                    Desktop.Visible.ValueWithComparison = true;
-                    Mic.Visible.ValueWithComparison = true;
-
                     var desktop = GetSceneAudio(true);
                     if (desktop != null)
                     {
+                        Desktop.Visible.ValueWithComparison = true;
                         Desktop.Muted.SilentValue = desktop.Muted;
                         Desktop.VolumeControl.SilentValue = GetPercentFromDb(desktop.Volume);
                     }
+                    else
+                        Desktop.Visible.ValueWithComparison = false;
+
                     Desktop.VolumeLevelAvailable.Value = _sceneState.IsLocal;
 
                     var mic = GetSceneAudio(false);
@@ -150,6 +159,8 @@ namespace Streamster.ClientCore.Models
                         Mic.Muted.SilentValue = mic.Muted;
                         Mic.VolumeControl.SilentValue = GetPercentFromDb(mic.Volume);
                     }
+                    Mic.Visible.ValueWithComparison = true;
+
                     Mic.VolumeLevelAvailable.Value = _sceneState.IsLocal;
 
                     if (mic == null)

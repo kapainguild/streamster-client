@@ -135,14 +135,6 @@
         </DataTemplate.Triggers>
     </DataTemplate>
 
-    <DataTemplate x:Key="ChannelDataTemplate">
-        <ContentPresenter Content="{Binding Local}" ContentTemplate="{StaticResource ChannelModelTemplate}"/>
-    </DataTemplate>
-
-    <DataTemplate x:Key="ChannelDataTemplateSmall">
-        <ContentPresenter Content="{Binding Local}" ContentTemplate="{StaticResource ChannelModelTemplateSmall}"/>
-    </DataTemplate>
-
 
     <DataTemplate DataType="{x:Type models:TargetSelectPopup}">
         <ContentPresenter Content="{Binding Content}" ContentTemplate="{StaticResource TargetsDialogContent}"/>
@@ -183,7 +175,7 @@
                     <ScrollViewer HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto" 
                                   materialDesign:ScrollViewerAssist.IsAutoHideEnabled="True">
                         <ItemsControl x:Name="channelItems" Margin="10" 
-                                      ItemsSource="{Binding VisibleChannels}" ItemTemplate="{StaticResource ChannelDataTemplate}" >
+                                      ItemsSource="{Binding Channels}" ItemTemplate="{StaticResource ChannelModelTemplate}" >
                             <ItemsControl.ItemsPanel>
                                 <ItemsPanelTemplate>
                                     <WrapPanel Orientation="Horizontal"/>
@@ -200,10 +192,10 @@
             </DataTrigger>
 
             <DataTrigger Binding="{Binding (support:ResponsiveHost.Calculation).Values.ChannelTemplate, ElementName=root}" Value="1">
-                <Setter TargetName="channelItems" Property="ItemTemplate" Value="{StaticResource ChannelDataTemplateSmall}"/>
+                <Setter TargetName="channelItems" Property="ItemTemplate" Value="{StaticResource ChannelModelTemplateSmall}"/>
             </DataTrigger>
 
-            <DataTrigger Binding="{Binding VisibleChannels.Count}" Value="0">
+            <DataTrigger Binding="{Binding Channels.Count}" Value="0">
                 <Setter TargetName="nochannels" Property="Visibility" Value="Visible"/>
                 <Setter TargetName="fewchannels" Property="Visibility" Value="Collapsed"/>
             </DataTrigger>

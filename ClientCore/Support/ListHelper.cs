@@ -52,16 +52,19 @@ namespace Streamster.ClientCore.Models
         }
 
         public static void UpdateCollection<TSource, TTarget>(CoreData coreData, List<TSource> source, ObservableCollection<TTarget> targets,
-            Func<TTarget, string> getId, Func<TSource, string, TTarget> creator)
+            Func<TTarget, string> getId, Func<TSource, string, TTarget> creator, Func<TTarget, TSource> getSource = null)
         {
             int position = 0;
             foreach (var model in source)
             {
                 var vm = position < targets.Count ? targets[position] : default;
                 var modelId = coreData.GetId(model);
-                if (vm == null || getId(vm) != modelId)
+                bool referenceEqual = getSource == null || vm == null ? true : Object.ReferenceEquals(getSource(vm), model);
+                if (vm == null || getId(vm) != modelId || !referenceEqual)
                 {
-                    var oldAnotherPosition = targets.FirstOrDefault(s => getId(s) == modelId);
+                    var oldAnotherPosition = getSource == null ?
+                                             targets.FirstOrDefault(s => getId(s) == modelId):
+                                             targets.FirstOrDefault(s => getId(s) == modelId && Object.ReferenceEquals(getSource(s), model));
                     if (oldAnotherPosition != null)
                     {
                         targets.Remove(oldAnotherPosition);

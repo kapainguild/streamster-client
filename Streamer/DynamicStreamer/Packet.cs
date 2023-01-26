@@ -20,11 +20,12 @@ namespace DynamicStreamer
         [DllImport(Core.DllName)] private static extern void Packet_CopyContentFrom(IntPtr handle, IntPtr from);
         [DllImport(Core.DllName)] private static extern void Packet_InitFromBuffer(IntPtr handle, ref byte buffer, int length);
         [DllImport(Core.DllName)] private static extern void Packet_InitFromBuffer2(IntPtr handle, IntPtr buffer, int length, long pts);
-        [DllImport(Core.DllName)] private unsafe static extern void Packet_InitFromBuffer5(IntPtr handle, byte* buffer, int length, long pts, int streamIndex);
+        [DllImport(Core.DllName)] private unsafe static extern void Packet_InitFromBuffer5(IntPtr handle, byte* buffer, int length, long pts, int streamIndex, int iFrame);
         [DllImport(Core.DllName)] private static extern void Packet_InitFromBuffer3(IntPtr handle, ref byte buffer, int length, long pts, ref PacketProperties packetProperties);
         [DllImport(Core.DllName)] private static extern int Packet_InitFromBuffer4(IntPtr handle, IntPtr buffer, int bitPerPixel, int width, int height, int sourceWidth, long pts, int checkForZero);
         [DllImport(Core.DllName)] private static extern void Packet_SetPts(IntPtr handle, long pts);
         [DllImport(Core.DllName)] private static extern void Packet_RescaleTimebase(IntPtr handle, ref AVRational from, ref AVRational to, ref PacketProperties packetProperties);
+        [DllImport(Core.DllName)] private static extern void Packet_CopyToBuffer(IntPtr handle, ref byte buffer);
 
 
         public Packet()
@@ -75,6 +76,11 @@ namespace DynamicStreamer
             Packet_InitFromBuffer(Handle, ref buffer[0], buffer.Length);
         }
 
+        public void CopyToBuffer(byte[] buffer)
+        {
+            Packet_CopyToBuffer(Handle, ref buffer[0]);
+        }
+
         internal void InitFromBuffer(IntPtr buffer, int length, long pts)
         {
             Packet_InitFromBuffer2(Handle, buffer, length, pts);
@@ -99,7 +105,7 @@ namespace DynamicStreamer
                 var span = buffer.Span;
                 fixed (byte* pointer = &span.GetPinnableReference())
                 {
-                    Packet_InitFromBuffer5(Handle, pointer, length, pts, streamIndex);
+                    Packet_InitFromBuffer5(Handle, pointer, length, pts, streamIndex, iFrame ? 1 : 0);
                 }
             }
 

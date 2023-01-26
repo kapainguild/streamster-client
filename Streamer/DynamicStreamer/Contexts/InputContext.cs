@@ -1,4 +1,6 @@
 ﻿using System;
+using System.Collections.Generic;
+using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Threading;
@@ -9,14 +11,13 @@ namespace DynamicStreamer.Contexts
     {
         public static AVRational s_translate_to_time_base = new AVRational { num = 1, den = 10_000_000 };
 
-        delegate int ReadInterruptCallbackFunction();
-
         private IntPtr _handle;
-        private ReadInterruptCallbackFunction _readInterruptCallbackFunction;
+        
         private bool _interrupted = false;
         private DateTime _startOperationTime = DateTime.MaxValue;
         private bool _firstStreamOnly;
         private long _overloadCounter = 0;
+        private InputContextCallbackItem _inputContextCallbackItem;
 
         private IInputTimeAdjuster _timeAdjuster = new InputTimeAdjusterNone();
 
@@ -40,14 +41,15 @@ namespace DynamicStreamer.Contexts
             _startOperationTime = DateTime.UtcNow;
             _timeAdjuster = CreateAdjuster(setup.AdjustInputType);
             _firstStreamOnly = setup.FirstStreamOnly;
-            _readInterruptCallbackFunction = new ReadInterruptCallbackFunction(OnReadInterruptCallback);
+            _inputContextCallbackItem?.Reset();
+            _inputContextCallbackItem = new InputContextCallbackItem(this);
             int res = InputContext_Open(
                 _handle,
                 Core.StringToBytes(setup.Type),
                 Core.StringToBytes(setup.Input),
                 Core.StringToBytes(setup.Options),
                 ref s_translate_to_time_base,
-                Marshal.GetFunctionPointerForDelegate(_readInterruptCallbackFunction));
+                _inputContextCallbackItem.GetFunction());
             _startOperationTime = DateTime.MaxValue;
             CheckedCall(res);
         }
@@ -60,7 +62,7 @@ namespace DynamicStreamer.Contexts
             _ => new InputTimeAdjusterNone()
         };
 
-        private int OnReadInterruptCallback()
+        public int OnReadInterruptCallback()
         {
             //note.  it is called from Open and from Read
             if (_interrupted)
@@ -105,7 +107,7 @@ namespace DynamicStreamer.Contexts
         {
             int streams = InputContext_Analyze(_handle, duration);
             CheckedCall(streams);
-            if (streams != streamsCount)
+            if (streams < streamsCount)
                 throw new DynamicStreamerException($"Unexpected number of streams {streams} vs {streamsCount}");
 
             if (streams > 0)
@@ -154,9 +156,52 @@ namespace DynamicStreamer.Contexts
         {
             if (_handle != IntPtr.Zero)
             {
+                _inputContextCallbackItem?.Reset();
+                _inputContextCallbackItem = null;
+
                 InputContext_Delete(_handle);
                 _handle = IntPtr.Zero;
             }
+        }
+    }
+
+
+    public class InputContextCallbackItem
+    {
+        private static List<InputContextCallbackItem> _disposed = new List<InputContextCallbackItem>();
+
+        delegate int ReadInterruptCallbackFunction();
+
+        private ReadInterruptCallbackFunction _readInterruptCallbackFunction;
+
+        private InputContext _parent;
+
+        public InputContextCallbackItem(InputContext parent)
+        {
+            _parent = parent;
+            _readInterruptCallbackFunction = new ReadInterruptCallbackFunction(CallBack); 
+        }
+
+        private int CallBack()
+        {
+            return _parent?.OnReadInterruptCallback() ?? 1;
+        }
+
+        public void Reset()
+        {
+            lock (_disposed)
+            {
+                _disposed.Add(this);
+
+                if (_disposed.Count > 100_000)
+                    _disposed = new List<InputContextCallbackItem>(_disposed.Skip(10_000));
+            }
+            _parent = null;
+        }
+
+        internal IntPtr GetFunction()
+        {
+            return Marshal.GetFunctionPointerForDelegate(_readInterruptCallbackFunction);
         }
     }
 }

@@ -30,6 +30,7 @@ namespace DynamicStreamer.Extensions.Rtmp
         private Queue<Packet> _queue = new Queue<Packet>();
         private IInputTimeAdjuster _timeAdjuster = new InputNetworkTimeAdjuster();
         private LinkedList<TrafficRecord> _traffic = new LinkedList<TrafficRecord>();
+        private bool _unexpectedAudioLogged = false;
 
         public RtmpInputContext(IStreamerBase streamer)
         {
@@ -132,21 +133,43 @@ namespace DynamicStreamer.Extensions.Rtmp
                 TryGetVal(props, "audiosamplesize", out var audiosamplesize) &&
                 TryGetVal(props, "audiodatarate", out var audiodatarate) &&
                 TryGetVal(props, "audiocodecid", out var audiocodecid) &&
-                TryGetVal(props, "audiochannels", out var audiochannels) &&
-                audiocodecid == 10)
-                    return new CodecProperties
+                audiocodecid == 10 /*&& false*/)
+            {
+                if (!TryGetVal(props, "audiochannels", out var audiochannels))
+                {
+                    if (props.TryGetValue("stereo", out var valueBool) && valueBool is bool resBool)
                     {
-                        codec_type = AVMediaType.AVMEDIA_TYPE_AUDIO,
-                        codec_id = Core.Const.CODEC_ID_AAC,
-                        sample_rate = audiosamplerate,
-                        bits_per_coded_sample = audiosamplesize,
-                        bit_rate = audiodatarate * 1000,
-                        channels = audiochannels,
-                        channel_layout = audiochannels == 1 ? 1ul: 3ul,
-                        format = 8,
-                        frame_size = 1024,
-                    };
-            throw new InvalidOperationException("Failed to find audio properties");
+                        audiochannels = resBool ? 2 : 1;
+                    }
+                    else if (props.TryGetValue("stereo", out var valueStr) && valueStr is string resString)
+                    {
+                        audiochannels = resString.ToLower() == "true" ? 2 : 1;
+                    }
+                    else
+                    {
+                        Log.Warning("Failed to find audiochannels property");
+                        return new CodecProperties { codec_id = Core.NoStream };
+                    }
+                }
+
+                return new CodecProperties
+                {
+                    codec_type = AVMediaType.AVMEDIA_TYPE_AUDIO,
+                    codec_id = Core.Const.CODEC_ID_AAC,
+                    sample_rate = audiosamplerate,
+                    bits_per_coded_sample = audiosamplesize,
+                    bit_rate = audiodatarate * 1000,
+                    channels = audiochannels,
+                    channel_layout = audiochannels == 1 ? 1ul : 3ul,
+                    format = 8,
+                    frame_size = 1024,
+                };
+            }
+            else
+            {
+                Log.Warning("Failed to find audio properties");
+                return new CodecProperties { codec_id = Core.NoStream };
+            }
         }
 
         private CodecProperties GetVideoProps(Dictionary<string, object> props)
@@ -228,6 +251,16 @@ namespace DynamicStreamer.Extensions.Rtmp
             bool sleep = false;
             lock (_sync)
             {
+                if (_audioProps.codec_id == Core.NoStream)
+                {
+                    if (!_unexpectedAudioLogged)
+                    {
+                        Log.Error("Receiving audio message while audio is not expected");
+                        _unexpectedAudioLogged = true;
+                    }
+                    return;
+                }
+
                 if (!_audioExtradataFound && _commonPropsFound)
                 {
                     CopyExtraData(ref _audioProps, message.Data, 2);
@@ -245,6 +278,11 @@ namespace DynamicStreamer.Extensions.Rtmp
             if (_videoExtradataFound && _audioExtradataFound)
             {
                 Config = new InputConfig(new InputStreamProperties[] { new InputStreamProperties { CodecProps = _videoProps }, new InputStreamProperties { CodecProps = _audioProps } });
+                _analysed.Set();
+            }
+            else if (_videoExtradataFound && _audioProps.codec_id == Core.NoStream)
+            {
+                Config = new InputConfig(new InputStreamProperties[] { new InputStreamProperties { CodecProps = _videoProps } });
                 _analysed.Set();
             }
         }

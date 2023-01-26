@@ -17,6 +17,8 @@ namespace Streamster.ClientData
 
         public int Transcoders { get; }
 
+        public int WebRtcTranscoders { get; }
+
         public ClientClaimTranscoderLimit TranscoderInputLimit { get; set; }
 
         public ClientClaimTranscoderLimit TranscoderOutputLimit { get; set; }
@@ -34,6 +36,7 @@ namespace Streamster.ClientData
             MaxBitrate = GetIntClaim(claims, ClientConstants.MaxBitrateClaim, 4000);
             MaxChannels = GetIntClaim(claims, ClientConstants.MaxChannelsClaim, 2);
             Transcoders = GetIntClaim(claims, ClientConstants.TranscodersClaim, 0, true);
+            WebRtcTranscoders = GetIntClaim(claims, ClientConstants.WebRtcTranscodersClaim, 0, true);
 
             TranscoderInputLimit = GetTranscoderLimit(claims, ClientConstants.TranscodersInputLimitClaim);
             TranscoderOutputLimit = GetTranscoderLimit(claims, ClientConstants.TranscodersOutputLimitClaim);

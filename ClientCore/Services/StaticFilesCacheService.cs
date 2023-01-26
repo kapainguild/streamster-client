@@ -82,7 +82,7 @@ namespace Streamster.ClientCore.Services
                 var bytes = await Task.Run(() => GetLocalFile(localPath));
                 if (bytes == null)
                 {
-                    var data = await _connectionService.RunWithRetries(async (url) => await DownloadFileAsync(url, path, null), ClientConstants.LoadBalancerServers, 3);
+                    var data = await _connectionService.RunWithRetries(async (url, i) => await DownloadFileAsync(url, path, null), ClientConstants.LoadBalancerServers, 3);
 
                     await StoreData(localPath, path, data);
                     return data.Data;
@@ -103,7 +103,7 @@ namespace Streamster.ClientCore.Services
         private async Task UpdateCache(string localPath, string path)
         {
             _etags.TryGetValue(path, out var localEtag);
-            var updated = await _connectionService.RunWithRetries(async (url) => await DownloadFileAsync(url, path, localEtag), ClientConstants.LoadBalancerServers, 1);
+            var updated = await _connectionService.RunWithRetries(async (url, i) => await DownloadFileAsync(url, path, localEtag), ClientConstants.LoadBalancerServers, 1);
             if (updated != null)
                 await StoreData(localPath, path, updated);
         }

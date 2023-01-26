@@ -190,7 +190,10 @@ namespace DynamicStreamer.Extensions.DesktopAudio
         {
             if (format.WaveFormat != 65534 ||
                 format.SubFormat != new Guid("00000003-0000-0010-8000-00aa00389b71"))
-                throw new InvalidOperationException($"Unsupported DesktopAudio Format {format.WaveFormat} - {format.SubFormat}");
+            {
+                if (format.WaveFormat != 3)
+                    throw new InvalidOperationException($"Unsupported DesktopAudio Format {format.WaveFormat} - {format.SubFormat}");
+            }
         }
 
 

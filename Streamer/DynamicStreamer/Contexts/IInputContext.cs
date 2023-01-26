@@ -8,7 +8,7 @@ namespace DynamicStreamer.Contexts
         AdjustInputType AdjustInputType = AdjustInputType.None, bool FirstStreamOnly = true, bool UseFpsQueue = true, 
         int BitrateLimit = 0)
     {
-        public override string ToString() => $"{Type} {Input} {Options} {ObjectInput}";
+        public override string ToString() => $"{Type} {Input}" + ObjectInput ?? "";
     }
 
     public enum AdjustInputType { None, Adaptive, CurrentTime, AdaptiveNetwork }

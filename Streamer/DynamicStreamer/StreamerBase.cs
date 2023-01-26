@@ -65,8 +65,6 @@ namespace DynamicStreamer
 
             ResourceManager = new ResourceManager(this);
 
-            
-
             _updaterThread = new Thread(() => UpdateThreadRoutine());
             _updaterThread.Name = $"Streamer:Updater of {name}";
             _updaterThread.Start();
@@ -148,15 +146,15 @@ namespace DynamicStreamer
                 {
                     _currentVersion = versionToRun;
                     Monitor.PulseAll(_updaterMonitor);
+                    Monitor.Wait(_updaterMonitor, 60);
                 }
 
-                Thread.Sleep(60);
             }
         }
 
-        private void DisposeDeffered()
+        private void DisposeDeffered(int cycles = 1)
         {
-            if (GetPendingDisposal(out var disposals))
+            while (GetPendingDisposal(out var disposals))
             {
                 Core.LogInfo($"Pending disposal: {disposals.Length}");
                 foreach (var disposal in disposals)
@@ -170,6 +168,13 @@ namespace DynamicStreamer
                         Core.LogError(e, "Disposal failed");
                     }
                 }
+
+                cycles--;
+
+                if (cycles <= 0)
+                    break;
+
+                Thread.Sleep(10);
             }
         }
 
@@ -242,12 +247,14 @@ namespace DynamicStreamer
 
         protected virtual void DoDispose()
         {
+            ResourceManager.Dispose();
+
             _updaterThreadContinue = false;
             lock(_updaterMonitor)
                 Monitor.PulseAll(_updaterMonitor);
             _updaterThread.Join(3000);
 
-            DisposeDeffered();
+            DisposeDeffered(25);
         }
     }
 

@@ -1,4 +1,5 @@
-﻿using System;
+﻿using DynamicStreamer.Extension;
+using System;
 using System.Linq;
 using System.Runtime.InteropServices;
 
@@ -15,6 +16,8 @@ namespace DynamicStreamer.Contexts
         public int TimeoutMs { get; set; } // 0 - no timeout check
 
         public OutputStreamProperties[] OutputStreamProps { get; set; }
+
+        public WebSocketTransferData[] WebSocketTransferData { get; set; }
 
         public override bool Equals(object obj)
         {
@@ -34,7 +37,7 @@ namespace DynamicStreamer.Contexts
         public override string ToString() => $"{Type}-{Output}";
     }
 
-    public class OutputContext : IDisposable
+    public class OutputContext : IOutputContext
     {
         delegate int ReadInterruptCallbackFunction();
 
@@ -126,9 +129,13 @@ namespace DynamicStreamer.Contexts
             }
         }
 
-        internal void Interrupt()
+        public void Interrupt()
         {
             _interrupted = true;
+        }
+
+        public void UpdateSetup(OutputSetup setup)
+        {
         }
     }
 }

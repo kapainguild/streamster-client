@@ -42,7 +42,8 @@ namespace Streamster.ClientCore.Models
                 (s, id) => new DeviceItemModel(id,
                                 s,
                                 id == selectedId ? DeviceItemModelState.Current : (usedCameraIds.Contains(id) ? DeviceItemModelState.InUse : DeviceItemModelState.Normal),
-                                () => Select(id), new Property<bool>()));
+                                () => Select(id), new Property<bool>()),
+                d => d.Model);
 
             if (_editedItem != null)
             {

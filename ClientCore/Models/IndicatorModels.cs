@@ -10,7 +10,7 @@ namespace Streamster.ClientCore.Models
     {
         public string DeviceId { get; set; }
 
-        public Property<bool> Offline { get; } = new Property<bool>();
+        public Property<DeviceIndicatorsState> Offline { get; } = new Property<DeviceIndicatorsState>();
 
         public Property<string> Name { get; } = new Property<string>();
 
@@ -25,6 +25,13 @@ namespace Streamster.ClientCore.Models
         public IndicatorModelRestream Restream { get; } = new IndicatorModelRestream() { Name = "Restreaming state" };
 
         public IndicatorModelVpn Vpn { get; } = new IndicatorModelVpn();
+    }
+
+    public enum DeviceIndicatorsState
+    {
+        Online,
+        Offline,
+        Indicators
     }
 
     public class IndicatorModelBase

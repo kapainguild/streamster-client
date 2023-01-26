@@ -1,5 +1,6 @@
 ﻿using DynamicStreamer.Contexts;
 using DynamicStreamer.Queues;
+using Serilog;
 using System;
 using System.Threading;
 
@@ -58,6 +59,10 @@ namespace DynamicStreamer.Nodes
                 contextToClose.Dispose();
         }
 
+        private void LogInfo(string message, string template = null) => Log(LogType.Info, message, template);
+
+        private void Log(LogType type, string message, string template = null) => Core.LogDotNet(type, $"OOOOO '{Name}'-'{_currentContext?.ContextSetup}': " + message, template);
+
         private void OnThread()
         {
             int q = 0;
@@ -75,14 +80,16 @@ namespace DynamicStreamer.Nodes
                     {
                         if (!_currentContext.Context.Instance.IsOpened)
                         {
+                            LogInfo("opening");
                             _currentContext.Context.Instance.Open(_currentContext.ContextSetup);
+                            LogInfo($"opened, Queue size = {_reader.BufferSize}");
                             _bitrateController?.Reconnected();
                         }
 
                         var dataReference = InputQueue.Dequeue(_reader, ref _continueProcessing, out var dropped); 
 
                         if (dropped > 0)
-                            Core.LogWarning($"Dropped {dropped} packets on {Name}");
+                            Log(LogType.Warning, $"Dropped {dropped} packets");
 
                         if (dataReference != null) // break with _continueprocessing = false?
                         {
@@ -95,13 +102,13 @@ namespace DynamicStreamer.Nodes
 
                                 if (packetVersion < _currentContext.Version)
                                 {
-                                    Core.LogWarning($"Output {Name} with version {_currentContext.Version} ignores packet {packetVersion}", "output ignores old packet");
+                                    Log(LogType.Warning, $"with version {_currentContext.Version} ignores packet {packetVersion}", "output ignores old packet");
                                 }
                                 else
                                 {
                                     while (_currentContext.MaxVersion < packetVersion && _continueProcessing)
                                     {
-                                        Core.LogWarning($"Output {Name} with version {_currentContext.Version} waits for {packetVersion}", "output waits new version");
+                                        Log(LogType.Warning, $"with version {_currentContext.Version} waits for {packetVersion}", "output waits new version");
                                         Thread.Sleep(50);
                                         ReplaceCurrentVersion();
                                     }
@@ -124,18 +131,18 @@ namespace DynamicStreamer.Nodes
                                             q++;
 
                                             if (writeTime.TotalMilliseconds > 300)
-                                                Core.LogWarning($"Long send {(int)writeTime.TotalMilliseconds}ms", "Long send");
+                                                Log(LogType.Warning, $"Long send {(int)writeTime.TotalMilliseconds}ms", "Long send");
 
                                             ProcessWriteResult(writeRes, packet, size, sourceId);
                                         }
                                         else
                                         {
-                                            Core.LogInfo($"Output {Name} waits for I-Frame", "output waits i-frame");
+                                            LogInfo($"waits for I-Frame", "output waits i-frame");
                                             if (sourceId == 0)
                                             {
                                                 _currentContext.WaitForIFrame--;
                                                 if (_currentContext.WaitForIFrame == 0)
-                                                    Core.LogError($"Output {Name} failed to waits for I-Frame");
+                                                    Log(LogType.Error, $"failed to waits for I-Frame");
                                             }
                                         }
                                     }
@@ -150,13 +157,13 @@ namespace DynamicStreamer.Nodes
                     }
                     catch(OperationCanceledException)
                     {
-                        Core.LogError($"Open stream cancelled for {Name}");
+                        Log(LogType.Error, $"cancelled");
                     }
                     catch (Exception e)
                     {
                         waitAfterFail = true;
                         _statisticKeeper.Data.Errors++;
-                        Core.LogError(e, $"Open stream failed for {Name}");
+                        Core.LogError(e, $"OOOOO '{Name}'-'{_currentContext?.ContextSetup}': " + "failed");
                     }
 
                     if (waitAfterFail)
@@ -166,6 +173,8 @@ namespace DynamicStreamer.Nodes
 
             if (_reader != null)
                 InputQueue.RemoveReader(_reader);
+
+            LogInfo("Exiting thread");
         }
 
         private void ProcessWriteResult(ErrorCodes writeRes, Packet packet, int size, int sourceId)
@@ -174,18 +183,18 @@ namespace DynamicStreamer.Nodes
             {
                 if (writeRes == ErrorCodes.TimeoutOrInterrupted)
                 {
-                    Core.LogWarning($"TimeoutOrInterrupted on output {Name}");
+                    Log(LogType.Warning, $"TimeoutOrInterrupted");
                     _errorCounter = 0;
                     _currentContext.Context.Instance.CloseOutput();
                 }
                 else if (writeRes == ErrorCodes.InvalidArgument && _initialErrorCounter < 8) //TODO: check why. Is due to 'Application provided invalid, non monotonically increasing dts to muxer in stream 1' when restream is started before stream to cloud
                 {
                     _initialErrorCounter++;
-                    Core.LogWarning($"skip error {sourceId} {packet.Properties.Dts} {packet.Properties.Pts}");
+                    Log(LogType.Warning, $"skip error {sourceId} {packet.Properties.Dts} {packet.Properties.Pts}");
                 }
                 else
                 {
-                    Core.LogWarning($"Error {writeRes} on output {Name}");
+                    Log(LogType.Warning, $"error {writeRes}");
                     _errorCounter += 5;
                     if (_errorCounter > 50)
                     {
@@ -223,7 +232,7 @@ namespace DynamicStreamer.Nodes
 
             bool sameConfig = last != null && last.ContextSetup.Equals(setup);
             if (!sameConfig)
-                Core.LogInfo($"Change {Name}: {last?.ContextSetup} >> {setup}");
+                LogInfo($"Change: {last?.ContextSetup} >> {setup}");
 
             int version = update.Version;
 
@@ -231,6 +240,7 @@ namespace DynamicStreamer.Nodes
             {
                 lock (this)
                 {
+                    _pendingContext?.Dispose();
                     if (sameConfig)
                     {
                         _pendingContext = new OutputContextVersion
@@ -248,13 +258,14 @@ namespace DynamicStreamer.Nodes
                             Version = last == null ? version - 1 : version, // we assume that this output is just added - so accept previous version from the output queue
                             MaxVersion = version,
                             ContextSetup = setup,
-                            Context = new RefCounted<OutputContext>(new OutputContext()),
+                            Context = new RefCounted<IOutputContext>(Core.CreateOutputContext(setup, Streamer)),
                             WaitForIFrame = 125 // in case fps=60 -> gop = 120. we add 5.
                         };
 
                         if (_currentContext != null && _currentContext.Context != null)
                             _currentContext.Context.Instance.Interrupt();
                     }
+                    _pendingContext.Context.Instance.UpdateSetup(setup);
                 }
 
                 if (!_continueProcessing)
@@ -269,6 +280,7 @@ namespace DynamicStreamer.Nodes
 
         public void Dispose()
         {
+            LogInfo("Disposing");
             lock (this)
             {
                 _continueProcessing = false;
@@ -280,7 +292,7 @@ namespace DynamicStreamer.Nodes
             InputQueue.PulseAll();
 
             if (_thread != null && !_thread.Join(3000))
-                Core.LogError($"Failed to stop output thread for {Name}");
+                Log(LogType.Error, $"Failed to stop output thread");
 
             _pendingContext?.Dispose();
             _currentContext?.Dispose();
@@ -295,7 +307,7 @@ namespace DynamicStreamer.Nodes
 
         public int MaxVersion { get; set; }
 
-        public RefCounted<OutputContext> Context { get; set; }
+        public RefCounted<IOutputContext> Context { get; set; }
 
         public OutputSetup ContextSetup { get; set; }
 

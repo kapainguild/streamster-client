@@ -77,7 +77,7 @@
                     </Grid.RowDefinitions>
                     <Border Background="#99000000" CornerRadius="2">
                         <StackPanel Margin="45,40,45,15">
-                            <TextBox x:Name="userName" Text="{Binding UserName}" 
+                            <TextBox x:Name="userName" Text="{Binding UserName, UpdateSourceTrigger=PropertyChanged}" 
                                          materialDesign:HintAssist.Hint="User name"
                                          Style="{StaticResource MaterialDesignFloatingHintTextBox}" />
 

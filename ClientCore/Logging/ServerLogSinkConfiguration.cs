@@ -15,7 +15,7 @@ namespace Streamster.ClientCore.Logging
             var batchingOptions = new PeriodicBatchingSinkOptions
             {
                 BatchSizeLimit = 100,
-                Period = TimeSpan.FromSeconds(1),
+                Period = TimeSpan.FromSeconds(0.33),
                 EagerlyEmitFirstEvent = true,
                 QueueLimit = 1000
             };

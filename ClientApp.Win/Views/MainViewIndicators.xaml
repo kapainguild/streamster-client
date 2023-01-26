@@ -352,6 +352,7 @@
             <TextBlock x:Name="name" HorizontalAlignment="Center" VerticalAlignment="Center" Text="{Binding Name.Value}" Foreground="#909090" FontSize="10" FontWeight="Normal"/>
 
             <TextBlock x:Name="offline" Margin="3" HorizontalAlignment="Center" VerticalAlignment="Center" Text="Offline" Foreground="Orange" FontSize="10" Visibility="Collapsed"/>
+            <TextBlock x:Name="online" Margin="3" HorizontalAlignment="Center" VerticalAlignment="Center" Text="Online" Foreground="Green" FontSize="10" Visibility="Collapsed"/>
 
             <StackPanel x:Name="indicators" Orientation="Vertical">
                 <support:Indicator x:Name="cpu"
@@ -470,8 +471,12 @@
                 <Setter TargetName="root" Property="Margin" Value="5,0"/>
             </DataTrigger>
 
-            <DataTrigger Binding="{Binding Offline.Value}" Value="True">
+            <DataTrigger Binding="{Binding Offline.Value}" Value="Offline">
                 <Setter TargetName="offline" Property="Visibility" Value="Visible"/>
+                <Setter TargetName="indicators" Property="Visibility" Value="Collapsed"/>
+            </DataTrigger>
+            <DataTrigger Binding="{Binding Offline.Value}" Value="Online">
+                <Setter TargetName="online" Property="Visibility" Value="Visible"/>
                 <Setter TargetName="indicators" Property="Visibility" Value="Collapsed"/>
             </DataTrigger>
 

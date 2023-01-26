@@ -237,7 +237,7 @@ namespace Streamster.ClientCore.Models
                 EditingEnabled.Value = true;
                 SceneState = new SceneState(scene, device, device == CoreData.ThisDevice);
                 var newSelection = ListHelper.UpdateCollectionWithSelection(CoreData,
-                    scene.Items.Values.OrderByDescending(s => s.ZOrder).ToList(),
+                    scene.Items.Values.Where(s => s.Source != null).OrderByDescending(s => s.ZOrder).ToList(),
                     Items,
                     SelectedItem,
                     t => t.Id,

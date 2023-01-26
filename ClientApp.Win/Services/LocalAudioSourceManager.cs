@@ -36,7 +36,7 @@ namespace Streamster.ClientApp.Win.Services
 
             return new LocalAudioSource
             {
-                Name = s.Name,
+                Name = s.Name ?? "unknown name",
                 Id = s.DevicePath,
                 Type = s.DevicePath.ToLowerInvariant().Contains(":sw:") ? InputDeviceType.Virtual : InputDeviceType.USB,
                 State = state,

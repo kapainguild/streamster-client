@@ -381,6 +381,7 @@ namespace DynamicStreamer
             List<VideoBlenderInputDescription> videoSources = new List<VideoBlenderInputDescription>();
 
             var orderedTrunks = c.VideoInputTrunks.OrderBy(s => s.ZOrder).ToList();
+            bool portaitMode = false;
 
             foreach (var trunkConfig in c.VideoInputTrunks)
             {
@@ -411,6 +412,10 @@ namespace DynamicStreamer
                         var blenderQueue = new SetSourceIdQueue<Frame>(VideoEncoderTrunk.BlenderQueue, sourceId);
                         var streamProps = inputCtx.Config.InputStreamProps[0];
                         int decoders = (streamProps.CodecProps.codec_id == Core.Const.CODEC_ID_MJPEG) ? 3 : 1;
+
+                        if (c.VideoEncoderTrunk.ReceiverMode)
+                            portaitMode = streamProps.CodecProps.width < streamProps.CodecProps.height; // support of preview from mobile
+
                         int outputPixelFormat = -1;
                         bool inputIsVFlipped = IsInputVFlipped(streamProps, videoInputConfigFull.Setup);
                         var filterChain = PrepareFilterChain(trunkConfig.FilterChain, inputIsVFlipped);
@@ -531,9 +536,9 @@ namespace DynamicStreamer
                     s.Dispose();
                 });
 
-            var outputFormat = UpdateVideoMixingFilter(update, videoSources, encoderCtx, c.VideoEncoderTrunk, pixelFormatGroup);
+            var outputFormat = UpdateVideoMixingFilter(update, videoSources, encoderCtx, c.VideoEncoderTrunk, pixelFormatGroup, portaitMode);
 
-            UpdateUiFrameOutput(update, c, encoderCtx, outputFormat);
+            UpdateUiFrameOutput(update, c, encoderCtx, outputFormat, portaitMode);
             return encoderCtx;
         }
 
@@ -866,10 +871,10 @@ namespace DynamicStreamer
             return trunkImpl;
         }
 
-        private int UpdateVideoMixingFilter(UpdateVersionContext update, List<VideoBlenderInputDescription> videoSources, IEncoderContext encoderCtx, VideoEncoderTrunkConfig config, PixelFormatGroup pixelFormatGroup)
+        private int UpdateVideoMixingFilter(UpdateVersionContext update, List<VideoBlenderInputDescription> videoSources, IEncoderContext encoderCtx, VideoEncoderTrunkConfig config, PixelFormatGroup pixelFormatGroup, bool portaitMode)
         {
-            int h = config.EncoderSpec.height;
-            int w = config.EncoderSpec.width;
+            int h = portaitMode ? config.EncoderSpec.width : config.EncoderSpec.height;
+            int w = portaitMode ? config.EncoderSpec.height : config.EncoderSpec.width;
             int encoderRequiredPixFmt = encoderCtx?.Config.EncoderProps.pix_fmt ?? Core.Const.PIX_FMT_YUV420P;
 
             var ordered = videoSources.OrderBy(s => s.ZOrder).ToList();
@@ -980,7 +985,7 @@ namespace DynamicStreamer
 
         
 
-        private void UpdateUiFrameOutput(UpdateVersionContext version, ClientStreamerConfig c, IEncoderContext encoderContext, int afterMixPixelFormat)
+        private void UpdateUiFrameOutput(UpdateVersionContext version, ClientStreamerConfig c, IEncoderContext encoderContext, int afterMixPixelFormat, bool portaitMode)
         {
             //var changetimequeue = new ChangeTimeBaseQueue<Frame>(VideoEncoderTrunk.EncoderQueue, _time_base, new AVRational { num = 1, den = c.VideoEncoderTrunk.FPS });
 
@@ -1015,8 +1020,8 @@ namespace DynamicStreamer
                 else
                 {
                     int maxUiHeight = 1080;
-                    int targetHeight = c.VideoEncoderTrunk.EncoderSpec.height;
-                    int targetWidth = c.VideoEncoderTrunk.EncoderSpec.width;
+                    int targetHeight = portaitMode ? c.VideoEncoderTrunk.EncoderSpec.width : c.VideoEncoderTrunk.EncoderSpec.height;
+                    int targetWidth = portaitMode ? c.VideoEncoderTrunk.EncoderSpec.height : c.VideoEncoderTrunk.EncoderSpec.width;
                     string uiSpec = "null";
                     if (targetHeight > maxUiHeight)
                     {

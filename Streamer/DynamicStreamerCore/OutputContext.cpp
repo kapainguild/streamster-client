@@ -80,15 +80,23 @@ DLL_EXPORT(int) OutputContext_Open(OutputContext* handle, char* type, char* outp
 
 DLL_EXPORT(int) OutputContext_Write(OutputContext* handle, AVPacket* hPacket, int stream)
 {
-	hPacket->stream_index = stream;
-	if (handle->baseTime == 0)
+	if (stream < handle->time_bases.size())
 	{
-		handle->baseTime = hPacket->pts;
+		hPacket->stream_index = stream;
+		if (handle->baseTime == 0)
+		{
+			handle->baseTime = hPacket->pts;
+		}
+		hPacket->pts -= handle->baseTime;
+		hPacket->dts -= handle->baseTime;
+
+		av_packet_rescale_ts(hPacket, handle->time_bases[stream], handle->context->streams[stream]->time_base);
+
+		return av_write_frame(handle->context, hPacket);
 	}
-	hPacket->pts -= handle->baseTime;
-	hPacket->dts -= handle->baseTime;
-
-	av_packet_rescale_ts(hPacket, handle->time_bases[stream], handle->context->streams[stream]->time_base);
-
-	return av_write_frame(handle->context, hPacket);
+	else
+	{
+		Warning("Attempt to write packet to stream #%d", stream); // audio ?
+		return ErrorCodes::Ok;
+	}
 }

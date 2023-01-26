@@ -29,7 +29,7 @@ namespace Streamster.ClientCore.Models
             _coreData.Subscriptions.SubscribeForProperties<ISettings>(s => s.SelectedScene, (a, b, c) => Refresh());
             _coreData.Subscriptions.SubscribeForProperties<IDevice>(s => s.State, (a, b, c) => Refresh());
             _coreData.Subscriptions.SubscribeForProperties<IDevice>(s => s.Name, (a, b, c) => Refresh());
-            _coreData.Subscriptions.SubscribeForAnyProperty<IIndicatorIngest>((a, b, c, d) => RefreshStat(a));
+            _coreData.Subscriptions.SubscribeForAnyProperty<IIndicatorCloudOut>((a, b, c, d) => RefreshStat(a));
 
             Refresh();
         }
@@ -54,15 +54,20 @@ namespace Streamster.ClientCore.Models
             return false;
         }
 
-        private void RefreshStat(IIndicatorIngest indicator)
+        private void RefreshStat(IIndicatorCloudOut indicator)
         {
-            var parent = _coreData.GetParent<IIngest>(indicator);
-            var deviceId = parent?.Owner;
-            if (parent != null && deviceId != null)
+            var parent = _coreData.GetParent<IDeviceIndicators>(indicator);
+            if (parent == null) return;
+
+            var parent2 = _coreData.GetParent<IDevice>(parent);
+            if (parent2 == null) return;
+
+            var deviceId = _coreData.GetId(parent2);
+            if (deviceId != null)
             {
                 var source = Sources.FirstOrDefault(s => s.Id == deviceId);
                 if (source != null && _coreData.Root.Devices.TryGetValue(deviceId, out var device))
-                    RefreshStat(indicator, source, device);
+                    RefreshStat(source, device);
                 else 
                     Log.Warning($"Statistics for unknown device '{deviceId}' ignored");
             }
@@ -71,17 +76,19 @@ namespace Streamster.ClientCore.Models
         private void RefreshStat(StreamingSource source)
         {
             var deviceId = source.Id;
-            var ingest = _coreData.Root.Ingests.Values.FirstOrDefault(s => s.Owner == deviceId);
 
-            if (ingest?.In != null && _coreData.Root.Devices.TryGetValue(deviceId, out var device))
-                RefreshStat(ingest.In, source, device);
-            else 
+            if (_coreData.Root.Devices.TryGetValue(deviceId, out var device))
+            {
+                RefreshStat(source, device);
+            }
+            else
                 Log.Warning($"Statistics for unknown device '{deviceId}' not found");
         }
 
-        private void RefreshStat(IIndicatorIngest indicator, StreamingSource source, IDevice device)
+        private void RefreshStat(StreamingSource source, IDevice device)
         {
-            source.State.Value = $"{indicator.Bitrate} kb/s";
+            var val = device?.KPIs?.CloudOut?.Bitrate;
+            source.State.Value = val != null && val != 0 ? $"{val} kb/s" : "";
         }
 
         private void Select(StreamingSource ss)
@@ -133,6 +140,8 @@ namespace Streamster.ClientCore.Models
                 return "mobile";
             if (value.Type == ClientConstants.ExternalClientId)
                 return "external";
+            if (value.Type == ClientConstants.WebClientId)
+                return "web";
             return "unknown";
         }
 

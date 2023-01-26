@@ -19,6 +19,7 @@ namespace Streamster.ClientData.Model
         External,
         TcpForDevice,
         RtmpForDevice,
+        WebRtc,
     }
 
     public class IngestData
@@ -43,9 +44,11 @@ namespace Streamster.ClientData.Model
 
         public string Type { get; set; }
 
-        public string Output { get; set; }
+        public string Output { get; set; } 
 
         public string Options { get; set; }
+
+        public string DeviceId { get; set; }
 
         public int Port { get; set; }
     }
@@ -53,5 +56,11 @@ namespace Streamster.ClientData.Model
     public interface IIndicatorIngest : IIndicatorBase
     {
         int Bitrate { get; set; }
+    }
+
+    public class WebRtcConstants
+    {
+        public const string WebRtcType = "webrtc";
+        public const string WebRtcOptionTranscoder = "transcoder";
     }
 }

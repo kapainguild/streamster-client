@@ -11,12 +11,13 @@ extern "C"
 	DLL_EXPORT(void) Packet_CopyContentFrom(AVPacket* packet, AVPacket* from);
 	DLL_EXPORT(void) Packet_InitFromBuffer(AVPacket* packet, uint8_t* from, int length);
 	DLL_EXPORT(void) Packet_InitFromBuffer2(AVPacket* packet, uint8_t* from, int length, int64_t pts);
-	DLL_EXPORT(void) Packet_InitFromBuffer5(AVPacket* packet, uint8_t* from, int length, int64_t pts, int streamIndex);
+	DLL_EXPORT(void) Packet_InitFromBuffer5(AVPacket* packet, uint8_t* from, int length, int64_t pts, int streamIndex, int iFrame);
 	DLL_EXPORT(void) Packet_InitFromBuffer3(AVPacket* packet, uint8_t* from, int length, int64_t pts, PacketProperties* PacketProperties);
 	DLL_EXPORT(int) Packet_InitFromBuffer4(AVPacket* packet, uint8_t* from, int bitPerPixel, int width, int height, int sourceWidth, int64_t pts, int checkForZero);
 	DLL_EXPORT(void) Packet_RescaleTimebase(AVPacket* packet, AVRational* from, AVRational* to, PacketProperties* PacketProperties);
 	DLL_EXPORT(void) Packet_RescaleTimebase(AVPacket* packet, AVRational* from, AVRational* to, PacketProperties* PacketProperties);
 	DLL_EXPORT(void) Packet_SetPts(AVPacket* packet, int64_t pts);
+	DLL_EXPORT(void) Packet_CopyToBuffer(AVPacket* packet, uint8_t* to);
 
 	DLL_EXPORT(AVFrame*) Frame_Create();
 	DLL_EXPORT(void) Frame_Delete(AVFrame* frame);
@@ -200,6 +201,11 @@ DLL_EXPORT(int) Packet_InitFromBuffer4(AVPacket* packet, uint8_t* from, int bitP
 	return !checkForZero;
 }
 
+DLL_EXPORT(void) Packet_CopyToBuffer(AVPacket* packet, uint8_t* to)
+{
+	memcpy(to, packet->data, packet->size);
+}
+
 DLL_EXPORT(void) Packet_InitFromBuffer2(AVPacket* packet, uint8_t* from, int length, int64_t pts)
 {
 	Packet_InitFromBuffer(packet, from, length);
@@ -207,11 +213,12 @@ DLL_EXPORT(void) Packet_InitFromBuffer2(AVPacket* packet, uint8_t* from, int len
 	packet->pts = pts;
 }
 
-DLL_EXPORT(void) Packet_InitFromBuffer5(AVPacket* packet, uint8_t* from, int length, int64_t pts, int streamIndex)
+DLL_EXPORT(void) Packet_InitFromBuffer5(AVPacket* packet, uint8_t* from, int length, int64_t pts, int streamIndex, int iFrame)
 {
 	Packet_InitFromBuffer(packet, from, length);
 	packet->dts = pts;
 	packet->pts = pts;
+	packet->flags = iFrame ? AV_PKT_FLAG_KEY : 0;
 	packet->stream_index = streamIndex;
 }
 

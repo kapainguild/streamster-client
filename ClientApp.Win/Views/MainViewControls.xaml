@@ -98,7 +98,7 @@
                           IsChecked="{Binding CoreData.Settings.IsRecordingRequested}">
                 <StackPanel Orientation="Horizontal">
                     <materialDesign:PackIcon Kind="Record" Height="16" Width="16"/>
-                    <TextBlock Margin="4,0,3,0" x:Name="recordingText" Text="Recording" FontWeight="Normal" FontSize="12" VerticalAlignment="Center"/>
+                    <TextBlock Margin="4,0,3,0" x:Name="recordingText" Text="Record" FontWeight="Normal" FontSize="12" VerticalAlignment="Center"/>
                 </StackPanel>
             </ToggleButton>
 

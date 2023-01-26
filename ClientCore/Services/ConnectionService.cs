@@ -1,4 +1,5 @@
-﻿using ClientData;
+﻿using CefSharp.DevTools.WebAuthn;
+using ClientData;
 using IdentityModel.Client;
 using Serilog;
 using Streamster.ClientCore.Cross;
@@ -45,11 +46,11 @@ namespace Streamster.ClientCore.Services
         public async Task<LoadBalancerResponse> StartAsync(NetworkCredential credential)
         {
             await TaskHelper.GoToPool().ConfigureAwait(false);
-            return await RunWithRetries(async server =>
+            return await RunWithRetries(async (server, attempt) =>
             {
-                AccessToken = await AuthenticateAsync(server, credential);
+                AccessToken = await AuthenticateAsync(server, credential, (attempt + 2) * 2); // 4,6,8,...
                 return await GetConnectionServerAsync(server);
-            }, ClientConstants.LoadBalancerServers, 3, nameof(AuthenticateAsync));
+            }, ClientConstants.LoadBalancerServers, ClientConstants.LoadBalancerServers.Length * 2, nameof(AuthenticateAsync));
         }
 
         private async Task<LoadBalancerResponse> GetConnectionServerAsync(string server)
@@ -61,7 +62,7 @@ namespace Streamster.ClientCore.Services
             return result;
         }
 
-        public async Task<T> RunWithRetries<T>(Func<string, Task<T>> action, string[] serverList, int retriesCount, [CallerMemberName] string name = null)
+        public async Task<T> RunWithRetries<T>(Func<string, int, Task<T>> action, string[] serverList, int retriesCount, [CallerMemberName] string name = null)
         {
             for (int q = 0; q < retriesCount; q++)
             {
@@ -69,7 +70,7 @@ namespace Streamster.ClientCore.Services
                 var server = serverList[q % serverList.Length];
                 try
                 {
-                    return await action(server);
+                    return await action(server, q);
                 }
                 catch (Exception e) when (e is WrongUserNamePasswordException || e is OperationCanceledException)
                 {
@@ -89,9 +90,9 @@ namespace Streamster.ClientCore.Services
             throw new InvalidOperationException();
         }
 
-        private async Task<string> AuthenticateAsync(string server, NetworkCredential credential)
+        private async Task<string> AuthenticateAsync(string server, NetworkCredential credential, int timeout)
         {
-            using (var client = GetHttpClient(false))
+            using (var client = GetHttpClient(false, timeout))
             {
                 var host = $"https://{server}:{ClientConstants.AuthorizationServerPort}/connect/token";
 
@@ -141,8 +142,9 @@ namespace Streamster.ClientCore.Services
                 if (tokenResponse.IsError)
                 {
                     if (tokenResponse.ErrorType == ResponseErrorType.Exception && 
-                        tokenResponse.Exception is HttpRequestException &&
-                        tokenResponse.Exception.InnerException is SocketException)
+                        (tokenResponse.Exception is HttpRequestException &&
+                        tokenResponse.Exception.InnerException is SocketException ||
+                        tokenResponse.Exception is TaskCanceledException))
                     {
                         throw new ConnectionServiceException("Connection to the service failed. Please check your internet connection.", tokenResponse.Exception);
                     }
@@ -206,14 +208,33 @@ namespace Streamster.ClientCore.Services
             }
         }
 
-        public HttpClient GetHttpClient(bool authenticated)
+        public HttpClient GetHttpClient(bool authenticated, int timeout = 0)
         {
             var handler = new HttpClientHandler();
             handler.DefaultProxyCredentials = CredentialCache.DefaultCredentials;
             var client =  new HttpClient(handler);
             if (authenticated)
                 client.SetBearerToken(AccessToken);
+            if (timeout > 0)
+                client.Timeout = TimeSpan.FromSeconds(timeout);
             return client;
+        }
+
+        public async Task<bool> TryRefreshConnectionServer()
+        {
+            try
+            {
+                await RunWithRetries(async (server, attempt) =>
+                {
+                    return await GetConnectionServerAsync(server);
+                }, ClientConstants.LoadBalancerServers, ClientConstants.LoadBalancerServers.Length, nameof(GetConnectionServerAsync));
+                return true;
+            }
+            catch (Exception e)
+            {
+                Log.Error(e, "Failed to refresh server");
+                return false;
+            }
         }
     }
 

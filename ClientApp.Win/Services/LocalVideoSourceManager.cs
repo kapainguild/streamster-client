@@ -37,7 +37,7 @@ namespace Streamster.ClientApp.Win.Services
 
             return new LocalVideoSource
             {
-                Name = s.Name,
+                Name = s.Name ?? "unknown name",
                 Id = s.DevicePath,
                 Type = s.DevicePath.ToLowerInvariant().Contains("?\\usb#") ? InputDeviceType.USB : InputDeviceType.Virtual,
                 State = state,

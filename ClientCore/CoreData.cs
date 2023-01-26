@@ -100,10 +100,10 @@ namespace Streamster.ClientCore
         private DeltaModelManager<IRoot> Build(IDeltaServiceProvider deltaServiceProvider)
         {
             var builder = new DeltaModelBuilder();
-            builder.Config<IChannel>(c =>
-            {
-                c.HasLocal((s, m, p) => new ChannelModel(s, p.Get<IAppEnvironment>(), p.Get<CoreData>(), p.Get<MainTargetsModel>()));
-            });
+            //builder.Config<IChannel>(c =>
+            //{
+            //    c.HasLocal((s, m, p) => new ChannelModel(s, p.Get<IAppEnvironment>(), p.Get<CoreData>(), p.Get<MainTargetsModel>()));
+            //});
 
             //builder.Config<IVideoInput>(c =>
             //{

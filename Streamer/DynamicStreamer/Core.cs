@@ -1,4 +1,5 @@
-﻿using System;
+﻿using DynamicStreamer.Contexts;
+using System;
 using System.Globalization;
 using System.Linq;
 using System.Runtime.InteropServices;
@@ -13,6 +14,7 @@ namespace DynamicStreamer
         public static string Sep = "`";
 
         public static int PIX_FMT_INTERNAL_DIRECTX = -1;
+        public static int NoStream { get; } = -1;
 
         public const string DllName = "DynamicStreamerCore.dll";
 
@@ -39,12 +41,15 @@ namespace DynamicStreamer
         public static StreamerConstants Const { get; private set; }
         public static StreamerConstants2 Const2 { get; private set; }
 
-        public static void Init(Action<LogType, string, string, Exception> onLog)
+        public static Func<OutputSetup, IStreamerBase, IOutputContext> CreateOutputContext { get; private set; }
+
+        public static void Init(Action<LogType, string, string, Exception> onLog, Func<OutputSetup, IStreamerBase, IOutputContext> createOutputContext)
         {
             QueryPerformanceFrequency(out s_performanceFrequency);
 
             s_onLog = onLog;
             s_onLogCallbackFunction = new LogCallbackFunction((s, p, m) => onLog((LogType)s, p, "  -" + m.TrimEnd('\n'), null));
+            CreateOutputContext = createOutputContext;
             StreamerConstants c = new StreamerConstants();
             Core_Init(Marshal.GetFunctionPointerForDelegate(s_onLogCallbackFunction), ref c);
             Const = c;
@@ -126,7 +131,7 @@ namespace DynamicStreamer
             }
         }
 
-        private static void LogDotNet(LogType type, string message, string template = null, Exception e = null)
+        public static void LogDotNet(LogType type, string message, string template = null, Exception e = null)
         {
             s_onLog(type, template, message, e);
         }

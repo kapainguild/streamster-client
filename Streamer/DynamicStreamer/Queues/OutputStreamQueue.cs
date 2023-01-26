@@ -7,7 +7,7 @@ namespace DynamicStreamer.Queues
 {
     public class OutputStreamQueue<TPayload> : ITargetQueue<TPayload> where TPayload : Packet, new()
     {
-        private readonly LinkedList<Data<TPayload>> _sortingQueue = new LinkedList<Data<TPayload>>();
+        private LinkedList<Data<TPayload>> _sortingQueue = new LinkedList<Data<TPayload>>();
         private readonly LinkedList<OutputStreamQueueDataReference<TPayload>> _readyQueue = new LinkedList<OutputStreamQueueDataReference<TPayload>>();
         private readonly List<int> _sortingQueueCountsPerId = new List<int>();
         private readonly List<OutputStreamQueueReader<TPayload>> _readers = new List<OutputStreamQueueReader<TPayload>>();
@@ -27,6 +27,29 @@ namespace DynamicStreamer.Queues
             RegisterSources(sourceIds);
         }
 
+        public void SetSourceIds(int[] sourceIds)
+        {
+            lock (this)
+            {
+                if (sourceIds.Length != _sortingQueueCountsPerId.Count)
+                {
+                    Core.LogInfo($"Updating number of streams from {_sortingQueueCountsPerId.Count} to {sourceIds.Length}");
+                    while (_sortingQueueCountsPerId.Count < sourceIds.Length)
+                    {
+                        _sortingQueueCountsPerId.Add(0);
+                    }
+
+                    while (_sortingQueueCountsPerId.Count > sourceIds.Length)
+                    {
+                        _sortingQueueCountsPerId.RemoveAt(_sortingQueueCountsPerId.Count - 1);
+                        int id = _sortingQueueCountsPerId.Count;
+
+                        _sortingQueue = new LinkedList<Data<TPayload>>(_sortingQueue.Where(s => s.SourceId != id));
+                    }
+                }
+            }
+        }
+
         public void Enqueue(Data<TPayload> payload)
         {
             //Core.LogInfo($"QIn {Core.FormatTicks(payload.Payload.GetPts())} ({_sortingQueueCountsPerId[0]}/{_sortingQueueCountsPerId[1]})  {GetHashCode()}");
@@ -42,7 +65,11 @@ namespace DynamicStreamer.Queues
                 var last = _sortingQueue.Last;
                 var pts = payload.Payload.GetPts();
 
-                if (pts >= _lastReleasedPts)
+                if (payload.SourceId >= _sortingQueueCountsPerId.Count)
+                {
+                    Core.LogWarning($"Unexpected sourceId of packet {payload.SourceId} while max is {_sortingQueueCountsPerId.Count}");
+                }
+                else if (pts >= _lastReleasedPts)
                 {
                     while (last != null && pts < last.Value.Payload.GetPts())
                         last = last.Previous;
@@ -78,10 +105,12 @@ namespace DynamicStreamer.Queues
                 var last = _sortingQueue.Last.Value.Payload.GetPts();
                 var delta = last - first;
 
+                int audio = _sortingQueueCountsPerId.Count > 1 ? _sortingQueueCountsPerId[1] : -1;
                 // 2 seconds
-                if (delta > 20_000_000 || _sortingQueueCountsPerId[0] > 120 || _sortingQueueCountsPerId[1] > 120)
+                if (delta > 20_000_000 || _sortingQueueCountsPerId[0] > 120 || audio > 120)
                 {
-                    Core.LogWarning($"GAP! Pushing packet to Output. QDuration {delta / 10_000}ms, VideoQ = {_sortingQueueCountsPerId[0]}, AudioQ={_sortingQueueCountsPerId[1]}", "GAP! Pushing packet to Output.");
+                    
+                    Core.LogWarning($"GAP! Pushing packet to Output. QDuration {delta / 10_000}ms, VideoQ = {_sortingQueueCountsPerId[0]}, AudioQ={audio}", "GAP! Pushing packet to Output.");
                     return true;
                 }
             }
@@ -110,15 +139,17 @@ namespace DynamicStreamer.Queues
                 while (continueProcessing && reader.CurrentSequenceNumber > _lastSequenceNumber)
                     Monitor.Wait(this);
 
-                reader.BufferSize = _lastSequenceNumber - reader.CurrentSequenceNumber;
+                int bufferSize = _lastSequenceNumber - reader.CurrentSequenceNumber;
+                reader.BufferSize = bufferSize;
                 if (continueProcessing)
                 {
+                    OutputStreamQueueDataReference<TPayload> result;
                     if (reader.CurrentSequenceNumber < _readyQueue.First.Value.Data.SequenceNumber)
                     {
                         dropped = _readyQueue.First.Value.Data.SequenceNumber - reader.CurrentSequenceNumber;
                         reader.CurrentSequenceNumber = _readyQueue.First.Value.Data.SequenceNumber + 1;
 
-                        return _readyQueue.First.Value.AddReference();
+                        result = _readyQueue.First.Value.AddReference();
                     }
                     else
                     {
@@ -130,13 +161,13 @@ namespace DynamicStreamer.Queues
                         dropped = 0;
                         reader.CurrentSequenceNumber++;
 
-                        var result = last.Value.AddReference();
+                        result = last.Value.AddReference();
 
                         if (last.Previous == null) // it is first
                             Clean();
-
-                        return result;
                     }
+                    reader.NotifyPacket?.Invoke(result.Data.Payload, result.Data.SourceId, bufferSize);
+                    return result;
                 }
                 else
                 {
@@ -168,6 +199,7 @@ namespace DynamicStreamer.Queues
                 var seq = _lastSequenceNumber + 1;
                 var last = _readyQueue.Last;
                 int count = 0;
+                int size = 0;
                 while (last != null)
                 {
                     var lastPacket = last.Value.Data;
@@ -177,14 +209,17 @@ namespace DynamicStreamer.Queues
                         break;
                     }
 
+                    size += lastPacket.Payload.Properties.Size;
                     last = last.Previous;
                     count++;
                 }
 
-                Core.LogInfo($"Adding reader, to be sent {count} additionally");
+                Core.LogInfo($"Adding reader, to be sent {count} packets and {size} bytes");
+                
                 var result = new OutputStreamQueueReader<TPayload>
                 {
-                    CurrentSequenceNumber = seq
+                    CurrentSequenceNumber = seq,
+                    BufferSize = count
                 };
                 _readers.Add(result);
                 return result;
@@ -216,7 +251,9 @@ namespace DynamicStreamer.Queues
     {
         public int CurrentSequenceNumber { get; set; }
 
-        public int BufferSize { get; set; }
+        public Action<TPayload, int, int> NotifyPacket { get; set; }
+
+        public int BufferSize { get; internal set; }
     }
 
 

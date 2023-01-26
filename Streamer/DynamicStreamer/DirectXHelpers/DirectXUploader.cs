@@ -1,4 +1,5 @@
-﻿using SharpDX;
+﻿using Serilog;
+using SharpDX;
 using SharpDX.Direct3D11;
 using SharpDX.DXGI;
 using System;
@@ -57,6 +58,14 @@ namespace DynamicStreamer.DirectXHelpers
 
         public static DirectXUploader Create(DirectXContext dx, int pixelFormat, int width, int height)
         {
+            int aligned = ((width - 1) / 16 + 1) * 16;
+
+            if (aligned != width)
+            {
+                Log.Information($"DirectXUploader created with aligned {aligned} width instead of {width}");
+                width = aligned;
+            }
+
             var desc = s_descriptors[pixelFormat];
 
             var config = new DirectXPipelineConfig

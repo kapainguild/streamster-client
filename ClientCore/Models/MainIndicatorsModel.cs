@@ -1,4 +1,5 @@
 ﻿using Streamster.ClientCore.Cross;
+using Streamster.ClientData;
 using Streamster.ClientData.Model;
 using System;
 using System.Collections.ObjectModel;
@@ -74,7 +75,14 @@ namespace Streamster.ClientCore.Models
 
             var dev = Devices.FirstOrDefault(s => s.DeviceId == id);
             if (dev != null)
-                dev.Offline.Value = o.State != DeviceState.Online;
+            {
+                if (o.State != DeviceState.Online)
+                    dev.Offline.Value = DeviceIndicatorsState.Offline;
+                else if (o.Type == ClientConstants.WebClientId)
+                    dev.Offline.Value = DeviceIndicatorsState.Online;
+                else
+                    dev.Offline.Value = DeviceIndicatorsState.Indicators;
+            }
 
             UpdateDeviceNames();
         }

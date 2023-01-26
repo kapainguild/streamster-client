@@ -86,7 +86,11 @@ DLL_EXPORT(int) EncoderContext_Open(EncoderContext* handle, char* name, char* op
 			}
 		}
 		handle->context->time_base = encoderSpec->time_base;
+
+		// the parameter influence format of output stream
+		// whether it will be Annex B or AVVC
 		handle->context->flags |= AV_CODEC_FLAG_GLOBAL_HEADER;
+		//handle->context->flags |= AV_CODEC_FLAG_GLOBAL_HEADER;
 
 
 		AVDictionary* dict = NULL;
@@ -140,6 +144,7 @@ DLL_EXPORT(int) EncoderContext_Read(EncoderContext* handle, AVPacket* packet, Pa
 		av_packet_ref(packet, &pkt);
 		av_packet_unref(&pkt);
 		PacketProperties::FromAVPacket(packetProperties, packet);
+
 
 		/*if (packet->duration == 0)
 		{

@@ -56,7 +56,8 @@ namespace Streamster.ClientData.Model
     public enum RequireOutgestType
     {
         Rtmp,
-        Tcp
+        Tcp,
+        WebRtc
     }
 
     public enum DeviceState

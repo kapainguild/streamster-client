@@ -32,6 +32,12 @@ namespace DynamicStreamer.Nodes
         private DateTime _lastOpenCycle = DateTime.MaxValue;
         private bool _openThreadDenied;
 
+        private bool _initialPacketReceived;
+        private int _initialStatisticsCounter;
+        private int _initialPackets;
+        private int _initialVideoPackets;
+        private int _initialBytes;
+
         public NodeName Name => _name;
 
         public InputNode(NodeName name, Action inputOpened, IStreamerBase streamer)
@@ -44,6 +50,11 @@ namespace DynamicStreamer.Nodes
             _inputThread.Name = $"Streamer:{name} input thread";
             _observer = streamer.Subscribe(1000, On1Second);
         }
+
+        private void LogInfo(string message, string template = null) => Log(LogType.Info, message, template);
+
+        private void Log(LogType type, string message, string template = null) => Core.LogDotNet(type, $"IIIII '{Name}'-'{_inputThreadCurrentContext?.ContextSetup}': " + message, template);
+
 
         private void On1Second()
         {
@@ -64,6 +75,19 @@ namespace DynamicStreamer.Nodes
             {
 
             }
+
+
+            if (_initialStatisticsCounter < 5)
+            {
+                lock (this)
+                {
+                    _initialStatisticsCounter++;
+                    LogInfo($"Initial stat: packets={_initialPackets}, kbps={_initialBytes*8/1000}, video packets={_initialVideoPackets}");
+                    _initialPackets = 0;
+                    _initialBytes = 0;
+                    _initialVideoPackets = 0;   
+                }
+            }
         }
 
         public IInputContext CurrentContext => _inputThreadCurrentContext?.Context?.Instance;
@@ -80,7 +104,7 @@ namespace DynamicStreamer.Nodes
                     bool sameConfig = last != null && Equals(last.ContextSetup, setup);
                     bool sameDevice = last != null && Equals(last.ContextSetup.Input, setup.Input);
                     if (!sameConfig)
-                        Core.LogInfo($"Change {_name}: {last?.ContextSetup} >> {setup}");
+                        LogInfo($"{last?.ContextSetup} >> {setup}");
 
                     int version = update.Version;
                     var ver = new ContextVersion<IInputContext, InputSetup, Packet>
@@ -165,12 +189,12 @@ namespace DynamicStreamer.Nodes
                 }
                 catch (OperationCanceledException)
                 {
-                    Core.LogInfo($"Open stream cancelled for {Name} on OpenThread");
+                    LogInfo($"cancelled on OpenThread");
                 }
                 catch (Exception e)
                 {
                     UpdateError(e);
-                    Core.LogError(e, $"Open stream failed for {Name} on OpenThread");
+                    Core.LogError(e, $"IIIII '{Name}' failed on OpenThread");
                 }
 
                 lock(this)
@@ -200,17 +224,25 @@ namespace DynamicStreamer.Nodes
         {
             var instance = context.Context.Instance;
 
-            Core.LogInfo($"Input {Name} opening");
+            LogInfo($"opening as '{context.ContextSetup}'");
 
             instance.Open(context.ContextSetup);
 
-            Core.LogInfo($"Input {Name} opened");
+            LogInfo($"opened as '{context.ContextSetup}'");
 
-            var attempt = _analyzeAttempt;
+            var attempt = Math.Min(10, _analyzeAttempt); // 0 .. 10
             _analyzeAttempt++;
-            var delay = Math.Min(8000, 2000 * (1 << attempt)); // 2, 4, 8, 8, 8 sec
+            var delay = Math.Max(300, Math.Min(8000, 300 * (1 << attempt))); // 300ms - 8 sec
             instance.Analyze(delay, context.ContextSetup.ExpectedNumberOfStreams);
+
+            LogInfo($"analyzed");
             context.IsOpened = true;
+
+            _initialPacketReceived = false;
+            _initialStatisticsCounter = 0;
+            _initialPackets = 0;
+            _initialBytes = 0;
+            _initialVideoPackets = 0;
         }
 
         private void OnInputThread()
@@ -276,7 +308,7 @@ namespace DynamicStreamer.Nodes
                         }
                         else if (contextChanged) // can be passed here from open thread
                         {
-                            Core.LogInfo($"ContextChanged on {Name}");
+                            LogInfo("ContextChanged");
                             _inputOpened();
                             continue; // try to update context as new version is to be issued.
                         }
@@ -292,6 +324,25 @@ namespace DynamicStreamer.Nodes
                             _statisticKeeper.Data.Bytes += packet.Properties.Size;
                         }
 
+
+                        if (!_initialPacketReceived)
+                        {
+                            _initialPacketReceived = true;
+                            LogInfo($"first packet size={packet.Properties.Size}, flags={packet.Properties.Flags}, stream={packet.Properties.StreamIndex}");
+                        }
+
+                        if (_initialStatisticsCounter < 5)
+                        {
+                            lock (this)
+                            {
+                                _initialPackets++;
+                                _initialBytes += packet.Properties.Size;
+
+                                if (packet.Properties.StreamIndex == 0)
+                                    _initialVideoPackets++;
+                            }
+                        }
+
                         packetToDispose = null;
                         seqNumber++;
                         _inputThreadCurrentContext.OutputQueue.Enqueue(new Data<Packet>(packet, _inputThreadCurrentContext.Version, seqNumber, PayloadTrace.Create(Name, null, seqNumber)) { SourceId = packet.Properties.StreamIndex });
@@ -300,7 +351,7 @@ namespace DynamicStreamer.Nodes
                     {
                         _streamer.PacketPool.Back(packetToDispose);
                         _inputThreadCurrentContext.IsOpened = false;
-                        Core.LogInfo($"'{Name}' gracefully closed");
+                        LogInfo("gracefully closed");
                         lock (_statisticKeeper)
                         {
                             _statisticKeeper.Data.Errors++;
@@ -312,15 +363,17 @@ namespace DynamicStreamer.Nodes
                     {
                         _streamer.PacketPool.Back(packetToDispose);
                         _inputThreadCurrentContext.IsOpened = false;
-                        Core.LogInfo($"Open/read stream cancelled for {Name} on InputThread");
+                        LogInfo($"open/read cancelled on InputThread");
                     }
                     catch (Exception e)
                     {
                         UpdateError(e);
                         _streamer.PacketPool.Back(packetToDispose);
+
+                        bool wasOpened = _inputThreadCurrentContext.IsOpened;
                         _inputThreadCurrentContext.IsOpened = false;
-                        Core.LogError(e, $"Open/read stream failed for {Name} on InputThread");
-                        waitAfterFail = true;
+                        Core.LogError(e, $"IIIII '{Name}' open/read failed on InputThread");
+                        waitAfterFail = !wasOpened;
                     }
 
                     if (waitAfterFail)
@@ -365,10 +418,10 @@ namespace DynamicStreamer.Nodes
             }
 
             if (_inputThread != null && !_inputThread.Join(3000))
-                Core.LogError($"Failed to stop input thread for {Name}");
+                Log(LogType.Error, $"Failed to stop input thread");
 
             if (_openThread != null && !_openThread.Join(1000))
-                Core.LogError($"Failed to stop open thread for {Name}");
+                Log(LogType.Error, $"Failed to stop open thread");
 
             _inputThreadCurrentContext?.Dispose();
             _inputThreadPendingContext?.Dispose();

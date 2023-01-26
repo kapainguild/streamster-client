@@ -16,6 +16,12 @@ namespace Streamster.ClientCore.Models
 
         public static string GetDeviceName(LocalSource localDevice)
         {
+            if (localDevice.Name == null)
+            {
+                Log.Error($"Local device {localDevice.Id} has no Name");
+                return "name_unknown";
+            }
+
             if (!localDevice.Name.Contains(':')) // cannot use : as it is seprator between audio:video parts
                 return localDevice.Name;
             else
