@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Text;
 
-namespace Clutch.DeltaModel
+namespace DeltaModel
 {
     public interface IEntityHandlerProvider
     {

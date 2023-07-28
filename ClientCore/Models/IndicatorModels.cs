@@ -105,6 +105,8 @@ namespace Streamster.ClientCore.Models
     {
         public Property<string> SmallValue { get; } = new Property<string>();
 
+        public MainSettingsModel Settings { get; set; }
+
         public override void Reset()
         {
             base.Reset();

@@ -94,6 +94,16 @@ namespace Streamster.ClientCore.Models
         {
             AsUnregistered.Value = _connectionService.UserName == null;
 
+            RefreshValues();
+            
+            if (SystemInfos.Value != null)
+                Log.Information("SystemInfo: " + String.Join("; ", SystemInfos.Value.Select(s => $"{s.Name}='{s.Value}'")));
+
+            _connectionService.ConnectionServerChanged += (s, e) => RefreshValues();
+        }
+
+        public void RefreshValues()
+        {
             try
             {
                 _environment.GetObsVersions(out var obs, out var obsCam);
@@ -109,9 +119,6 @@ namespace Streamster.ClientCore.Models
                     new SystemInfoItem { Name = "OBS version", Value =  obs },
                     new SystemInfoItem { Name = "OBS Cam version", Value =  obsCam }
                 }.Where(s => s.Value != null).ToArray();
-
-                SystemInfos.Value.Where(s => s.Id != null).ToList().ForEach(s => Log.Information($"SystemInfo {{{s.Id}}}", s.Value));
-
             }
             catch (Exception e)
             {
@@ -125,8 +132,6 @@ namespace Streamster.ClientCore.Models
         public string Name { get; set; }
 
         public string Value { get; set; }
-
-        public string Id { get; set; }
     }
 
     public enum FeedbackStateEnum

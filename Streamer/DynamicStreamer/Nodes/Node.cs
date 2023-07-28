@@ -36,10 +36,10 @@ namespace DynamicStreamer.Nodes
 
         public ISourceQueue InputQueueForOverload => InputQueue;
 
-        public virtual StatisticItem GetStat()
+        public virtual StatisticItem[] GetStat()
         {
             TryRemoveOldVersions();
-            return _statisticKeeper.Get();
+            return new[] { _statisticKeeper.Get() };
         }
 
         public void Activate()

@@ -4,7 +4,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Text;
 
-namespace Clutch.DeltaModel
+namespace DeltaModel
 {
     public class DeserializingContext : IDisposable
     {

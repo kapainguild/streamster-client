@@ -5,6 +5,7 @@
     <ResourceDictionary.MergedDictionaries>
         <ResourceDictionary Source="Transcoding.xaml"/>
         <ResourceDictionary Source="ExternalEncoder.xaml"/>
+        <ResourceDictionary Source="ExternalPreview.xaml"/>
     </ResourceDictionary.MergedDictionaries>
 
     <Style x:Key="GroupTitle" TargetType="TextBlock">
@@ -69,8 +70,98 @@
                                                 Style="{StaticResource MaterialDesignHeaderedContentControl}"/>
 
                         </DockPanel>
+                        <Border Background="{DynamicResource MaterialDesignDivider}" Height="1" SnapsToDevicePixels="True" />
+                        <DockPanel>
+                            <Button Margin="0,0,8,0" DockPanel.Dock="Right"
+                                            Content="Change server" 
+                                            Style="{StaticResource MaterialDesignOutlinedButton}"
+                                            Command="{Binding ChangeServer, Converter={StaticResource CommandConverter}}"
+                                            Foreground="#609EFF">
+                            </Button>
+                            <HeaderedContentControl Header="Server connection" 
+                                                Content="If you find your connection to server unstable you can try another server"
+                                                Style="{StaticResource MaterialDesignHeaderedContentControl}"/>
+
+                        </DockPanel>
                     </StackPanel>
                 </Border>
+
+                <TextBlock Style="{StaticResource GroupTitle}" Text="Streaming"/>
+
+                <Border Style="{StaticResource GroupBorderStyle}">
+                    <StackPanel Orientation="Vertical">
+                        <!--stream to cloud-->
+                        <DockPanel>
+                            <ComboBox Margin="0,0,8,0" DockPanel.Dock="Right" VerticalAlignment="Top" BorderThickness="0"
+                                      ItemsSource="{Binding StreamingToCloudBehaviors}" SelectedItem="{Binding CurrentStreamingToCloudBehavior.Value}" DisplayMemberPath="DisplayName">
+                            </ComboBox>
+                            <HeaderedContentControl Header="Start stream to cloud when" 
+                                                Content="Determines when streaming to the cloud will be started"
+                                                Style="{StaticResource MaterialDesignHeaderedContentControl}"/>
+
+                        </DockPanel>
+                        <!--external encoder-->
+                        <Border Background="{DynamicResource MaterialDesignDivider}" Height="1" SnapsToDevicePixels="True" />
+                        <DockPanel>
+                            <Button Margin="0,0,8,0" DockPanel.Dock="Right"
+                                            Content="Show Url/Key" Command="{x:Static materialDesign:DialogHost.OpenDialogCommand}"
+                                            Style="{StaticResource MaterialDesignOutlinedButton}"
+                                            Foreground="#609EFF">
+                                <Button.CommandParameter>
+                                    <ContentControl Content="{Binding ExternalEncoder}" ContentTemplate="{StaticResource ExternalEncoderDialogContent}"/>
+                                </Button.CommandParameter>
+                            </Button>
+                            <HeaderedContentControl Header="Stream by OBS/External encoder" 
+                                                Content="Broadcast streams from Open Brodcast Studio (OBS) or any other RTMP capable encoder"
+                                                Style="{StaticResource MaterialDesignHeaderedContentControl}"/>
+
+                        </DockPanel>
+                        <!--transcoding-->
+                        <Border Background="{DynamicResource MaterialDesignDivider}" Height="1" SnapsToDevicePixels="True" />
+                        <DockPanel>
+                            <Button Margin="0,0,8,0" DockPanel.Dock="Right"
+                                            Content="Show detail" Command="{x:Static materialDesign:DialogHost.OpenDialogCommand}"
+                                            Style="{StaticResource MaterialDesignOutlinedButton}"
+                                            Foreground="#609EFF">
+                                <Button.CommandParameter>
+                                    <ContentControl Content="{Binding Transcoding}" ContentTemplate="{StaticResource TranscodingDialogContent}"/>
+                                </Button.CommandParameter>
+                            </Button>
+                            <HeaderedContentControl Header="Transcoding" 
+                                                Content="Broadcast streams with different quality parameters to different platforms"
+                                                Style="{StaticResource MaterialDesignHeaderedContentControl}"/>
+
+                        </DockPanel>
+                        <!--live preview-->
+                        <Border Background="{DynamicResource MaterialDesignDivider}" Height="1" SnapsToDevicePixels="True" />
+                        <DockPanel>
+                            <Button Margin="0,0,8,0" DockPanel.Dock="Right"
+                                            Content="Show Url" Command="{x:Static materialDesign:DialogHost.OpenDialogCommand}"
+                                            Style="{StaticResource MaterialDesignOutlinedButton}"
+                                            Foreground="#609EFF">
+                                <Button.CommandParameter>
+                                    <ContentControl Content="{Binding ExternalPreview}" ContentTemplate="{StaticResource ExternalPreviewDialogContent}"/>
+                                </Button.CommandParameter>
+                            </Button>
+                            <HeaderedContentControl Header="Live preview" 
+                                                Content="You can share your preview with someone else"
+                                                Style="{StaticResource MaterialDesignHeaderedContentControl}"/>
+
+                        </DockPanel>
+
+                        <!--reset keys-->
+                        <Border Background="{DynamicResource MaterialDesignDivider}" Height="1" SnapsToDevicePixels="True" />
+                        <DockPanel>
+                            <ToggleButton Margin="0,0,8,0" DockPanel.Dock="Right" VerticalAlignment="Center" Style="{StaticResource MaterialDesignSwitchToggleButton}"
+                                          IsChecked="{Binding CoreData.Settings.ResetKeys}"/>
+                            <HeaderedContentControl Header="Reset stream keys" 
+                                                Content="Stream keys will be reset after each application restart"
+                                                Style="{StaticResource MaterialDesignHeaderedContentControl}"/>
+
+                        </DockPanel>
+                    </StackPanel>
+                </Border>
+
 
                 <TextBlock Style="{StaticResource GroupTitle}" Text="Rendering"/>
 
@@ -102,61 +193,6 @@
                             </ComboBox>
                             <HeaderedContentControl Header="Type of blender" 
                                                 Content="Determines engine to be used for blending (scaling). Linear is the most performant"
-                                                Style="{StaticResource MaterialDesignHeaderedContentControl}"/>
-
-                        </DockPanel>
-                    </StackPanel>
-                </Border>
-
-                <TextBlock Style="{StaticResource GroupTitle}" Text="Streaming"/>
-
-                <Border Style="{StaticResource GroupBorderStyle}">
-                    <StackPanel Orientation="Vertical">
-                        <DockPanel>
-                            <ComboBox Margin="0,0,8,0" DockPanel.Dock="Right" VerticalAlignment="Top" BorderThickness="0"
-                                      ItemsSource="{Binding StreamingToCloudBehaviors}" SelectedItem="{Binding CurrentStreamingToCloudBehavior.Value}" DisplayMemberPath="DisplayName">
-                            </ComboBox>
-                            <HeaderedContentControl Header="Start stream to cloud when" 
-                                                Content="Determines when streaming to the cloud will be started"
-                                                Style="{StaticResource MaterialDesignHeaderedContentControl}"/>
-
-                        </DockPanel>
-                        <Border Background="{DynamicResource MaterialDesignDivider}" Height="1" SnapsToDevicePixels="True" />
-                        <DockPanel>
-                            <Button Margin="0,0,8,0" DockPanel.Dock="Right"
-                                            Content="Show Url/Key" Command="{x:Static materialDesign:DialogHost.OpenDialogCommand}"
-                                            Style="{StaticResource MaterialDesignOutlinedButton}"
-                                            Foreground="#609EFF">
-                                <Button.CommandParameter>
-                                    <ContentControl Content="{Binding ExternalEncoder}" ContentTemplate="{StaticResource ExternalEncoderDialogContent}"/>
-                                </Button.CommandParameter>
-                            </Button>
-                            <HeaderedContentControl Header="Stream by OBS/External encoder" 
-                                                Content="Broadcast streams from Open Brodcast Studio (OBS) or any other RTMP capable encoder"
-                                                Style="{StaticResource MaterialDesignHeaderedContentControl}"/>
-
-                        </DockPanel>
-                        <Border Background="{DynamicResource MaterialDesignDivider}" Height="1" SnapsToDevicePixels="True" />
-                        <DockPanel>
-                            <Button Margin="0,0,8,0" DockPanel.Dock="Right"
-                                            Content="Show detail" Command="{x:Static materialDesign:DialogHost.OpenDialogCommand}"
-                                            Style="{StaticResource MaterialDesignOutlinedButton}"
-                                            Foreground="#609EFF">
-                                <Button.CommandParameter>
-                                    <ContentControl Content="{Binding Transcoding}" ContentTemplate="{StaticResource TranscodingDialogContent}"/>
-                                </Button.CommandParameter>
-                            </Button>
-                            <HeaderedContentControl Header="Transcoding" 
-                                                Content="Broadcast streams with different quality parameters to different platforms"
-                                                Style="{StaticResource MaterialDesignHeaderedContentControl}"/>
-
-                        </DockPanel>
-                        <Border Background="{DynamicResource MaterialDesignDivider}" Height="1" SnapsToDevicePixels="True" />
-                        <DockPanel>
-                            <ToggleButton Margin="0,0,8,0" DockPanel.Dock="Right" VerticalAlignment="Center" Style="{StaticResource MaterialDesignSwitchToggleButton}"
-                                          IsChecked="{Binding CoreData.Settings.ResetKeys}"/>
-                            <HeaderedContentControl Header="Reset stream keys" 
-                                                Content="Stream keys will be reset after each application restart"
                                                 Style="{StaticResource MaterialDesignHeaderedContentControl}"/>
 
                         </DockPanel>

@@ -34,6 +34,8 @@ namespace Streamster.ClientData.Model
         string UserFeedback { get; set; }
 
         bool ResetKeys { get; set; }
+
+        bool ChangeServerRequested { get; set; }
     }
 
     public enum RecordingFormat

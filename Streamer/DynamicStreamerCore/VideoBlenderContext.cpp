@@ -349,7 +349,7 @@ static  void blend_plane_yuv_optimized00(
     int dst_hp = AV_CEIL_RSHIFT(dst_h, 0);
     int yp = y >> 0;
     int xp = x >> 0;
-    uint8_t* s, * sp, * d, * dp, * dap, * a, * da, * ap;
+    uint8_t* s, * sp, * d, * dp, * dap, * a, * ap;
     int jmax, j, k, kmax;
 
     j = FFMAX(-yp, src_y_offset);

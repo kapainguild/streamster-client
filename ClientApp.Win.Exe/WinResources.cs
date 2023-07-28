@@ -31,10 +31,10 @@ namespace Streamster.ClientApp.Win
             RegisterUrl = "https://app.streamster.io/register",
             TermsOfServiceUrl = "https://streamster.io/terms-conditions",
             CreateTicketUrl = "https://help.streamster.io/support/tickets/new",
-            PricingUrl = "https://account.streamster.io/user/tariff",
-            PricingUrlForNotRegistered = "https://streamster.io/pricing",
+            PricingUrl = "https://app.streamster.io/tariff",
+            PricingUrlForNotRegistered = "https://app.streamster.io/register",
             DownloadAppUrl = "https://streamster.io",
-            TargetHintTemplate = "https://streamster.io/{0}",
+            TargetHintTemplate = "https://streamster.io/manuals/{0}",
             Domain = null,
             CanvasBackground = _canvasBackground
         };

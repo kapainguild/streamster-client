@@ -1,6 +1,6 @@
 ﻿using System;
 
-namespace Clutch.DeltaModel
+namespace DeltaModel
 {
     public class TypeMemberConfigurator
     {

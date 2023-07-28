@@ -7,7 +7,7 @@ using System.Collections.ObjectModel;
 using System.Diagnostics;
 using System.Linq;
 
-namespace Clutch.DeltaModel
+namespace DeltaModel
 {
     class DeltaModelDictionary<TKey, TValue> : IDictionary<TKey, TValue>, IDeltaModelDictionary
     {

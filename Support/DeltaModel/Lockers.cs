@@ -3,7 +3,7 @@ using Serilog;
 using System;
 using System.Threading;
 
-namespace Clutch.DeltaModel
+namespace DeltaModel
 {
     public interface ILockerProvider
     {

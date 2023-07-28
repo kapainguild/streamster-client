@@ -5,7 +5,7 @@ using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 
-namespace Clutch.DeltaModel
+namespace DeltaModel
 {
     public class DeltaModelInterceptor : IInterceptor, IEntityHandler
     {

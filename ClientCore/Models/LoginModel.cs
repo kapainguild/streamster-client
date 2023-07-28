@@ -96,6 +96,8 @@ namespace Streamster.ClientCore.Models
                 _environment.SetHighPriorityToApplication();
                 _environment.StartObtainProcessorName();
 
+                UserName = UserName?.Trim();
+
                 await StoreLoginData(asRegistered);
 
                 if (asRegistered && (string.IsNullOrEmpty(UserName) || string.IsNullOrEmpty(Password)))
@@ -109,22 +111,12 @@ namespace Streamster.ClientCore.Models
                 await _idService.WaitDeviceId();
                 var response = await _connectionService.StartAsync(credentials);
 
-                bool updateUrgent = ClientVersionHelper.IsBreakingChange(response.UpperVersions);
-                if (!updateUrgent)
-                {
-                    await _main.StartAsync();
+                await _main.StartAsync();
 
-                    var readyToDisplay = Task.Delay(800);
-                    Connected.Value = true;
+                Connected.Value = true;
 
-                    await _main.DisplayAsync(readyToDisplay, response.UpperVersions, _connectionService.Claims.AppUpdatePath);
-                    _notificationService.Clear(this);
-                }
-                else
-                {
-                    _notificationService.Clear(this);
-                    _updateModel.Display(response);
-                }
+                await _main.DisplayAsync(Task.Delay(800), response.UpperVersions, _connectionService.Claims.AppUpdatePath);
+                _notificationService.Clear(this);
                 succeed = true;
             }
             catch (WrongUserNamePasswordException)

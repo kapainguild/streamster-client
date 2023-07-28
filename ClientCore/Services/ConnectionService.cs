@@ -1,5 +1,4 @@
-﻿using CefSharp.DevTools.WebAuthn;
-using ClientData;
+﻿using ClientData;
 using IdentityModel.Client;
 using Serilog;
 using Streamster.ClientCore.Cross;
@@ -15,6 +14,7 @@ using System.Net.Sockets;
 using System.Runtime.CompilerServices;
 using System.Text.Json;
 using System.Threading.Tasks;
+using System.Web;
 
 namespace Streamster.ClientCore.Services
 {
@@ -25,6 +25,9 @@ namespace Streamster.ClientCore.Services
         private readonly LogService _logService;
         private readonly IAppResources _appResources;
         private readonly string _domain;
+        private NetworkCredential _credentials;
+        private List<string> _previousServers = new List<string>();
+        private int _changeServerRequestCounter = 0;
 
         public string AccessToken { get; private set; }
 
@@ -33,6 +36,8 @@ namespace Streamster.ClientCore.Services
         public ClientClaims Claims { get; private set; }
 
         public string UserName { get; private set; }
+
+        public event EventHandler ConnectionServerChanged;
 
         public ConnectionService(IAppEnvironment environment, IdService idService, LogService logService, IAppResources appResources)
         {
@@ -45,21 +50,53 @@ namespace Streamster.ClientCore.Services
 
         public async Task<LoadBalancerResponse> StartAsync(NetworkCredential credential)
         {
+            _credentials = credential;
             await TaskHelper.GoToPool().ConfigureAwait(false);
             return await RunWithRetries(async (server, attempt) =>
             {
                 AccessToken = await AuthenticateAsync(server, credential, (attempt + 2) * 2); // 4,6,8,...
                 return await GetConnectionServerAsync(server);
-            }, ClientConstants.LoadBalancerServers, ClientConstants.LoadBalancerServers.Length * 2, nameof(AuthenticateAsync));
+            }, ClientConstants.LoadBalancerServers, ClientConstants.LoadBalancerServers.Length * 2, nameof(StartAsync));
         }
 
-        private async Task<LoadBalancerResponse> GetConnectionServerAsync(string server)
+        private async Task<LoadBalancerResponse> GetConnectionServerAsync(string server, LoadBalancerRequest request = null)
         {
-            var request = new LoadBalancerRequest();
-
-            var result = await ExecuteAsync<LoadBalancerRequest, LoadBalancerResponse>($"{server}:{ClientConstants.LoadBalancerServerPort}", "LoadBalancer/GetConnectionServer", request);
+            request = request ?? new LoadBalancerRequest();
+            var oldServer = ConnectionServer;
+            var result = await SendGetConnectionServerAsync($"{server}:{ClientConstants.LoadBalancerServerPort}", "LoadBalancer/GetConnectionServer", request);
             ConnectionServer = result.Server;
+            if (oldServer != result.Server)
+                ConnectionServerChanged?.Invoke(this, EventArgs.Empty);
+
+            lock (_previousServers)
+            {
+                if (!_previousServers.Contains(result.Server))
+                    _previousServers.Add(result.Server);
+            }
             return result;
+        }
+
+        public async Task PrepareChangeServer()
+        {
+            LoadBalancerRequest request;
+            lock (_previousServers)
+            {
+                request = new LoadBalancerRequest
+                {
+                    RequestCounter = _changeServerRequestCounter++,
+                    TryExclude = String.Join(",", _previousServers)
+                };
+            }
+
+            var oldServer = ConnectionServer;
+            var result = await RunWithRetries(async (server, attempt) =>
+            {
+                await TryRefreshAccessToken(server);
+                return await GetConnectionServerAsync(server, request);
+            }, ClientConstants.LoadBalancerServers, ClientConstants.LoadBalancerServers.Length * 2, nameof(PrepareChangeServer));
+
+            if (oldServer == result.Server)
+                throw new InvalidOperationException("Same server is selected, no change server possible");
         }
 
         public async Task<T> RunWithRetries<T>(Func<string, int, Task<T>> action, string[] serverList, int retriesCount, [CallerMemberName] string name = null)
@@ -172,30 +209,23 @@ namespace Streamster.ClientCore.Services
             }
         }
 
-        public async Task<TResult> ExecuteAsync<T, TResult>(string host, string path, T input)
+        public async Task<LoadBalancerResponse> SendGetConnectionServerAsync(string host, string path, LoadBalancerRequest input)
         {
-            var bytes = JsonSerializer.SerializeToUtf8Bytes(input);
+            string query = "";
+            if (input != null)
+                query = $"?{nameof(LoadBalancerRequest.RequestCounter)}={input.RequestCounter}&" +
+                         $"{nameof(LoadBalancerRequest.TryExclude)}={HttpUtility.UrlEncode(input.TryExclude)}";
 
             using (var client = GetHttpClient(true))
-            using (var request = new HttpRequestMessage(HttpMethod.Get, $"https://{host}/{path}"))
-            using (var data = new ByteArrayContent(bytes))
+            using (var request = new HttpRequestMessage(HttpMethod.Get, $"https://{host}/{path}{query}"))
             {
-                data.Headers.ContentType = new MediaTypeHeaderValue("application/json");
-                request.Content = data;
                 var response = await client.SendAsync(request, HttpCompletionOption.ResponseContentRead);
 
                 if (response.IsSuccessStatusCode)
                 {
                     response.EnsureSuccessStatusCode();
-                    if (typeof(TResult) == typeof(bool))
-                    {
-                        return default;
-                    }
-                    else
-                    {
-                        var stream = await response.Content.ReadAsByteArrayAsync();
-                        return JsonSerializer.Deserialize<TResult>(stream, new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
-                    }
+                    var stream = await response.Content.ReadAsByteArrayAsync();
+                    return JsonSerializer.Deserialize<LoadBalancerResponse>(stream, new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
                 }
                 else if (response.StatusCode == HttpStatusCode.ServiceUnavailable)
                 {
@@ -226,14 +256,27 @@ namespace Streamster.ClientCore.Services
             {
                 await RunWithRetries(async (server, attempt) =>
                 {
+                    await TryRefreshAccessToken(server);
                     return await GetConnectionServerAsync(server);
-                }, ClientConstants.LoadBalancerServers, ClientConstants.LoadBalancerServers.Length, nameof(GetConnectionServerAsync));
+                }, ClientConstants.LoadBalancerServers, ClientConstants.LoadBalancerServers.Length, nameof(TryRefreshConnectionServer));
                 return true;
             }
             catch (Exception e)
             {
                 Log.Error(e, "Failed to refresh server");
                 return false;
+            }
+        }
+
+        private async Task TryRefreshAccessToken(string server)
+        {
+            try
+            {
+                AccessToken = await AuthenticateAsync(server, _credentials, 4);
+            }
+            catch (Exception e)
+            {
+                Log.Warning(e, "Failed to access authentication server, old AccessToken will be used");
             }
         }
     }

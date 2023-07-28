@@ -1,4 +1,4 @@
-﻿using Clutch.DeltaModel;
+﻿using DeltaModel;
 using Serilog;
 using Streamster.ClientCore.Cross;
 using System;

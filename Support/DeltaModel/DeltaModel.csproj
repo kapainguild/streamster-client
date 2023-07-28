@@ -2,8 +2,8 @@
 
   <PropertyGroup>
     <TargetFramework>netstandard2.0</TargetFramework>
-    <AssemblyName>Clutch.DeltaModel</AssemblyName>
-    <RootNamespace>Clutch.DeltaModel</RootNamespace>
+    <AssemblyName>DeltaModel</AssemblyName>
+    <RootNamespace>DeltaModel</RootNamespace>
   </PropertyGroup>
 
   <ItemGroup>

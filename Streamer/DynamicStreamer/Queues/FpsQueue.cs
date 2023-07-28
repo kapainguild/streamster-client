@@ -85,9 +85,9 @@ namespace DynamicStreamer.Queues
             }
         }
 
-        public StatisticItem GetStat()
+        public StatisticItem[] GetStat()
         {
-            return _statisticKeeper.Get();
+            return new[] { _statisticKeeper.Get() };
         }
     }
 }

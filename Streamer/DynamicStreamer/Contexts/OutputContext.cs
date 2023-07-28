@@ -19,6 +19,19 @@ namespace DynamicStreamer.Contexts
 
         public WebSocketTransferData[] WebSocketTransferData { get; set; }
 
+
+        public bool WebRtcEquals(object obj)
+        {
+            if (obj is OutputSetup setup)
+            {
+                return Type == setup.Type &&
+                   Output == setup.Output &&
+                   Options == setup.Options &&
+                   TimeoutMs == setup.TimeoutMs;
+            }
+            return false;
+        }
+
         public override bool Equals(object obj)
         {
             if (obj is OutputSetup setup)
@@ -98,7 +111,7 @@ namespace DynamicStreamer.Contexts
             return 0;
         }
 
-        public ErrorCodes Write(Packet packet, int stream)
+        public ErrorCodes Write(Packet packet, int stream, OutputSetup setup)
         {
             _inOpenOrRead = true;
             _startOperationTime = DateTime.UtcNow;
@@ -136,6 +149,11 @@ namespace DynamicStreamer.Contexts
 
         public void UpdateSetup(OutputSetup setup)
         {
+        }
+
+        public bool SetupEquals(OutputSetup oldSetup, OutputSetup newSetup)
+        {
+            return oldSetup.Equals(newSetup);
         }
     }
 }

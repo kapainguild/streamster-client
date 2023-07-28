@@ -1,4 +1,4 @@
-﻿using Clutch.DeltaModel;
+﻿using DeltaModel;
 using Microsoft.AspNetCore.SignalR.Client;
 using Serilog;
 using Streamster.ClientCore.Services;

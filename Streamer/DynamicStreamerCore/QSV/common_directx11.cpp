@@ -337,7 +337,7 @@ mfxStatus simple_copytex(mfxHDL pthis, mfxMemId mid, mfxU32 tex_handle,
 	CustomMemId *memId = (CustomMemId *)mid;
 	ID3D11Texture2D *pSurface = (ID3D11Texture2D *)memId->memId;
 
-	IDXGIKeyedMutex *km;
+	//IDXGIKeyedMutex *km;
 	ID3D11Texture2D *input_tex;
 	HRESULT hr;
 

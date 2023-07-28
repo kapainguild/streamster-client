@@ -1,4 +1,4 @@
-﻿using Clutch.DeltaModel;
+﻿using DeltaModel;
 using DynamicStreamer;
 using DynamicStreamer.Contexts;
 using DynamicStreamer.Extensions;

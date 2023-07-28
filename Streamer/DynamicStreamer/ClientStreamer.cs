@@ -414,7 +414,15 @@ namespace DynamicStreamer
                         int decoders = (streamProps.CodecProps.codec_id == Core.Const.CODEC_ID_MJPEG) ? 3 : 1;
 
                         if (c.VideoEncoderTrunk.ReceiverMode)
+                        {
                             portaitMode = streamProps.CodecProps.width < streamProps.CodecProps.height; // support of preview from mobile
+                            if (portaitMode)
+                            {
+                                var tmp = scaledWidth;
+                                scaledWidth = scaledHeight;
+                                scaledHeight = tmp;
+                            }
+                        }
 
                         int outputPixelFormat = -1;
                         bool inputIsVFlipped = IsInputVFlipped(streamProps, videoInputConfigFull.Setup);

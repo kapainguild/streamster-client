@@ -1,11 +1,12 @@
 ﻿using DynamicStreamer.Contexts;
-using DynamicStreamer.Extension;
 using DynamicStreamer.Extensions.DesktopAudio;
 using DynamicStreamer.Extensions.Rtmp;
 using DynamicStreamer.Extensions.ScreenCapture;
 using DynamicStreamer.Extensions.WebBrowser;
 using DynamicStreamer.Queues;
 using System;
+using System.Linq;
+using System.Net.Sockets;
 using System.Threading;
 
 namespace DynamicStreamer.Nodes
@@ -213,11 +214,7 @@ namespace DynamicStreamer.Nodes
 
         private void UpdateError(Exception e)
         {
-            _statisticKeeper.Data.Errors++;
-            if (e is DynamicStreamerException ds && ds.ErrorCode == -5)
-                _statisticKeeper.Data.ErrorType = InputErrorType.InUse;
-            else
-                _statisticKeeper.Data.ErrorType = InputErrorType.Error;
+            _statisticKeeper.UpdateData(d => d.AddError((e is DynamicStreamerException ds && ds.ErrorCode == -5) ? InputErrorType.InUse : InputErrorType.Error));
         }
 
         private void Open(ContextVersion<IInputContext, InputSetup, Packet> context)
@@ -232,7 +229,7 @@ namespace DynamicStreamer.Nodes
 
             var attempt = Math.Min(10, _analyzeAttempt); // 0 .. 10
             _analyzeAttempt++;
-            var delay = Math.Max(300, Math.Min(8000, 300 * (1 << attempt))); // 300ms - 8 sec
+            var delay = Math.Max(500, Math.Min(8000, 500 * (1 << attempt))); // 300ms - 8 sec
             instance.Analyze(delay, context.ContextSetup.ExpectedNumberOfStreams);
 
             LogInfo($"analyzed");
@@ -258,10 +255,12 @@ namespace DynamicStreamer.Nodes
                 {
                     if (_inputThreadPendingContext != null)
                     {
-                        suspend = false;
                         //Core.LogInfo($"Updating context on {Name}");
 
                         contextChanged = !ReferenceEquals(_inputThreadPendingContext?.Context?.Instance, _inputThreadCurrentContext?.Context?.Instance);
+                        if (contextChanged)
+                            suspend = false;
+
                         contextToClose = _inputThreadCurrentContext;
 
                         if (!contextChanged && 
@@ -284,11 +283,7 @@ namespace DynamicStreamer.Nodes
 
                 if (suspend)
                 {
-                    lock (_statisticKeeper)
-                    {
-                        _statisticKeeper.Data.Errors++;
-                        _statisticKeeper.Data.ErrorType = InputErrorType.GracefulClose;
-                    }
+                    // rtmp closed, so no action until the context is replaced
                     Thread.Sleep(50);
                 }
                 else if (_inputThreadCurrentContext == null)
@@ -317,13 +312,8 @@ namespace DynamicStreamer.Nodes
                         var packet = _streamer.PacketPool.Rent();
                         packetToDispose = packet;
                         ctx.Read(packet, _inputThreadCurrentContext.ContextSetup);
-                        
-                        lock (_statisticKeeper)
-                        {
-                            _statisticKeeper.Data.Frames++;
-                            _statisticKeeper.Data.Bytes += packet.Properties.Size;
-                        }
 
+                        _statisticKeeper.UpdateData(d => d.AddPacket(packet.Properties.Size));
 
                         if (!_initialPacketReceived)
                         {
@@ -352,11 +342,6 @@ namespace DynamicStreamer.Nodes
                         _streamer.PacketPool.Back(packetToDispose);
                         _inputThreadCurrentContext.IsOpened = false;
                         LogInfo("gracefully closed");
-                        lock (_statisticKeeper)
-                        {
-                            _statisticKeeper.Data.Errors++;
-                            _statisticKeeper.Data.ErrorType = InputErrorType.GracefulClose;
-                        }
                         suspend = true;
                     }
                     catch (OperationCanceledException)
@@ -372,7 +357,11 @@ namespace DynamicStreamer.Nodes
 
                         bool wasOpened = _inputThreadCurrentContext.IsOpened;
                         _inputThreadCurrentContext.IsOpened = false;
-                        Core.LogError(e, $"IIIII '{Name}' open/read failed on InputThread");
+                        if (e is SocketException && (e.Message.StartsWith("An operation was attempted on something that is not a socket")
+                            || e.Message.StartsWith("The handle is invalid")))
+                            Core.LogError($"IIIII '{Name}' open/read failed on InputThread for {_inputThreadCurrentContext.Context?.Instance?.GetType()}: {e.Message}");
+                        else 
+                            Core.LogError(e, $"IIIII '{Name}' open/read failed on InputThread");
                         waitAfterFail = !wasOpened;
                     }
 
@@ -429,9 +418,22 @@ namespace DynamicStreamer.Nodes
             _openThreadRunningContext?.Dispose();
         }
 
-        public StatisticItem GetStat()
+        public StatisticItem[] GetStat()
         {
-            return _statisticKeeper.Get();
+            var context = _inputThreadCurrentContext?.Context?.Instance as IStatProvider;
+            if (context == null)
+                return new[] { _statisticKeeper.Get() };
+            else
+            {
+                var stat = context.GetStat();
+
+                return stat?.Select(s => new StatisticItem
+                {
+                    Name = _name,
+                    DurationMs = s.DurationMs,
+                    Data = s.Data
+                })?.ToArray();
+            }
         }
     }
 }

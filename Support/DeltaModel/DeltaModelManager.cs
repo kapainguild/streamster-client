@@ -6,7 +6,7 @@ using System.Collections.Generic;
 using System.ComponentModel;
 using System.Linq;
 
-namespace Clutch.DeltaModel
+namespace DeltaModel
 {
     public partial class DeltaModelManager
     {

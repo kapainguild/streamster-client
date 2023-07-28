@@ -1,5 +1,6 @@
 ﻿using DynamicStreamer.DirectXHelpers;
 using Serilog;
+using Streamster.ClientCore.Cross;
 using Streamster.ClientCore.Services;
 using Streamster.ClientData.Model;
 using System;
@@ -13,6 +14,7 @@ namespace Streamster.ClientCore.Models
     public class MainSettingsModel
     {
         private readonly ConnectionService _connectionService;
+        private readonly IAppResources _appResources;
 
         public Property<bool> AutoLogon { get; } = new Property<bool>();
 
@@ -20,6 +22,10 @@ namespace Streamster.ClientCore.Models
         public StreamSettingsModel StreamSettings { get; }
         public TranscodingModel Transcoding { get; }
         public ExternalEncoderModel ExternalEncoder { get; }
+        public ExternalPreviewModel ExternalPreview { get; }
+
+        public event EventHandler ChangeServerRequested;
+
         public List<SettingsSelectorData<StreamingToCloudBehavior>> StreamingToCloudBehaviors { get; } = new List<SettingsSelectorData<StreamingToCloudBehavior>>
         {
             new SettingsSelectorData<StreamingToCloudBehavior> { Value = StreamingToCloudBehavior.AppStart, DisplayName = "App is started" },
@@ -106,10 +112,16 @@ namespace Streamster.ClientCore.Models
 
         public Action OpenTranscoding { get; }
 
+        public Action ChangeServer { get; }
+
+        public Property<bool> CanServerBeChanged { get; } = new Property<bool>(true);
+
         public bool UserHasVpn { get; set; }
 
+        public string TariffUrl { get; set; }
+
         public MainSettingsModel(LocalSettingsService localSettings, CoreData coreData, StreamSettingsModel streamSettings, ConnectionService connectionService,
-            TranscodingModel transcoding, ExternalEncoderModel externalEncoder)
+            TranscodingModel transcoding, ExternalEncoderModel externalEncoder, ExternalPreviewModel externalPreview, IAppResources appResources)
         {
             CoreData = coreData;
             StreamSettings = streamSettings;
@@ -161,12 +173,16 @@ namespace Streamster.ClientCore.Models
                 if (HardwareAdapters != null)
                     HardwareAdapter.SilentValue = HardwareAdapters.Contains(CoreData.ThisDevice.DeviceSettings.RendererAdapter) ? CoreData.ThisDevice.DeviceSettings.RendererAdapter : HardwareAdapters.FirstOrDefault();
             });
+            ExternalPreview = externalPreview;
+            _appResources = appResources;
+            ChangeServer = () => ChangeServerRequested?.Invoke(this, EventArgs.Empty);
         }
 
         private void UpdateTopMost() => CurrentTopMostMode.SilentValue = TopMostModes.FirstOrDefault(s => s.Value == TopMostModeConverter.ToMode(CoreData.ThisDevice.DeviceSettings));
 
         public void Start()
         {
+            TariffUrl = _connectionService.UserName == null ? _appResources.AppData.PricingUrlForNotRegistered : _appResources.AppData.PricingUrl;
             UserHasVpn = _connectionService.Claims.HasVpn;
 
             if (!IsValidRecordingPath(CoreData.ThisDevice.DeviceSettings.RecordingsPath))
@@ -182,6 +198,7 @@ namespace Streamster.ClientCore.Models
             HardwareAdapter.Value = HardwareAdapters.Contains(CoreData.ThisDevice.DeviceSettings.RendererAdapter) ? CoreData.ThisDevice.DeviceSettings.RendererAdapter : adapters.FirstOrDefault()?.Name;
 
             ExternalEncoder.Start();
+            ExternalPreview.Start();
         }
 
         public static bool IsValidRecordingPath(string pathForRecordings)

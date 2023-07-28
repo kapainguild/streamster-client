@@ -10,10 +10,12 @@ namespace DynamicStreamer.Contexts
 
         void UpdateSetup(OutputSetup setup);
 
-        ErrorCodes Write(Packet packet, int stream);
+        ErrorCodes Write(Packet packet, int stream, OutputSetup setup);
 
         void CloseOutput();
 
         void Interrupt();
+
+        bool SetupEquals(OutputSetup oldSetup, OutputSetup newSetup);
     }
 }

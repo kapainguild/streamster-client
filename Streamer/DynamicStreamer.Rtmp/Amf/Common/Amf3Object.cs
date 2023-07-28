@@ -1,4 +1,5 @@
 ﻿using Harmonic.Networking.Amf.Data;
+using Serilog;
 using System;
 using System.Collections;
 using System.Collections.Generic;
@@ -19,6 +20,22 @@ namespace Harmonic.Networking.Amf.Common
         public IReadOnlyDictionary<string, object> DynamicFields { get => _dynamicFields; }
 
         public IReadOnlyDictionary<string, object> Fields { get => _fields; }
+
+        public Dictionary<string, object> FieldsDictionary 
+        { 
+            get 
+            {
+                var dic = new Dictionary<string, object>(_fields);
+                foreach(var item in _dynamicFields)
+                {
+                    if (dic.ContainsKey(item.Key))
+                        Log.Warning($"Dict already contains key ({item.Key}={item.Value})");
+                    else
+                        dic[item.Key] = item.Value;
+                }
+                return dic;
+            } 
+        }
 
         public AmfObject()
         {
@@ -45,6 +62,8 @@ namespace Harmonic.Networking.Amf.Common
             return ((IEnumerable)Fields).GetEnumerator();
         }
 
-        public override string ToString() => String.Join(", ", _fields.Select(s => $"{s.Key}={s.Value}"));
+        public override string ToString() => _dynamicFields.Count > 0 ? 
+            "AmfObject(" + String.Join(", ", _fields.Select(s => $"{s.Key}=={s.Value}")) + "/dynamic:" + String.Join(", ", _dynamicFields.Select(s => $"{s.Key}=={s.Value}")) + ")" :
+            "AmfObject(" + String.Join(", ", _fields.Select(s => $"{s.Key}=={s.Value}")) + ")";
     }
 }

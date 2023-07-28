@@ -101,6 +101,14 @@
                             <Setter TargetName="content" Property="TextElement.Foreground" Value="#FFC020"/>
                         </Trigger>
 
+                        <Trigger Property="State" Value="Warning3">
+                            <Setter TargetName="smallBorder" Property="BorderBrush" Value="Orange"/>
+                            <Setter TargetName="smallIcon" Property="TextElement.Foreground" Value="Orange"/>
+                            <Setter TargetName="smallValue" Property="TextElement.Foreground" Value="Orange"/>
+                            <Setter TargetName="bigIcon" Property="TextElement.Foreground" Value="Orange"/>
+                            <Setter TargetName="content" Property="TextElement.Foreground" Value="#FFC020"/>
+                        </Trigger>
+
                         <Trigger Property="State" Value="Error">
                             <Setter TargetName="smallBorder" Property="BorderBrush" Value="Red"/>
                             <Setter TargetName="smallIcon" Property="TextElement.Foreground" Value="Red"/>
@@ -267,11 +275,33 @@
             <oxy:PlotView Model="{Binding ChartModel.PlotModel}" Foreground="Black"  Background="#0E0E0E" Height="200" Margin="10,0" />
 
             <TextBlock Text="Hints to fix possible issues:" Margin="10,12,0,3" FontWeight="Normal" Foreground="White"/>
-            <TextBlock Text="- decrease Bitrate" Style="{StaticResource recommendation}"/>
-            <TextBlock Text="- contact your internet provider" Style="{StaticResource recommendation}"/>
-            <TextBlock Text="- ensure strong WiFi signal" Style="{StaticResource recommendation}"/>
+            <Grid Margin="0,5,0,0">
+                <StackPanel x:Name="networkIssues">
+                    <TextBlock Text="- decrease Bitrate" Style="{StaticResource recommendation}"/>
+                    <TextBlock Text="- contact your internet provider" Style="{StaticResource recommendation}"/>
+                    <TextBlock Text="- ensure strong WiFi signal" Style="{StaticResource recommendation}"/>
+                    <TextBlock Text="- try to change server:" Style="{StaticResource recommendation}"/>
+                    <Button Content="Change server" 
+                        Command="{Binding Settings.ChangeServer, Converter={StaticResource CommandConverter}}"
+                        IsEnabled="{Binding Settings.CanServerBeChanged.Value}"
+                        Style="{StaticResource MaterialDesignOutlinedButton}"
+                        HorizontalAlignment="Center"/>
+                </StackPanel>
+                <StackPanel x:Name="highBitrate" Visibility="Collapsed">
+                    <TextBlock Text="- decrease Bitrate to limits accoring to your subscription plan" TextWrapping="Wrap" Style="{StaticResource recommendation}"/>
+                    <TextBlock TextWrapping="Wrap" Style="{StaticResource recommendation}"> - update your subscription plan
+                                <Hyperlink NavigateUri="{Binding Settings.TariffUrl}" support:HyperlinkExtensions.IsExternal="true" Style="{StaticResource hlStyle}">
+                                    <Run Text="here"/> 
+                                </Hyperlink>
+                    </TextBlock>
+                </StackPanel>
+            </Grid>
         </StackPanel>
         <DataTemplate.Triggers>
+            <DataTrigger Binding="{Binding State.Value}" Value="Warning3">
+                <Setter TargetName="networkIssues" Property="Visibility" Value="Collapsed"/>
+                <Setter TargetName="highBitrate" Property="Visibility" Value="Visible"/>
+            </DataTrigger>
         </DataTemplate.Triggers>
     </DataTemplate>
 

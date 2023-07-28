@@ -25,12 +25,6 @@ namespace Streamster.ClientData
 
     public static class ClientVersionHelper
     {
-        public static bool IsBreakingChange(ClientVersion[] versions)
-        {
-            var ver = Assembly.GetExecutingAssembly().GetName().Version;
-            return versions?.Any(s => s.BreakingChange && new Version(s.Version) > ver) ?? false;
-        }
-
         public static string GetVersion()
         {
             var v = Assembly.GetExecutingAssembly().GetName().Version;

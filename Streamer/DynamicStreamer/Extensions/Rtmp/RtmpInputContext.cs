@@ -1,6 +1,7 @@
-﻿using DynamicStreamer;
-using DynamicStreamer.Contexts;
+﻿using DynamicStreamer.Contexts;
+using DynamicStreamer.Nodes;
 using DynamicStreamer.Rtmp;
+using Harmonic.Networking.Amf.Common;
 using Harmonic.Networking.Rtmp.Messages;
 using Harmonic.Networking.Rtmp.Messages.Commands;
 using Serilog;
@@ -12,7 +13,7 @@ using System.Threading;
 
 namespace DynamicStreamer.Extensions.Rtmp
 {
-    public class RtmpInputContext : IInputContext, IRtmpExtensions
+    public class RtmpInputContext : IInputContext, IRtmpExtensions, IStatProvider
     {
         public static string Name = "rtmp";
 
@@ -31,17 +32,22 @@ namespace DynamicStreamer.Extensions.Rtmp
         private IInputTimeAdjuster _timeAdjuster = new InputNetworkTimeAdjuster();
         private LinkedList<TrafficRecord> _traffic = new LinkedList<TrafficRecord>();
         private bool _unexpectedAudioLogged = false;
+        private StatisticKeeper<StatisticDataOfInputOutput> _statisticKeeper;
+        private bool _gracefullyClosed;
 
         public RtmpInputContext(IStreamerBase streamer)
         {
             _streamer = streamer;
+            _statisticKeeper = new StatisticKeeper<StatisticDataOfInputOutput>(new NodeName(""));
         }
 
-        public InputConfig Config { get; set;}   
+        public InputConfig Config { get; set;}
+
+        NodeName IRuntimeItem.Name => throw new NotImplementedException();
 
         public void Analyze(int duration, int streamsCount)
         {
-            if (!_analysed.WaitOne(duration))
+            if (!_analysed.WaitOne(duration + 1500))
                 throw new DynamicStreamerException("DataMessage is not yet received");
         }
 
@@ -95,7 +101,10 @@ namespace DynamicStreamer.Extensions.Rtmp
                 {
                     var dq = _queue.Dequeue();
                     if (dq == null)
+                    {
+                        _gracefullyClosed = true;
                         throw new GracefulCloseException();
+                    }
 
                     packet.CopyContentFrom(dq);
                     _streamer.PacketPool.Back(dq);
@@ -103,6 +112,8 @@ namespace DynamicStreamer.Extensions.Rtmp
                 else
                     throw new OperationCanceledException();
             }
+
+            _statisticKeeper.UpdateData(d => d.AddPacket(packet.Properties.Size));
         }
 
         void IRtmpExtensions.HandleDataMessage(RtmpConnection connection, DataMessage message)
@@ -113,6 +124,12 @@ namespace DynamicStreamer.Extensions.Rtmp
                     throw new InvalidOperationException("Second data message unexpected");
 
                 var props = message.Data.Select(s => s as Dictionary<string, object>).FirstOrDefault(s => s != null);
+
+                if (props == null)
+                {
+                    Log.Information("Properties not found, trying Amf object");
+                    props = message.Data.Select(s => s as AmfObject).FirstOrDefault(s => s != null)?.FieldsDictionary;
+                }
 
                 if (props == null)
                     throw new InvalidOperationException("Properties not found");
@@ -129,12 +146,35 @@ namespace DynamicStreamer.Extensions.Rtmp
 
         private CodecProperties GetAudioProps(Dictionary<string, object> props)
         {
-            if (TryGetVal(props, "audiosamplerate", out var audiosamplerate) &&
-                TryGetVal(props, "audiosamplesize", out var audiosamplesize) &&
-                TryGetVal(props, "audiodatarate", out var audiodatarate) &&
-                TryGetVal(props, "audiocodecid", out var audiocodecid) &&
-                audiocodecid == 10 /*&& false*/)
+            if (TryGetVal(props, "audiodatarate", out var audiodatarate) &&
+                CheckAudioCodec(props))
             {
+                if (!TryGetVal(props, "audiosamplerate", out var audiosamplerate))
+                {
+                    Log.Warning("audiosamplerate is not set, taking 44100");
+                    audiosamplerate = 44100;
+                }
+                else
+                {
+                    if (audiosamplerate == 48) // go pro uses this
+                    {
+                        Log.Warning("audiosamplerate is set to 48, taking 48000. Possible stream is from GoPro");
+                        audiosamplerate = 48000;
+                    }
+                    else if (audiosamplerate == 44) // go pro uses this
+                    {
+                        Log.Warning("audiosamplerate is set to 44, taking 44100. Possible stream is from GoPro");
+                        audiosamplerate = 44100;
+                    }
+
+                }
+
+                if (!TryGetVal(props, "audiosamplesize", out var audiosamplesize))
+                {
+                    Log.Warning("audiosamplesize is not set, taking 32");
+                    audiosamplesize = 32;
+                }
+
                 if (!TryGetVal(props, "audiochannels", out var audiochannels))
                 {
                     if (props.TryGetValue("stereo", out var valueBool) && valueBool is bool resBool)
@@ -147,8 +187,8 @@ namespace DynamicStreamer.Extensions.Rtmp
                     }
                     else
                     {
-                        Log.Warning("Failed to find audiochannels property");
-                        return new CodecProperties { codec_id = Core.NoStream };
+                        Log.Warning("audiochannels is not set, taking 2");
+                        audiochannels = 2;
                     }
                 }
 
@@ -176,9 +216,8 @@ namespace DynamicStreamer.Extensions.Rtmp
         {
             if (TryGetVal(props, "width", out var width) &&
                 TryGetVal(props, "height", out var height) &&
-                TryGetVal(props, "videocodecid", out var codec) &&
                 TryGetVal(props, "videodatarate", out var videodatarate) &&
-                codec == 7)
+                CheckVideoCodec(props))
                 return new CodecProperties
                     {
                         codec_type = AVMediaType.AVMEDIA_TYPE_VIDEO,
@@ -199,6 +238,27 @@ namespace DynamicStreamer.Extensions.Rtmp
                     };
 
             throw new InvalidOperationException("Failed to find video properties");
+        }
+
+        private bool CheckVideoCodec(Dictionary<string, object> props)
+        {
+            if (TryGetVal(props, "videocodecid", out var codec) && codec == 7)
+                return true;
+
+            if (props.TryGetValue("videocodecid", out var value) && value is string res && res == "avc1")
+                return true;
+            return false;
+        }
+
+
+        private bool CheckAudioCodec(Dictionary<string, object> props)
+        {
+            if (TryGetVal(props, "audiocodecid", out var codec) && codec == 10)
+                return true;
+
+            if (props.TryGetValue("audiocodecid", out var value) && value is string res && res == "mp4a")
+                return true;
+            return false;
         }
 
         private bool TryGetVal(Dictionary<string, object> props, string key, out int r)
@@ -235,9 +295,15 @@ namespace DynamicStreamer.Extensions.Rtmp
             {
                 if (!_videoExtradataFound && _commonPropsFound)
                 {
-                    CopyExtraData(ref _videoProps, message.Data, 5);
-                    _videoExtradataFound = true;
-                    RefreshConfig();
+                    if (message.Data.Length < 1024)
+                    {
+                        Log.Information("Retrieving video extra data");
+                        CopyExtraData(ref _videoProps, message.Data, 5);
+                        _videoExtradataFound = true;
+                        RefreshConfig();
+                    }
+                    else
+                        Log.Warning($"Unexpectedly long first video packet with length {message.Data.Length}");
                 }
 
                 sleep = SendPacket(message.Data, 0, 5, message.MessageHeader.Timestamp);
@@ -263,6 +329,7 @@ namespace DynamicStreamer.Extensions.Rtmp
 
                 if (!_audioExtradataFound && _commonPropsFound)
                 {
+                    Log.Information("Retrieving audio extra data");
                     CopyExtraData(ref _audioProps, message.Data, 2);
                     _audioExtradataFound = true;
                     RefreshConfig();
@@ -270,7 +337,10 @@ namespace DynamicStreamer.Extensions.Rtmp
                 sleep = SendPacket(message.Data, 1, 2, message.MessageHeader.Timestamp);
             }
             if (sleep)
+            {
+                _statisticKeeper.UpdateData(d => d.AddError(InputErrorType.ExceedingLimit));
                 Thread.Sleep(100);
+            }
         }
 
         private void RefreshConfig()
@@ -323,6 +393,14 @@ namespace DynamicStreamer.Extensions.Rtmp
 
             var bitrate = _traffic.Sum(s => s.Bytes) * 8 / 3 / 1000;
             return bitrate > _bitrateLimit;
+        }
+
+        public StatisticItem[] GetStat()
+        {
+            if (_gracefullyClosed)
+                _statisticKeeper.UpdateData(d => d.AddError(InputErrorType.GracefulClose));
+
+            return new[] { _statisticKeeper.Get() };
         }
     }
 

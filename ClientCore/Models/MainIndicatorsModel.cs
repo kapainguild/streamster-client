@@ -11,17 +11,19 @@ namespace Streamster.ClientCore.Models
     {
         private readonly CoreData _coreData;
         private readonly StreamSettingsModel _streamSettings;
+        private readonly MainSettingsModel _mainSettingsModel;
 
         public ObservableCollection<DeviceIndicatorsModel> Devices { get; } = new ObservableCollection<DeviceIndicatorsModel>();
 
         public MainIndicatorsModel(CoreData coreData,
             StreamSettingsModel streamSettings,
-            ICpuService cpuService // for precreation
+            ICpuService cpuService, // for precreation
+            MainSettingsModel mainSettingsModel
             )
         {
             _coreData = coreData;
             _streamSettings = streamSettings;
-
+            _mainSettingsModel = mainSettingsModel;
             _coreData.Subscriptions.SubscribeForProperties<IIndicatorCpu>(s => s.Load, (o, c, p) => Refresh(o, (d, i) => d.Cpu.ChartModel.AddValue(i.Load, 100)));
             _coreData.Subscriptions.SubscribeForAnyProperty<IIndicatorCpu>((o, c, p, _) => Refresh(o, RefreshCpu));
 
@@ -162,7 +164,7 @@ namespace Streamster.ClientCore.Models
             var r = localDevice.CloudOut;
             r.State.Value = state;
 
-            if (state == IndicatorState.Ok || state == IndicatorState.Warning || state == IndicatorState.Warning2)
+            if (state == IndicatorState.Ok || state == IndicatorState.Warning || state == IndicatorState.Warning2 || state == IndicatorState.Warning3)
             {
                 r.Value.Value = $"{bitrate / 1000}";
                 r.SmallValue.Value = $".{(bitrate % 1000) / 100}";
@@ -180,6 +182,7 @@ namespace Streamster.ClientCore.Models
                 IndicatorState.Warning2 => "Bitrate is VERY low",
                 IndicatorState.Error => "Stream to cloud is UNSTABLE",
                 IndicatorState.Error2 => "Stream to cloud FAILED",
+                IndicatorState.Warning3 => "Bitrate is above limits",
                 _ => "?"
             };
         }
@@ -274,6 +277,7 @@ namespace Streamster.ClientCore.Models
             if (localDevice == null)
             {
                 localDevice = new DeviceIndicatorsModel { DeviceId = id };
+                localDevice.CloudOut.Settings = _mainSettingsModel;
                 if (id != _coreData.ThisDeviceId)
                     Devices.Insert(0, localDevice);
                 else

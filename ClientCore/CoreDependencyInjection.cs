@@ -1,5 +1,5 @@
 ﻿using Autofac;
-using Clutch.DeltaModel;
+using DeltaModel;
 using Streamster.ClientCore.Logging;
 using Streamster.ClientCore.Models;
 using Streamster.ClientCore.Models.Chats;
@@ -45,6 +45,7 @@ namespace Streamster.ClientCore
                 .Add<TranscodingModel>()
                 .Add<PlatformsModel>()
                 .Add<ExternalEncoderModel>()
+                .Add<ExternalPreviewModel>()
                 .Add<StreamingSourcesModel>();
         }
     }

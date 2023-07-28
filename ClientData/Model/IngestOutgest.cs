@@ -1,4 +1,6 @@
 ﻿
+using Newtonsoft.Json;
+
 namespace Streamster.ClientData.Model
 {
     public interface IIngest
@@ -58,9 +60,27 @@ namespace Streamster.ClientData.Model
         int Bitrate { get; set; }
     }
 
-    public class WebRtcConstants
+    public class WebRtcOptions
     {
         public const string WebRtcType = "webrtc";
-        public const string WebRtcOptionTranscoder = "transcoder";
+
+        public bool Transcoding { get; set; }
+
+        public string User { get; set; }
+
+        public string RequestPortUrl { get; set; }
+
+        public static WebRtcOptions FromJson(string json)
+        {
+            if (string.IsNullOrWhiteSpace(json))
+                return new WebRtcOptions();
+            else
+                return JsonConvert.DeserializeObject<WebRtcOptions>(json);
+        }
+
+        public string ToJson()
+        {
+            return JsonConvert.SerializeObject(this);
+        }
     }
 }

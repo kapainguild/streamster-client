@@ -16,10 +16,11 @@ namespace DynamicStreamer.Nodes
 
     public enum InputErrorType
     {
-        None,
-        Error,
-        InUse,
-        GracefulClose
+        None = 0,
+        Error = 1,
+        InUse = 2,
+        GracefulClose = 3, // these values are used in different places as int, so search for name like GracefulClose
+        ExceedingLimit = 4,
     }
 
     public class StatisticDataOfInputOutput : StatisticData
@@ -31,6 +32,18 @@ namespace DynamicStreamer.Nodes
         public InputErrorType ErrorType { get; set; }
 
         public override string ToString() => (base.ToString() + (Frames > 0 ? $"F{Frames} B{Bytes * 8 / 1024} " : "")).TrimEnd();
+
+        public void AddPacket(int packetSize)
+        {
+            Frames++;
+            Bytes += packetSize;
+        }
+
+        public void AddError(InputErrorType type)
+        {
+            ErrorType = type;
+            Errors++;
+        }
     }
 
     public class StatisticDataOfProcessingNode : StatisticData
@@ -154,6 +167,14 @@ namespace DynamicStreamer.Nodes
                 _last = now;
 
                 return res;
+            }
+        }
+
+        public void UpdateData(Action<TData> dataUpdater)
+        {
+            lock (this)
+            {
+                dataUpdater(_value);
             }
         }
     }

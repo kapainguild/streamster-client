@@ -20,10 +20,10 @@ namespace DynamicStreamer.Nodes
             return new VideoBlenderContext(setup, Streamer.FramePool, Streamer, _overloadController, () => ActivateNoData());
         }
 
-        public override StatisticItem GetStat()
+        public override StatisticItem[] GetStat()
         {
             base.GetStat();
-            return _statisticKeeper2.Get();
+            return new[] { _statisticKeeper2.Get() };
         }
 
         protected override void ProcessData(Data<Frame> data, ContextVersion<VideoBlenderContext, VideoBlenderSetup, Frame> currentVersion)

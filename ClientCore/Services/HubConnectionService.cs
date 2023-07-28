@@ -30,30 +30,27 @@ namespace Streamster.ClientCore.Services
 
         private async Task OnConnectionClosed(Exception e) 
         {
-            if (e != null)
+            while (!_ctsClose.IsCancellationRequested && _connection.HubConnection.State == HubConnectionState.Disconnected)
             {
-                while (!_ctsClose.IsCancellationRequested && _connection.HubConnection.State == HubConnectionState.Disconnected)
+                try
                 {
-                    try
-                    {
-                        _onConnectionChanged(false);
-                        await Task.Delay(500);
+                    _onConnectionChanged(false);
+                    await Task.Delay(500);
 
-                        if (await _connectionService.TryRefreshConnectionServer() &&
-                            _connectionService.ConnectionServer != _connection.Url)
-                        {
-                            var oldConnection = _connection;
-                            _connection = await StartAsync();
-                            await DisposeConnection(oldConnection);
-                        }
-                        else 
-                            await _connection.HubConnection.StartAsync(_ctsClose.Token);
-                        _onConnectionChanged(true);
-                    }
-                    catch (Exception ee)
+                    if (await _connectionService.TryRefreshConnectionServer() &&
+                        _connectionService.ConnectionServer != _connection.Url)
                     {
-                        Log.Error(ee, "Reconnect failed");
+                        var oldConnection = _connection;
+                        _connection = await StartAsync();
+                        await DisposeConnection(oldConnection);
                     }
+                    else 
+                        await _connection.HubConnection.StartAsync(_ctsClose.Token);
+                    _onConnectionChanged(true);
+                }
+                catch (Exception ee)
+                {
+                    Log.Error(ee, "Reconnect failed");
                 }
             }
         }
@@ -84,6 +81,7 @@ namespace Streamster.ClientCore.Services
             }
             catch (Exception e)
             {
+                Log.Error(e, "Failed to init connection to hub");
                 ex = e;
             }
             finally

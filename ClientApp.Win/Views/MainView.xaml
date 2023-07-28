@@ -29,6 +29,24 @@
         </Border>
     </DataTemplate>
 
+    <DataTemplate DataType="{x:Type models:ChangeServerModel}">
+        <Border Background="#203040">
+            <DockPanel MaxWidth="290" Margin="30,20">
+                <Grid DockPanel.Dock="Left" Background="Transparent" VerticalAlignment="Center">
+                    <ProgressBar x:Name="progress" Width="40" Height="40" Style="{StaticResource MaterialDesignCircularProgressBar}" IsIndeterminate="True"/>
+                    <materialDesign:PackIcon x:Name="icon" Visibility="Collapsed" Width="40" Height="40" Kind="CheckCircle" Foreground="Green"/>
+                </Grid>
+                <TextBlock Margin="20,0,0,0" Text="{Binding State.Value}" TextWrapping="Wrap" VerticalAlignment="Center"/>
+            </DockPanel>
+        </Border>
+        <DataTemplate.Triggers>
+            <DataTrigger Binding="{Binding Reconnected.Value}" Value="true">
+                <Setter TargetName="progress" Property="Visibility" Value="Collapsed"/>
+                <Setter TargetName="icon" Property="Visibility" Value="Visible"/>
+            </DataTrigger>
+        </DataTemplate.Triggers>
+    </DataTemplate>
+
     <DataTemplate DataType="{x:Type models:NewVersionModel}">
         <Border MaxWidth="950" MaxHeight="840" RenderOptions.BitmapScalingMode="HighQuality">
             <Grid>

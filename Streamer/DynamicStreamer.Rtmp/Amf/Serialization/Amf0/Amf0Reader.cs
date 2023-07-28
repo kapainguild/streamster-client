@@ -44,7 +44,7 @@ namespace Harmonic.Networking.Amf.Serialization.Amf0
         private Dictionary<string, TypeRegisterState> _registeredTypeStates = new Dictionary<string, TypeRegisterState>();
         private List<object> _referenceTable = new List<object>();
         private Amf3.Amf3Reader _amf3Reader = new Amf3.Amf3Reader();
-        public bool StrictMode { get; set; } = true;
+        public bool StrictMode { get; set; } = false; // go pro send one more extra element in DataMessage
 
         public Amf0Reader()
         {
@@ -508,7 +508,7 @@ namespace Harmonic.Networking.Amf.Serialization.Amf0
             consumed = Amf0CommonValues.MARKER_LENGTH + sizeof(uint);
             if (StrictMode)
             {
-                for (int i = 0; i < elementCount; i++)
+                for (int i = 0; i < elementCount + 1; i++)
                 {
                     if (!TryGetKeyValuePair(arrayBodyBuffer, out var kv, out _, out var kvConsumed))
                     {

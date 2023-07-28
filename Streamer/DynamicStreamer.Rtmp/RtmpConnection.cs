@@ -118,22 +118,16 @@ namespace DynamicStreamer.Rtmp
 
         public void Kill()
         {
-            CloseSocketSafely(_socket);
-            _socket = null;
-        }
-
-        public static void CloseSocketSafely(Socket s)
-        {
             try
             {
-                s?.Close();
+                _socket.Close();
             }
             catch (Exception e)
             {
                 Log.Warning(e, "Failed to Kill connection");
             }
+            _socket = null;
         }
-
 
         public static string GetRemoteEndPoint(Socket socket)
         {
@@ -280,10 +274,9 @@ namespace DynamicStreamer.Rtmp
                 Monitor.PulseAll(_writerQueueLock);
             }
 
-            if (!_threadSend.Join(2000))
+            if (!_threadSend.Join(3000))
             {
-                Log.Warning("Failed to stop send thread");
-                _threadSend.Abort();
+                Log.Warning("Failed to stop rtmp send thread");
             }
 
             Log.Information("Stopping receive thread");

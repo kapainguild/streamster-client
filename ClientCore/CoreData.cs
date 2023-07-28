@@ -1,5 +1,4 @@
-﻿using Clutch.DeltaModel;
-using DeltaModel;
+﻿using DeltaModel;
 using Streamster.ClientCore.Cross;
 using Streamster.ClientCore.Models;
 using Streamster.ClientCore.Services;

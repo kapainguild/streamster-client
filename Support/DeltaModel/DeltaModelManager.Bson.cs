@@ -5,7 +5,7 @@ using MongoDB.Bson.Serialization.Conventions;
 using Serilog;
 using System;
 
-namespace Clutch.DeltaModel
+namespace DeltaModel
 {
     public partial class DeltaModelManager
     {

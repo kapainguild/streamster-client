@@ -1,5 +1,5 @@
 ﻿using Autofac;
-using Clutch.DeltaModel;
+using DeltaModel;
 using System;
 using System.Collections.Generic;
 using System.Text;

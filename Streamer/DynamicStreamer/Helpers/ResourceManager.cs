@@ -33,7 +33,7 @@ namespace DynamicStreamer.Helpers
             lock(this)
             {
                 var ordered = _runtimeConfig.Nodes.OrderBy(s => s.item.Name.SortId()).ToList();
-                _current1SecondStatistics = ordered.Select(s => s.item).OfType<IStatProvider>().Select(s => s.GetStat()).ToList();
+                _current1SecondStatistics = ordered.Select(s => s.item).OfType<IStatProvider>().SelectMany(s => s.GetStat()).ToList();
 
                 var now = DateTime.UtcNow;
                 if (_lastMeasured1SecondStatistics != DateTime.MinValue)

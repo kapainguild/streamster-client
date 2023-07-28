@@ -1,4 +1,4 @@
-﻿using Clutch.DeltaModel;
+﻿using DeltaModel;
 using System;
 using Xunit;
 

@@ -1,6 +1,6 @@
 ﻿using System.Collections.Generic;
 
-namespace Clutch.DeltaModel
+namespace DeltaModel
 {
     public class Change
     {

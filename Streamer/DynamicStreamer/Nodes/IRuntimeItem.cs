@@ -14,7 +14,7 @@ namespace DynamicStreamer.Nodes
 
     public interface IStatProvider : IRuntimeItem
     {
-        StatisticItem GetStat();
+        StatisticItem[] GetStat();
     }
 
     public interface ISourceQueueHolder : IRuntimeItem

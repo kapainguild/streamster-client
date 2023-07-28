@@ -167,7 +167,7 @@ namespace Streamster.ClientCore.Models
             if (!_promoIsShown && CoreData.Settings.Bitrate == MaxBitrate && MaxBitrate < 16000)
             {
                 _promoIsShown = true;
-                Promo.Value = MaxBitrate == 4000 ? "Get more bitrate after registration" : "Upgrade you plan to get more bitrate";
+                Promo.Value = "Upgrade you plan to get more bitrate";
                 PromoUrl.Value = MaxBitrate == 4000 ? _rootModel.AppData.RegisterUrl : _rootModel.AppData.PricingUrl;
                 TaskHelper.RunUnawaited(async () =>
                 {

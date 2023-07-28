@@ -1,8 +1,6 @@
 ﻿//#define STAGING
 
 using System;
-using System.Collections.Generic;
-using System.Text;
 
 namespace Streamster.ClientData
 {
@@ -23,8 +21,10 @@ namespace Streamster.ClientData
 
         public static string IngestSuffix = ".staging-in.streamster.io";
 
-        public static string GetWebRtcUrl(string urlId, string recordId, int port) => $"ws://{urlId}{IngestSuffix}:{port}/{recordId}";
-        
+        public static string GetRtmpUrl(string urlId) => "rtmp://" + urlId + IngestSuffix + "/in";
+
+        public static string GetWebRtcUrl(string urlId, string recordId, int port) => $"wss://{urlId}{IngestSuffix}:{port}/{recordId}";
+
 #elif DEBUG
         public static string[] LoadBalancerServers = new[] { "localhost" };
 
@@ -32,18 +32,30 @@ namespace Streamster.ClientData
 
         public static string GetRtmpUrl(string urlId) => "rtmp://localhost/in";
 
-        public static string GetWebRtcUrl(string urlId, string recordId, int port) => $"ws://localhost:{port}/{recordId}";
-
+        public static string GetWebRtcUrl(string urlId, string recordId, int port) => $"wss://localhost:{port}/{recordId}";
 #else
-        public static string[] LoadBalancerServers = new[] { "de10.streamster.io", "mo1.streamster.io", "mi1.streamster.io" };
+        public static string[] LoadBalancerServers = new[] { "de10.streamster.io", "mi1.streamster.io", "mo1.streamster.io"};
 
         public static string IngestSuffix = ".in.streamster.io";
 
         public static string GetRtmpUrl(string urlId) => "rtmp://" + urlId + IngestSuffix + "/in";
 
-        public static string GetWebRtcUrl(string urlId, string recordId, int port) => $"ws://{urlId}{IngestSuffix}:{port}/{recordId}";
+        public static string GetWebRtcUrl(string urlId, string recordId, int port) => $"wss://{urlId}{IngestSuffix}:{port}/{recordId}";
 
 #endif
+        public static string GetWebRtcWebPage(string connServer, string key) => $"https://{connServer}/liveview?key={key}";
+
+        public static bool TryDecodeWebRtcUrl(string url, out string id)
+        {
+            if (Uri.TryCreate(url, UriKind.Absolute, out var uri))
+            {
+                id = uri.LocalPath;
+                return true;
+            }
+            id = null;
+            return false;
+        }
+
 
 
         public static string AnonymousGrandType = "ano";
@@ -71,6 +83,12 @@ namespace Streamster.ClientData
         public static string TranscodersInputLimitClaim = "tri";
         public static string TranscodersOutputLimitClaim = "tro";
         public static string WebRtcTranscodersClaim = "wrt";
+        public static string WebRtcMaxChannelsClaim = "wrc";
+
+        public static string BusinessIdClaim = "bid";
+        public static string BusinessRoleClaim = "bro";
+
+        public static string BusinessRoleValue_Owner = "o";
 
         public static int VpnVersion = 1;
 

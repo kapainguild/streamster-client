@@ -19,6 +19,8 @@ namespace Streamster.ClientData
 
         public int WebRtcTranscoders { get; }
 
+        public int WebRtcMaxChannels { get; }
+
         public ClientClaimTranscoderLimit TranscoderInputLimit { get; set; }
 
         public ClientClaimTranscoderLimit TranscoderOutputLimit { get; set; }
@@ -26,6 +28,8 @@ namespace Streamster.ClientData
         public string AppUpdatePath { get; set; }
 
         public string DeviceType { get; set; }
+
+        public string AppVersion { get; set; }
 
         public bool HasVpn { get; set; }
 
@@ -37,6 +41,7 @@ namespace Streamster.ClientData
             MaxChannels = GetIntClaim(claims, ClientConstants.MaxChannelsClaim, 2);
             Transcoders = GetIntClaim(claims, ClientConstants.TranscodersClaim, 0, true);
             WebRtcTranscoders = GetIntClaim(claims, ClientConstants.WebRtcTranscodersClaim, 0, true);
+            WebRtcMaxChannels = GetIntClaim(claims, ClientConstants.WebRtcMaxChannelsClaim, 3, true);
 
             TranscoderInputLimit = GetTranscoderLimit(claims, ClientConstants.TranscodersInputLimitClaim);
             TranscoderOutputLimit = GetTranscoderLimit(claims, ClientConstants.TranscodersOutputLimitClaim);
@@ -45,6 +50,7 @@ namespace Streamster.ClientData
             IsDebug = claims.Any(s => s.Type == ClientConstants.DebugClaim);
             AppUpdatePath = claims.FirstOrDefault(s => s.Type == ClientConstants.AppUpdatePathClaim)?.Value;
             DeviceType = claims.FirstOrDefault(s => s.Type == ClientConstants.ClientIdClaim)?.Value;
+            AppVersion = claims.FirstOrDefault(s => s.Type == ClientConstants.VersionClaim)?.Value;
 
             var found = claims.FirstOrDefault(s => s.Type == ClientConstants.VpnClaim);
             if (found != null && int.TryParse(found.Value, out var vpnVersion))

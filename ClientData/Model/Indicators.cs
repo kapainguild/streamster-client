@@ -24,7 +24,8 @@ namespace Streamster.ClientData.Model
         Warning,
         Warning2,
         Error,
-        Error2
+        Error2,
+        Warning3
     }
 
     public interface IIndicatorBase

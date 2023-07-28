@@ -1,4 +1,4 @@
-﻿using Clutch.DeltaModel;
+﻿using DeltaModel;
 using Serilog;
 using Streamster.ClientCore.Cross;
 using Streamster.ClientCore.Models.Chats;
@@ -396,9 +396,9 @@ namespace Streamster.ClientCore.Models
 
             var targetId = source.TargetId;
 
-            if (targetId != null)
+            if (targetId != null && coreData.Root.Targets.TryGetValue(targetId, out var target))
             {
-                Target = coreData.Root.Targets[targetId];
+                Target = target;
                 NeedsRtmpUrl = (Target.Flags & TargetFlags.Url) > 0;
                 var platformInfo = coreData.Root.Platforms.PlatformInfos.FirstOrDefault(s => s.TargetId == targetId);
                 if (platformInfo != null)

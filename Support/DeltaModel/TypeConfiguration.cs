@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using System.Text;
 
-namespace Clutch.DeltaModel
+namespace DeltaModel
 {
     public class TypeConfiguration
     {

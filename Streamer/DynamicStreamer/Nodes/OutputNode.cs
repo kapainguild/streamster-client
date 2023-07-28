@@ -2,6 +2,7 @@
 using DynamicStreamer.Queues;
 using Serilog;
 using System;
+using System.Linq;
 using System.Threading;
 
 namespace DynamicStreamer.Nodes
@@ -40,7 +41,23 @@ namespace DynamicStreamer.Nodes
 
         public OutputStreamQueue<Packet> InputQueue { get; set; }
 
-        public StatisticItem GetStat() => _statisticKeeper.Get();
+        public StatisticItem[] GetStat()
+        {
+            var context = _currentContext?.Context?.Instance as IStatProvider;
+            if (context == null)
+                return new[] { _statisticKeeper.Get() };
+            else
+            {
+                var stat = context.GetStat();
+
+                return stat?.Select(s => new StatisticItem
+                {
+                    Name = new NodeName(Name.TrunkPrefix, Name.Trunk + "|" + s.Name.Pool, Name.Name, Name.Order, Name.Pool),
+                    DurationMs = s.DurationMs,
+                    Data = s.Data
+                })?.ToArray();
+            }
+        }
 
         private void ReplaceCurrentVersion()
         {
@@ -122,7 +139,7 @@ namespace DynamicStreamer.Nodes
                                             packet.CopyContentFrom(dataReference.Data.Payload);
                                             DateTime writeStart = DateTime.UtcNow;
                                             int size = packet.Properties.Size;
-                                            var writeRes = _currentContext.Context.Instance.Write(packet, sourceId);
+                                            var writeRes = _currentContext.Context.Instance.Write(packet, sourceId, _currentContext.ContextSetup);
                                             var writeTime = DateTime.UtcNow - writeStart;
 
                                             //if (q % 610 == 0)
@@ -162,7 +179,7 @@ namespace DynamicStreamer.Nodes
                     catch (Exception e)
                     {
                         waitAfterFail = true;
-                        _statisticKeeper.Data.Errors++;
+                        _statisticKeeper.UpdateData(s => s.Errors++);
                         Core.LogError(e, $"OOOOO '{Name}'-'{_currentContext?.ContextSetup}': " + "failed");
                     }
 
@@ -209,16 +226,13 @@ namespace DynamicStreamer.Nodes
                     _errorCounter--;
             }
 
-            lock (_statisticKeeper)
+            _statisticKeeper.UpdateData(s =>
             {
                 if (writeRes >= 0)
-                {
-                    _statisticKeeper.Data.Frames++;
-                    _statisticKeeper.Data.Bytes += size;
-                }
+                    s.AddPacket(size);
                 else
-                    _statisticKeeper.Data.Errors++;
-            }
+                    s.AddError(InputErrorType.Error);
+            });
         }
 
         public bool PrepareVersion(UpdateVersionContext update, OutputSetup setup, IBitrateController bitrateController)
@@ -230,7 +244,9 @@ namespace DynamicStreamer.Nodes
             update.RuntimeConfig.Add(this, setup);
             var last = _currentContext;
 
-            bool sameConfig = last != null && last.ContextSetup.Equals(setup);
+            bool sameConfig = last != null &&
+                              last.ContextSetup.Type == setup.Type &&
+                              last.Context.Instance.SetupEquals(last.ContextSetup, setup);
             if (!sameConfig)
                 LogInfo($"Change: {last?.ContextSetup} >> {setup}");
 
@@ -262,8 +278,8 @@ namespace DynamicStreamer.Nodes
                             WaitForIFrame = 125 // in case fps=60 -> gop = 120. we add 5.
                         };
 
-                        if (_currentContext != null && _currentContext.Context != null)
-                            _currentContext.Context.Instance.Interrupt();
+                        if (last != null && last.Context != null)
+                            last.Context.Instance.Interrupt();
                     }
                     _pendingContext.Context.Instance.UpdateSetup(setup);
                 }

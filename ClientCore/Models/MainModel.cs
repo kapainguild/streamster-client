@@ -1,6 +1,4 @@
-﻿using Clutch.DeltaModel;
-using DynamicStreamer;
-using Microsoft.AspNetCore.SignalR.Client;
+﻿using DeltaModel;
 using Serilog;
 using Streamster.ClientCore.Cross;
 using Streamster.ClientCore.Models.Chats;
@@ -24,6 +22,7 @@ namespace Streamster.ClientCore.Models
         private readonly IAppResources _appResources;
         private readonly ResourceService _resourceService;
         private readonly StreamingSourcesModel _streamingSourcesModel;
+        private readonly ConnectionService _connectionService;
         private readonly ModelClient _serverClient;
         private readonly IWindowStateManager _windowStateManager;
         private readonly LocalSourcesModel _localSources;
@@ -88,7 +87,8 @@ namespace Streamster.ClientCore.Models
             SceneEditingModel sceneEditingModel,
             ResourceService resourceService,
             PlatformsModel platforms,
-            StreamingSourcesModel streamingSourcesModel)
+            StreamingSourcesModel streamingSourcesModel,
+            ConnectionService connectionService)
         {
             Root = root;
             Targets = targets;
@@ -113,12 +113,15 @@ namespace Streamster.ClientCore.Models
             _resourceService = resourceService;
             Platforms = platforms;
             _streamingSourcesModel = streamingSourcesModel;
+            _connectionService = connectionService;
             _serverClient = new ModelClient(_coreData.GetManager(), new FilterConfigurator(true).Build());
             _coreData.GetManager().Register(_serverClient);
             _serverClient.SerializeAndClearChanges();
 
             _coreData.Subscriptions.OnChangeForSubscriptions = async () => await ProcessLocalOrRemoteChange();
             _coreData.Subscriptions.OnLocalChange = async () => await ProcessLocalChange();
+
+            Settings.ChangeServerRequested += (s, e) => TaskHelper.RunUnawaited(() => ChangeServer(),"ChangeServer");
         }
 
         internal void BeforeConnect()
@@ -138,7 +141,7 @@ namespace Streamster.ClientCore.Models
         {
             _firstPatchTcs = new TaskCompletionSource<bool>();
             
-            Log.Information("Connecting to hub");
+            Log.Information($"Connecting to hub '{_connectionService.ConnectionServer}'");
             await _hubConnectionService.StartConnection(OnConnectionChanged, p => OnPatchOnMainThread(p), p => Platforms.OnReceiveChatMessagesData(p));
             Log.Information("Connected to hub");
         }
@@ -147,33 +150,99 @@ namespace Streamster.ClientCore.Models
         {
             if (connected)
             {
-                if (DialogContent.Value is ConnectionFailedModel && IsDialogShown.Value)
+                if (IsDialogShown.Value)
                 {
-                    DialogContent.Value = null;
-                    IsDialogShown.Value = false;
+                    if (DialogContent.Value is ConnectionFailedModel)
+                    {
+                        DialogContent.Value = null;
+                        IsDialogShown.Value = false;
+                    }
+                    else if (DialogContent.Value is ChangeServerModel change)
+                    {
+                        change.Reconnected.Value = true;
+                    }
                 }
             }
             else
             {
-                if (DialogContent.Value is ConnectionFailedModel fail)
+                Log.Information("Reconnected successfully");
+                if (DialogContent.Value == null)
+                {
+                    DialogContent.Value = new ConnectionFailedModel();
+                    IsDialogShown.Value = true;
+                    _coreData.RunOnMainThread(() => StoreAfterReconnectData());
+                }
+                else if (DialogContent.Value is ConnectionFailedModel fail)
                 {
                     fail.Attempt.Value += 1;
                 }
-                else
+                else if (DialogContent.Value is ChangeServerModel changeServer)
                 {
-                    DialogContent.Value = new ConnectionFailedModel();
-                }
-                IsDialogShown.Value = true;
 
-                _coreData.RunOnMainThread(() => StoreAfterReconnectData());
+                    changeServer.State.Value = "Reconnecting...";
+                }
             }
+        }
+
+        private async Task ChangeServer()
+        {
+            var model = new ChangeServerModel();
+            try
+            {
+                Settings.CanServerBeChanged.Value = false;
+                DialogContent.Value = model;
+                IsDialogShown.Value = true;
+                StoreAfterReconnectData();
+
+                model.State.Value = "Searching new server...";
+                await _connectionService.PrepareChangeServer();
+
+                model.State.Value = "Disconnecting...";
+                
+                _coreData.Root.Settings.ChangeServerRequested = true;
+
+                int counter = 0;
+                while (!model.Reconnected.Value)
+                {
+                    await Task.Delay(100);
+                    counter++;
+                    if (counter > 50)
+                    {
+                        counter = int.MinValue;
+                        model.State.Value = "Hmm... It takes some time...";
+                    }
+                }
+
+                model.State.Value = "Reconnected!";
+            }
+            catch (InvalidOperationException e)
+            {
+                model.State.Value = "Changing server not possible";
+                Log.Error(e, "Changing server not possible");
+            }
+            catch (ConnectionServiceException e2)
+            {
+                model.State.Value = e2.Message;
+                Log.Error(e2, "Changing server not Ok");
+            }
+            catch (Exception ex)
+            {
+                model.State.Value = "Changing server failed.";
+                Log.Error(ex, "Change server failed");
+            }
+
+            await Task.Delay(1500);
+            Settings.CanServerBeChanged.Value = true;
+            DialogContent.Value = null;
+            IsDialogShown.Value = false;
         }
 
         private void StoreAfterReconnectData()
         {
-            if (_streamingSourcesModel.IsMySceneSelected())
+            if (_coreData.Root != null && _streamingSourcesModel.IsMySceneSelected())
             {
-                _afterReconnectData = new AfterReconnectData(_coreData.Root.Settings.StreamingToCloudStarted,
+                _afterReconnectData = new AfterReconnectData(
+                    _coreData.Root.Settings.StreamingToCloudStarted,
                     _coreData.Root.Channels.Where(s => s.Value.IsOn).Select(s => s.Key).ToArray());
                 Log.Information($"Storing After reconnect model (streamToCloud={_afterReconnectData.StreamToCloud}, runningChannels = {_afterReconnectData.RunningChannelIds.Length})");
             }
@@ -471,6 +540,18 @@ namespace Streamster.ClientCore.Models
     public class ConnectionFailedModel
     {
         public Property<int> Attempt { get; } = new Property<int>(1);
+    }
+
+    public class ChangeServerModel
+    {
+        public Property<string> State { get; } = new Property<string>();
+
+        public Property<bool> Reconnected { get; } = new Property<bool>();
+
+        public ChangeServerModel()
+        {
+            State.OnChange = (o, n) => Log.Information($"Change Server State => {n}");
+        }
     }
 
     public class NewVersionModel

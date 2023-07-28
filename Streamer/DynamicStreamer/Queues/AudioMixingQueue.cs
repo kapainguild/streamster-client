@@ -260,13 +260,13 @@ namespace DynamicStreamer.Queues
             }
         }
 
-        public StatisticItem GetStat()
+        public StatisticItem[] GetStat()
         {
 
             lock(this)
             {
                 var time = Core.GetCurrentTime();
-                return new StatisticItem
+                return new[]{ new StatisticItem
                 {
                     Name = _name,
                     DurationMs = 1000,
@@ -287,7 +287,7 @@ namespace DynamicStreamer.Queues
                             return res;
                         }).ToArray()
                     }
-                };
+                }};
             }
         }
     }
