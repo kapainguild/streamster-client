@@ -304,6 +304,8 @@ namespace Streamster.ClientApp.Win.Services
                         CreateBox(CaptionButtonType.CompactView, CaptionButtonType.NormalView, CaptionButtonType.DockLeft, CaptionButtonType.DockRight),
                         Create(CaptionButtonType.Close)
                     };
+
+                case AppWindowState.Minimized:
                 case AppWindowState.Maximized: return new[]
                     {
                         Create(CaptionButtonType.Minimize),
@@ -312,7 +314,9 @@ namespace Streamster.ClientApp.Win.Services
                         Create(CaptionButtonType.Close)
                     };
 
-                default: throw new Exception();
+                default:
+                    return new CaptionButtonViewModel[0];
+
             }
         }
 

@@ -36,7 +36,17 @@ namespace Streamster.ClientData.Model
         bool ResetKeys { get; set; }
 
         bool ChangeServerRequested { get; set; }
+
+        TargetPreference TargetPreference { get; set; } 
+
+        BitrateRules BitrateRules { get; set; }
+
+        string BitrateWarning { get;set; }
+
+        IChannel ChannelBeingCreated { get; set; }
     }
+
+    public record BitrateRules(BitrateRange[] BitrateLimits);
 
     public enum RecordingFormat
     {
@@ -99,5 +109,13 @@ namespace Streamster.ClientData.Model
         public override int GetHashCode() => Height * Width;
 
         public override string ToString() => Width == 0 ? "Custom" : $"{Width} x {Height}";
+    }
+
+    public enum TargetPreference
+    {
+        None = 0,
+        Unknown = 1,
+        Adult = 2,
+        Vlog = 3,
     }
 }

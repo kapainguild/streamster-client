@@ -1,4 +1,6 @@
-﻿using Microsoft.Win32;
+﻿using Newtonsoft.Json;
+using Microsoft.Win32;
+using MongoDB.Bson.IO;
 using Serilog;
 using System;
 using System.Collections.Generic;
@@ -129,6 +131,28 @@ namespace Streamster.ClientApp.Win.Services
             return result;
         }
 
+        internal static string GetObsStreamUrl(out string service)
+        {
+            try
+            {
+                var file = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "obs-studio\\basic\\profiles\\Untitled\\service.json");
+                if (File.Exists(file))
+                {
+                    var content = File.ReadAllText(file);
+                    var settings = Newtonsoft.Json.JsonConvert.DeserializeObject<ObsSettings>(content, new JsonSerializerSettings { MissingMemberHandling = MissingMemberHandling.Ignore });
+
+                    service = settings?.settings?.service;
+                    return settings?.settings?.server;
+                }
+            }
+            catch (Exception e)
+            {
+                Log.Error(e, "Error in GetObsStreamUrl");
+            }
+            service = null;
+            return null;
+        }
+
 
         [DllImport("kernel32.dll", SetLastError = true, CharSet = CharSet.Auto)]
         static extern IntPtr OpenFileMapping(uint dwDesiredAccess, bool bInheritHandle, string lpName);
@@ -142,6 +166,19 @@ namespace Streamster.ClientApp.Win.Services
         [DllImport("kernel32.dll", SetLastError = true)]
         static extern bool CloseHandle(IntPtr hHandle);
 
+    }
+
+
+    public class ObsSettings
+    {
+        public ObsRtmpSettings settings { get; set; } 
+    }
+
+    public class ObsRtmpSettings
+    {
+        public string service { get; set; }
+
+        public string server { get; set; } 
     }
 
     public struct QueueHeader

@@ -113,7 +113,7 @@ namespace DynamicStreamer.Extensions.Rtmp
                     throw new OperationCanceledException();
             }
 
-            _statisticKeeper.UpdateData(d => d.AddPacket(packet.Properties.Size));
+            _statisticKeeper.UpdateData(d => d.AddPacket(packet.Properties.Size, packet.Properties.StreamIndex == 0));
         }
 
         void IRtmpExtensions.HandleDataMessage(RtmpConnection connection, DataMessage message)
@@ -399,6 +399,19 @@ namespace DynamicStreamer.Extensions.Rtmp
         {
             if (_gracefullyClosed)
                 _statisticKeeper.UpdateData(d => d.AddError(InputErrorType.GracefulClose));
+
+            var cfg = Config;
+            if (cfg != null && cfg.InputStreamProps != null && cfg.InputStreamProps.Length > 0 && cfg.InputStreamProps[0].CodecProps.height > 0
+                && cfg.InputStreamProps[0].CodecProps.width > 0)
+            {
+                var item = _statisticKeeper.Get();
+                if (item.Data is StatisticDataOfInputOutput data)
+                {
+                    data.Other = Math.Min(cfg.InputStreamProps[0].CodecProps.height, cfg.InputStreamProps[0].CodecProps.width).ToString();
+                }
+                return new[] { item };
+            }
+                
 
             return new[] { _statisticKeeper.Get() };
         }

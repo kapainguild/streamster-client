@@ -4,6 +4,7 @@ using Streamster.ClientCore.Services;
 using Streamster.ClientCore.Support;
 using Streamster.ClientData.Model;
 using System;
+using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Linq;
 
@@ -126,7 +127,7 @@ namespace Streamster.ClientCore.Models
 
             var settings = CoreData.Root.Settings;
             var claims = _connectionService.Claims;
-            var list = CoreData.Root.Channels.Select(s => s.Value).ToList();
+            var list = GetAllChannels().ToList();
 
             ListHelper.UpdateCollectionNoId(list.Where(l => IsTranscoded(l)).ToList(), Transcoded, (a, b) => a == b.Source, (t) => CreateModel(t));
             ListHelper.UpdateCollectionNoId(list.Where(l => !IsTranscoded(l)).ToList(), NoneTranscoded, (a, b) => a == b.Source, (t) => CreateModel(t));
@@ -154,6 +155,8 @@ namespace Streamster.ClientCore.Models
 
             Message.Value = message;
         }
+
+        private IEnumerable<IChannel> GetAllChannels() => CoreData.Root.Channels.Values.Concat(new[] { CoreData.Root.Settings.ChannelBeingCreated }).Where(s => s != null);
 
         private TranscodingChannelModel CreateModel(IChannel c)
         {

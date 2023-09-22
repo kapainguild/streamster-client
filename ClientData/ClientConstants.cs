@@ -1,6 +1,7 @@
 ﻿//#define STAGING
 
 using System;
+using System.Web;
 
 namespace Streamster.ClientData
 {
@@ -14,7 +15,7 @@ namespace Streamster.ClientData
         public static string LoadBalancerFiles_Versions = "versions";
         public static string LoadBalancerFiles_Targets = "targets";
 
-        public const bool ChatsEnabled = false;
+        public const bool ChatsEnabled = true;
 
 #if STAGING
         public static string[] LoadBalancerServers = new[] { "fi3.streamster.io" };
@@ -43,7 +44,7 @@ namespace Streamster.ClientData
         public static string GetWebRtcUrl(string urlId, string recordId, int port) => $"wss://{urlId}{IngestSuffix}:{port}/{recordId}";
 
 #endif
-        public static string GetWebRtcWebPage(string connServer, string key) => $"https://{connServer}/liveview?key={key}";
+        public static string GetWebRtcWebPage(string connServer, string key) => $"https://{connServer}/liveview?key={HttpUtility.UrlEncode(key)}";
 
         public static bool TryDecodeWebRtcUrl(string url, out string id)
         {

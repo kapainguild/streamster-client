@@ -229,7 +229,7 @@ namespace DynamicStreamer.Nodes
             _statisticKeeper.UpdateData(s =>
             {
                 if (writeRes >= 0)
-                    s.AddPacket(size);
+                    s.AddPacket(size, sourceId == 0);
                 else
                     s.AddError(InputErrorType.Error);
             });

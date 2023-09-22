@@ -182,7 +182,7 @@ namespace Streamster.ClientCore.Models
                 IndicatorState.Warning2 => "Bitrate is VERY low",
                 IndicatorState.Error => "Stream to cloud is UNSTABLE",
                 IndicatorState.Error2 => "Stream to cloud FAILED",
-                IndicatorState.Warning3 => "Bitrate is above limits",
+                IndicatorState.Warning3 => "Bitrate is above limit of your plan",
                 _ => "?"
             };
         }

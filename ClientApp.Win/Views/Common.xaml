@@ -68,5 +68,26 @@
         <Setter Property="Background" Value="{DynamicResource MaterialDesignPaper}"/>
     </Style>
 
+    <Style x:Key="HiglightedTooltip" TargetType="ToolTip">
+        <Setter Property="Background" Value="#160300"/>
+        <Setter Property="BorderBrush" Value="White"/>
+        <Setter Property="BorderThickness" Value="1"/>
+        <Setter Property="Foreground" Value="White"/>
+        <Setter Property="TextElement.FontSize" Value="14"/>
+        <Setter Property="TextElement.FontWeight" Value="SemiBold"/>
+        <Setter Property="Padding" Value="20,10,20,15"/>
+        <Setter Property="MaxWidth" Value="400"/>
+        <Style.Resources>
+            <Style TargetType="ContentPresenter">
+                <Style.Resources>
+                    <Style TargetType="TextBlock">
+                        <Setter Property="TextWrapping" Value="Wrap" />
+                        <Setter Property="TextAlignment" Value="Justify" />
+                    </Style>
+                </Style.Resources>
+            </Style>
+        </Style.Resources>
+    </Style>
+
 
 </ResourceDictionary>

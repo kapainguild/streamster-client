@@ -52,7 +52,9 @@ namespace Streamster.ClientData.Model
         Connecting,
         NotAuthenticated,
         Connected,
-        ConnectionFailed
+        ConnectionFailed,
+        ConnectionNotInitialized
+
     }
 
     public class AuthenticationData

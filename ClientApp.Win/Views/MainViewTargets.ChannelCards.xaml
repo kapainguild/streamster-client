@@ -170,9 +170,16 @@
                     <Grid Grid.Row="3" Grid.ColumnSpan="3">
 
                         <Border x:Name="stateBorder">
+                            <Border.Resources>
+                                <ResourceDictionary>
+                                    <Style TargetType="{x:Type ToolTip}" BasedOn="{StaticResource HiglightedTooltip}"/>
+                                </ResourceDictionary>
+                            </Border.Resources>
                             <DockPanel>
-                                <TextBlock x:Name="timer" DockPanel.Dock="Right" Margin="0,3,6,3" HorizontalAlignment="Right" Text="{Binding Status.Value.TimerState}"/>
-                                <TextBlock x:Name="state" Margin="5,1,5,1" HorizontalAlignment="Center" Text="{Binding Status.Value.TextState}"/>
+                                <TextBlock x:Name="timer" DockPanel.Dock="Right" Margin="0,3,6,3" HorizontalAlignment="Right" 
+                                           Text="{Binding Status.Value.TimerState}"/>
+                                <TextBlock x:Name="state" Margin="5,1,5,1" HorizontalAlignment="Center" ToolTipService.InitialShowDelay="100"
+                                           Text="{Binding Status.Value.TextState}" ToolTip="{Binding Status.Value.Tooltip}"/>
                             </DockPanel>
                         </Border>
 
@@ -291,6 +298,13 @@
 
             <DataTrigger Binding="{Binding Status.Value.State}" Value="RunningWait">
                 <Setter TargetName="stateBorder" Property="Background" Value="#404040"/>
+            </DataTrigger>
+
+            <DataTrigger Binding="{Binding Status.Value.State}" Value="BitrateWarning">
+                <Setter TargetName="start" Property="Visibility" Value="Visible"/>
+                <Setter TargetName="stop" Property="Visibility" Value="Collapsed"/>
+                <Setter TargetName="stateBorder" Property="Background" Value="#404040"/>
+                <Setter TargetName="state" Property="TextElement.Foreground" Value="#BB9900"/>
             </DataTrigger>
 
 
@@ -415,6 +429,10 @@
             
             <DataTrigger Binding="{Binding Status.Value.State}" Value="RunningWait">
                 <Setter TargetName="stateBorder" Property="BorderBrush" Value="#404040"/>
+            </DataTrigger>
+
+            <DataTrigger Binding="{Binding Status.Value.State}" Value="BitrateWarning">
+                <Setter TargetName="stateBorder" Property="BorderBrush" Value="Orange"/>
             </DataTrigger>
 
 

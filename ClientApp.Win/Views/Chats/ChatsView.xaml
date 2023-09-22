@@ -69,13 +69,6 @@
                 </Border>
                 <Border>
                     <Grid>
-                        <TextBlock Margin="20" x:Name="initializing" Visibility="Collapsed" Text="Initializing..." />
-                        <TextBlock Margin="20" x:Name="connecting" Visibility="Collapsed" Text="Connecting..." />
-
-                        <StackPanel Margin="20" x:Name="notAuthenticated" Visibility="Collapsed" >
-                            <Button HorizontalAlignment="Left" Content="Login" Command="{Binding Authenticate, Converter={StaticResource CommandConverter}}"/>
-                        </StackPanel>
-
                         <DockPanel x:Name="connected" Margin="20" >
                             <DockPanel DockPanel.Dock="Bottom">
                                 <Button DockPanel.Dock="Right" Height="28" Margin="5,0,0,0" Content="Send" Command="{Binding SendMessage, Converter={StaticResource CommandConverter}}"/>
@@ -102,8 +95,23 @@
                                 </ItemsControl.Template>
                             </ItemsControl>
                         </DockPanel>
-                        
 
+                        <TextBlock Margin="20" x:Name="initializing" Visibility="Collapsed" Text="Initializing..." />
+                        <TextBlock Margin="20" x:Name="connecting" Visibility="Collapsed" Text="Connecting..." />
+
+                        <Border x:Name="notAuthenticated" Background="#900020" Visibility="Collapsed" VerticalAlignment="Top">
+                            <StackPanel Margin="20,10" >
+                                <TextBlock Text="Not authenticated"/>
+                                <Button Margin="0,8,0,0" HorizontalAlignment="Left" Content="Login" Command="{Binding Authenticate, Converter={StaticResource CommandConverter}}"/>
+                            </StackPanel>
+                        </Border>
+
+                        <Border x:Name="conectionFailed" Background="#900020" Visibility="Collapsed" VerticalAlignment="Top">
+                            <TextBlock Margin="20,10" Text="Connection issues..."/>
+                        </Border>
+                        <Border x:Name="connectionNotInitialized" Background="#900020" Visibility="Collapsed" VerticalAlignment="Top">
+                            <TextBlock Margin="20,10" Text="Target site is not configured for stream or chats" TextWrapping="Wrap"/>
+                        </Border>
                     </Grid>
                 </Border>
                 
@@ -126,6 +134,14 @@
 
             <DataTrigger Binding="{Binding State.Value}" Value="NotAuthenticated">
                 <Setter TargetName="notAuthenticated" Property="Visibility" Value="Visible"/>
+            </DataTrigger>
+            
+            <DataTrigger Binding="{Binding State.Value}" Value="ConnectionFailed">
+                <Setter TargetName="conectionFailed" Property="Visibility" Value="Visible"/>
+            </DataTrigger>
+
+            <DataTrigger Binding="{Binding State.Value}" Value="ConnectionNotInitialized">
+                <Setter TargetName="connectionNotInitialized" Property="Visibility" Value="Visible"/>
             </DataTrigger>
         </DataTemplate.Triggers>
     </DataTemplate>

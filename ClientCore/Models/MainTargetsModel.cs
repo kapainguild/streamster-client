@@ -7,6 +7,7 @@ using Streamster.ClientCore.Support;
 using Streamster.ClientData;
 using Streamster.ClientData.Model;
 using System;
+using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Linq;
 using System.Threading.Tasks;
@@ -15,18 +16,21 @@ namespace Streamster.ClientCore.Models
 {
     public class MainTargetsModel
     {
-        private ITarget[] _initialTargets;
+        private TargetModel[] _initialTargets;
         private readonly StaticFilesCacheService _staticFilesCacheService;
         private readonly ConnectionService _connectionService;
         private readonly IAppResources _resources;
         private readonly StreamingSourcesModel _streamingSourcesModel;
         private readonly IAppEnvironment _appEnvironment;
+        private ChannelModel _channelBeingCreated;
 
         public TargetFilterModel[] Filters { get; private set; }
 
         public ITarget CustomTarget { get; private set; }
 
-        public ObservableCollection<TargetModel> Targets { get; } = new ObservableCollection<TargetModel>();
+        public Property<TargetModel[]> Targets { get; } = new Property<TargetModel[]>();
+
+        public Property<TargetModel[]> RecommendedTargets { get; } = new Property<TargetModel[]>();
 
         public CoreData CoreData { get; }
 
@@ -39,6 +43,8 @@ namespace Streamster.ClientCore.Models
         public Property<object> Popup { get; } = new Property<object>();
 
         public Action AddTarget { get; }
+
+        private TargetModel _custom;
 
         public ObservableCollection<ChannelModel> Channels { get; } = new ObservableCollection<ChannelModel>();
 
@@ -65,6 +71,7 @@ namespace Streamster.ClientCore.Models
             });
 
             AddTarget = () => { Popup.Value = new TargetSelectPopup { Content = this }; };
+            _custom = new TargetModel { Source = CustomTarget, OnSelected = () => CreateChannelFromTarget(null), Tooltip = "Custom target where you can set any rtmp Url" };
         }
 
         internal void Start()
@@ -81,11 +88,11 @@ namespace Streamster.ClientCore.Models
                     Log.Information($"Cannot reset keys as number of online devices = {onlineDevices} > 1");
             }
 
+            EvaluatePreferance();
+
             Transcoding.Start();
 
-            _initialTargets = CoreData.Root.Targets.Values.OrderBy(s => s.Name).ToArray();
-
-            Targets.Add(new TargetModel { Source = CustomTarget, OnSelected = () => CreateChannelFromTarget(null), Tooltip = "Custom target where you can set any rtmp Url" });
+            _initialTargets = CoreData.Root.Targets.Values.OrderBy(s => s.Name).Select(s => CreateModel(s)).ToArray();
 
             Filters = new TargetFilterModel[]
             {
@@ -97,7 +104,7 @@ namespace Streamster.ClientCore.Models
                 new TargetFilterModel { Name = "Vlog", IsSelected = new Property<bool>(true), Flags = TargetFlags.Vlog },
             };
 
-            var filter = CoreData.Settings?.TargetFilter ?? 0;
+            var filter = CoreData.Settings.TargetFilter;
 
             if (CoreData.Settings == null)
                 Log.Error("CoreData.Settings is null");
@@ -113,13 +120,21 @@ namespace Streamster.ClientCore.Models
             RefreshChannelList();
 
             CoreData.Subscriptions.SubscribeForType<IChannel>((s, c) => { RefreshChannelList(); });
-            CoreData.Subscriptions.SubscribeForAnyProperty<IChannel>((s, c, p, v) => { RefreshChannelState(Channels.FirstOrDefault(a => a.Source == s)); });
+            CoreData.Subscriptions.SubscribeForAnyProperty<IChannel>((s, c, p, v) => 
+            {
+                if (_channelBeingCreated != null && _channelBeingCreated.Source == s)
+                    RefreshChannelState(_channelBeingCreated);
+                else 
+                    RefreshChannelState(Channels.FirstOrDefault(a => a.Source == s)); 
+            });
             CoreData.Subscriptions.SubscribeForAnyProperty<ISettings>((a, b, c, d) => RefreshAllChannelStates());
         }
 
-
-        private void RefreshAllChannelStates() => Channels.ToList().ForEach(s => RefreshChannelState(s));
-
+        private void RefreshAllChannelStates()
+        {
+            Channels.ToList().ForEach(s => RefreshChannelState(s));
+            RefreshChannelState(_channelBeingCreated);
+        }
 
         private void RefreshChannelList()
         {
@@ -216,11 +231,23 @@ namespace Streamster.ClientCore.Models
                             state = ChannelModelState.IdleError;
                             break;
                     }
-                    
-                    var status = new ChannelModelStatus(state, ch.AutoLoginState == AutoLoginState.KeyObtained ? "" : als);
-                    status.AutoLoginStateText = als;
-                    status.AutoLoginState = ch.AutoLoginState;
-                    return status;
+
+                    if (ch.AutoLoginState == AutoLoginState.KeyObtained)
+                    {
+                        var issue = GetTranscodingAndBitrateIssues(model, ch);
+                        if (issue != null)
+                        {
+                            issue.AutoLoginStateText = als;
+                            issue.AutoLoginState = ch.AutoLoginState;
+                            return issue;
+                        }
+                    }
+
+                    return new ChannelModelStatus(state, ch.AutoLoginState == AutoLoginState.KeyObtained ? "" : als)
+                    {
+                        AutoLoginStateText = als,
+                        AutoLoginState = ch.AutoLoginState,
+                    };
                 }
                 else
                 {
@@ -232,16 +259,9 @@ namespace Streamster.ClientCore.Models
                         return new ChannelModelStatus(ChannelModelState.IdleError, "Stream key is not set");
                 }
 
-                if (model.IsTranscoded.Value) 
-                {
-                    if (Transcoding.Message.Value == TranscodingMessageType.HighInputFps ||
-                        Transcoding.Message.Value == TranscodingMessageType.HighInputResolution)
-                    {
-                        return new ChannelModelStatus(ChannelModelState.IdleError, "Bad transcoding config");
-                    }
-                }
+                
 
-                return new ChannelModelStatus(ChannelModelState.Idle, "");
+                return GetTranscodingAndBitrateIssues(model, ch) ?? new ChannelModelStatus(ChannelModelState.Idle, "");
             }
             else // Is on
             {
@@ -264,6 +284,27 @@ namespace Streamster.ClientCore.Models
             }
         }
 
+        private ChannelModelStatus GetTranscodingAndBitrateIssues(ChannelModel model, IChannel ch)
+        {
+            if (model.IsTranscoded.Value)
+            {
+                if (Transcoding.Message.Value == TranscodingMessageType.HighInputFps ||
+                    Transcoding.Message.Value == TranscodingMessageType.HighInputResolution)
+                {
+                    return new ChannelModelStatus(ChannelModelState.IdleError, "Bad transcoding config");
+                }
+            }
+
+            if (ch.BitrateWarning != null)
+            {
+                return new ChannelModelStatus(ChannelModelState.BitrateWarning, "Stream may be incompatible")
+                {
+                    Tooltip = ch.BitrateWarning
+                };
+            }
+            return null;
+        }
+
         private void UpdateFilter()
         {
             TargetFlags filter = 0;
@@ -274,35 +315,44 @@ namespace Streamster.ClientCore.Models
             if (CoreData.Settings.TargetFilter != (int)excluded)
                 CoreData.Settings.TargetFilter = (int)excluded;
 
-            int index = 1; // custom is always on top
-            foreach (var source in _initialTargets)
+            var filtered = new[] { _custom }.Concat( _initialTargets.Where(s =>
             {
-                bool add = (source.Flags & filter) > 0;
+                bool add = (s.Source.Flags & filter) > 0;
                 if (AppData.HideTargetFilter)
-                    add = _resources.TargetFilter(source);
-                var exists = Targets.FirstOrDefault(s => s.Source == source);
-                if (add)
-                {
+                    add = _resources.TargetFilter(s.Source);
+                return add;
+            })).ToList();
 
-                    if (exists == null)
-                    {
-                        var n = new TargetModel { Source = source };
-                        if ((source.Flags & TargetFlags.Adult) > 0)
-                            n.Tooltip = source.Hint + " All performers must be over 18 years old.";
-                        else
-                            n.Tooltip = source.Hint;
-                        _ = GetImageAsync(n.Logo, source.Id);
-                        n.OnSelected = () => CreateChannelFromTarget(n);
-                        Targets.Insert(index, n);
-                    }
-                    index++;
-                }
-                else
-                {
-                    if (exists != null)
-                        Targets.Remove(exists);
-                }
+
+            TargetModel[] recommended = Array.Empty<TargetModel>();
+            if (CoreData.Settings.TargetPreference == TargetPreference.Adult || filter == TargetFlags.Adult)
+            {
+                recommended = filtered.Where(s => s.Source?.Promotion?.Recommended == true && 
+                                                    (s.Source.Flags & TargetFlags.Adult) > 0).ToArray();
+
+                filtered.ForEach(s => s.ShowTags.Value = true);
             }
+            else 
+            {
+                recommended = filtered.Where(s => s.Source?.Promotion?.Recommended == true &&
+                                                    (s.Source.Flags & TargetFlags.Adult) == 0).ToArray();
+
+                filtered.ForEach(s => s.ShowTags.Value = (s.Source.Flags & TargetFlags.Adult) == 0 );
+            }
+            Targets.Value = filtered.Except(recommended).ToArray();
+            RecommendedTargets.Value = recommended;
+        }
+
+        private TargetModel CreateModel(ITarget source)
+        {
+            var n = new TargetModel { Source = source };
+            if ((source.Flags & TargetFlags.Adult) > 0)
+                n.Tooltip = source.Hint + " All performers must be over 18 years old.";
+            else
+                n.Tooltip = source.Hint;
+            _ = GetImageAsync(n.Logo, source.Id);
+            n.OnSelected = () => CreateChannelFromTarget(n);
+            return n;
         }
 
         internal async Task GetImageAsync(Property<byte[]> logo, string targetId)
@@ -316,17 +366,45 @@ namespace Streamster.ClientCore.Models
 
         private void CreateChannelFromTarget(TargetModel model)
         {
+            var root = CoreData.Root;
+
+            if (model != null &&
+                root.Settings.TargetPreference == TargetPreference.Unknown)
+            {
+                root.Settings.TargetPreference = (model.Source.Flags & TargetFlags.Adult) > 0 ?
+                    TargetPreference.Adult : TargetPreference.Vlog;
+
+                if (root.Settings.TargetPreference == TargetPreference.Vlog)
+                {
+                    var filter = root.Settings.TargetFilter | (int)TargetFlags.Adult; // it is removing Adult
+                    if (root.Settings.TargetFilter != filter)
+                    {
+                        Filters.ToList().ForEach(s => s.IsSelected.SilentValue = (filter & (int)s.Flags) == 0);
+                        UpdateFilter();
+                    }
+                }
+            }
+
             var id = IdGenerator.New();
             var channel = CoreData.Create<IChannel>(s => s.TargetId = model?.Source?.Id);
 
             var local = new ChannelModel(channel, id, _appEnvironment, CoreData, this);
             RefreshChannelState(local);
+            _channelBeingCreated = local;
             var title = model?.Source?.Name ?? "Custom channel";
+
+            root.Settings.ChannelBeingCreated = channel;
+
             Popup.Value = new TargetConfig
             {
                 Add = true,
                 ChannelModel = local,
-                Ok = () => { CoreData.Root.Channels[id] = channel; },
+                Ok = () => 
+                {
+                    root.Settings.ChannelBeingCreated = null;
+                    root.Channels[id] = channel;
+                    _channelBeingCreated = null;
+                },
                 Cancel = () => { }
             };
         }
@@ -345,6 +423,60 @@ namespace Streamster.ClientCore.Models
                     return true;
             }
             return false;
+        }
+
+        private void EvaluatePreferance()
+        {
+            var root = CoreData.Root;
+
+            if (root.Settings.TargetPreference == TargetPreference.None)
+            {
+                root.Settings.TargetPreference = GetPreferance(root);
+                if (root.Settings.TargetPreference == TargetPreference.Vlog)
+                    root.Settings.TargetFilter = root.Settings.TargetFilter | (int)TargetFlags.Adult;
+            }
+        }
+
+        private TargetPreference GetPreferance(IRoot root)
+        {
+            if (root.Channels.Count > 0)
+            {
+                var targets = root.Channels.Values.Select(s => GetTarget(root, s.TargetId)).Where(s => s != null).ToList();
+                if (targets.Count > 0)
+                {
+                    var adults = targets.Count(s => (s.Flags & TargetFlags.Adult) > 0);
+                    if (adults > targets.Count / 2)
+                        return TargetPreference.Adult;
+                    else 
+                        return TargetPreference.Vlog;
+                }
+            }
+
+            var obs = _appEnvironment.GetObsStreamUrl(out var service); 
+            if (!string.IsNullOrWhiteSpace(obs))
+            {
+                var target = root.Targets.Values.Where(s => s.DefaultRtmpUrl != null).
+                                                 FirstOrDefault(s => s.DefaultRtmpUrl.ToLower().TrimEnd('/') == obs.ToLower().TrimEnd('/'));
+                if (target != null)
+                    return ((target.Flags & TargetFlags.Adult) > 0) ? TargetPreference.Adult : TargetPreference.Vlog;
+            }
+
+            if (!string.IsNullOrWhiteSpace(service))
+            {
+                var target = root.Targets.Values.Where(s => s.Name != null).
+                                                 FirstOrDefault(s => s.Name.ToLower() == service.ToLower());
+                if (target != null)
+                    return ((target.Flags & TargetFlags.Adult) > 0) ? TargetPreference.Adult : TargetPreference.Vlog;
+            }
+
+            return TargetPreference.Unknown;
+        }
+
+        private ITarget GetTarget(IRoot root, string targetId)
+        {
+            if (targetId != null && root.Targets.TryGetValue(targetId, out var target))
+                return target;
+            return null;
         }
     }
 
@@ -384,6 +516,8 @@ namespace Streamster.ClientCore.Models
         public string Tooltip { get; set; }
 
         public Action OnSelected { get; set; }
+
+        public Property<bool> ShowTags { get; } = new Property<bool>();
     }
 
     public class ChannelModel
@@ -429,7 +563,11 @@ namespace Streamster.ClientCore.Models
             Name.OnChange = (o, n) => Update(() => Source.Name = n == Target.Name ? null : n);
             RtmpUrl.OnChange = (o, n) => Update(() => Source.RtmpUrl = n == Target.DefaultRtmpUrl ? null : n); 
             RtmpKey.OnChange = (o, n) => Update(() => Source.Key = n == "" ? null : n);
-            AutoLoginMode.OnChange = (o, n) => Update(() => Source.TargetMode = n ? TargetMode.AutoLogin : TargetMode.ManualKey);
+            AutoLoginMode.OnChange = (o, n) => Update(() =>
+            {
+                Source.TargetMode = n ? TargetMode.AutoLogin : TargetMode.ManualKey;
+                Log.Information($"Mode for channel {targetId} changed to {n}");
+            });
             IsTranscoded.OnChange = (o, n) => Update(() => Parent.Transcoding.SetTranscoding(Source, n));
 
             TaskHelper.RunUnawaited(() => parent.GetImageAsync(Logo, source.TargetId), "Get image for channel");
@@ -506,6 +644,8 @@ namespace Streamster.ClientCore.Models
 
         public string AutoLoginStateText { get; set; }
 
+        public string Tooltip { get; set; }
+
         public ChannelModelStatus(ChannelModelState state, string textState)
         {
             State = state;
@@ -529,6 +669,8 @@ namespace Streamster.ClientCore.Models
 
         RunningOk,
         RunningWait,
-        RunningError
+        RunningError,
+
+        BitrateWarning,
     }
 }

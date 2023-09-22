@@ -92,6 +92,11 @@ namespace Streamster.ClientApp.Win
             ObsHelper.GetObsVersion(out obs, out obsCam);
         }
 
+        public string GetObsStreamUrl(out string service)
+        {
+            return ObsHelper.GetObsStreamUrl(out service);
+        }
+
         public void OpenUrl(string url)
         {
             try

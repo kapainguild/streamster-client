@@ -103,7 +103,7 @@ namespace Streamster.ClientApp.Win.Support
                 EditingTabsOnlyIcons = sizes.editing.Width <= 860
             };
 
-            res.HidePromo = constraint.Width < 500 || constraint.Height < 500 || sizes.main.Height < 150 || res.HideBitrate;
+            res.HidePromo = constraint.Width < 530 || constraint.Height < 500 || sizes.main.Height < 150 || res.HideBitrate;
 
             if (ChannelCount > 0)
             {

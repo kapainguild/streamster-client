@@ -27,14 +27,20 @@ namespace DynamicStreamer.Nodes
     {
         public int Frames { get; set; }
 
+        public int Fps { get; set; }
+
         public int Bytes { get; set; }
+
+        public string Other { get; set; }
 
         public InputErrorType ErrorType { get; set; }
 
         public override string ToString() => (base.ToString() + (Frames > 0 ? $"F{Frames} B{Bytes * 8 / 1024} " : "")).TrimEnd();
 
-        public void AddPacket(int packetSize)
+        public void AddPacket(int packetSize, bool video = true)
         {
+            if (video)
+                Fps++;
             Frames++;
             Bytes += packetSize;
         }

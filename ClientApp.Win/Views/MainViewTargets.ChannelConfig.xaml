@@ -251,9 +251,16 @@
                                                 Visibility="Collapsed">
                                         <CheckBox Content="Manual" Style="{StaticResource MaterialDesignFilterChipCheckBox}"
                                                   IsChecked="{Binding ChannelModel.AutoLoginMode.Value, Converter={StaticResource InverseBooleanConverter}}"/>
-                                        <CheckBox Content="Login &amp; Forget" Style="{StaticResource MaterialDesignFilterChipCheckBox}"
+                                            <materialDesign:Badged
+                                                            Badge="  Beta  "
+                                                            BadgeBackground="#109020"
+                                                            BadgePlacementMode="TopRight"
+                                                            BadgeForeground="White"
+                                                            CornerRadius="4">                    
+                                                <CheckBox Content="Login &amp; Forget" Style="{StaticResource MaterialDesignFilterChipCheckBox}"
                                                   IsChecked="{Binding ChannelModel.AutoLoginMode.Value}"/>
-                                    </StackPanel>
+                                            </materialDesign:Badged>
+                                        </StackPanel>
                                     <Grid Margin="0,10,0,0">
                                         <StackPanel x:Name="manual" Visibility="Visible">
                                             <DockPanel>

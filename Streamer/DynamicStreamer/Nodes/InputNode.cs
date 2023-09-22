@@ -313,7 +313,7 @@ namespace DynamicStreamer.Nodes
                         packetToDispose = packet;
                         ctx.Read(packet, _inputThreadCurrentContext.ContextSetup);
 
-                        _statisticKeeper.UpdateData(d => d.AddPacket(packet.Properties.Size));
+                        _statisticKeeper.UpdateData(d => d.AddPacket(packet.Properties.Size, packet.Properties.StreamIndex == 0));
 
                         if (!_initialPacketReceived)
                         {

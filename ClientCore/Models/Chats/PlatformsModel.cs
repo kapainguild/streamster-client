@@ -23,7 +23,7 @@ namespace Streamster.ClientCore.Models.Chats
 
         public ObservableCollection<ChatModel> Chats { get; } = new ObservableCollection<ChatModel>();
 
-        public bool ChatsEnabled { get; } = ClientConstants.ChatsEnabled;
+        public Property<bool> ChatsEnabled { get; } = new Property<bool>();
 
         public Property<bool> IsChatsOpened { get; } = new Property<bool>();
 
@@ -44,6 +44,7 @@ namespace Streamster.ClientCore.Models.Chats
         {
             _coreData.Subscriptions.SubscribeForType<IChannel>((s, c) => Update());
             _coreData.Subscriptions.SubscribeForType<IChat>((s, c) => Update());
+            _coreData.Subscriptions.SubscribeForProperties<IChannel>(c => c.TargetMode, (s, c, p) => Update());
 
             _coreData.Subscriptions.SubscribeForAnyProperty<IChat>((chat, a, b, c) => UpdateChatModel(chat));
 
@@ -64,6 +65,10 @@ namespace Streamster.ClientCore.Models.Chats
 
         private void Update()
         {
+            ChatsEnabled.Value = _coreData.Root.Channels.Values.Any(s => s.TargetMode == TargetMode.AutoLogin);
+            if (!ChatsEnabled.Value)
+                IsChatsOpened.Value = false;
+
             var infos = Core.PlatformInfos;
             var supportedTargetIds = infos.Where(s => (s.Flags & PlatformInfoFlags.Chats) > 0).Select(s => s.TargetId).ToHashSet();
             var channelTargetIds = _coreData.Root.Channels.Values.Where(s => supportedTargetIds.Contains(s.TargetId)).Select(s => s.TargetId).Distinct().OrderBy(s => s).ToList();

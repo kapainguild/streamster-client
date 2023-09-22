@@ -15,6 +15,7 @@ namespace Streamster.ClientCore.Services
     public class HubConnectionService : IDisposable
     {
         private readonly ConnectionService _connectionService;
+        private readonly SynchronizationContext _syncContext;
         private CancellationTokenSource _ctsClose = new CancellationTokenSource();
 
         private Action<bool> _onConnectionChanged;
@@ -26,33 +27,46 @@ namespace Streamster.ClientCore.Services
         public HubConnectionService(ConnectionService connectionService)
         {
             _connectionService = connectionService;
+            _syncContext = SynchronizationContext.Current;
         }
 
-        private async Task OnConnectionClosed(Exception e) 
+        private Task OnConnectionClosed(Exception e)
         {
-            while (!_ctsClose.IsCancellationRequested && _connection.HubConnection.State == HubConnectionState.Disconnected)
+            RunOnMainThread(async () =>
             {
-                try
+                while (!_ctsClose.IsCancellationRequested && _connection.HubConnection.State == HubConnectionState.Disconnected)
                 {
-                    _onConnectionChanged(false);
-                    await Task.Delay(500);
-
-                    if (await _connectionService.TryRefreshConnectionServer() &&
-                        _connectionService.ConnectionServer != _connection.Url)
+                    try
                     {
-                        var oldConnection = _connection;
-                        _connection = await StartAsync();
-                        await DisposeConnection(oldConnection);
+                        _onConnectionChanged(false);
+                        await Task.Delay(500);
+
+                        if (await _connectionService.TryRefreshConnectionServer() &&
+                            _connectionService.ConnectionServer != _connection.Url)
+                        {
+                            var oldConnection = _connection;
+                            _connection = await StartAsync();
+                            await DisposeConnection(oldConnection);
+                        }
+                        else
+                            await _connection.HubConnection.StartAsync(_ctsClose.Token);
+                        _onConnectionChanged(true);
                     }
-                    else 
-                        await _connection.HubConnection.StartAsync(_ctsClose.Token);
-                    _onConnectionChanged(true);
+                    catch (Exception ee)
+                    {
+                        Log.Error(ee, "Reconnect failed");
+                    }
                 }
-                catch (Exception ee)
-                {
-                    Log.Error(ee, "Reconnect failed");
-                }
-            }
+            });
+            return Task.CompletedTask;
+        }
+
+        public void RunOnMainThread(Action action)
+        {
+            if (SynchronizationContext.Current == null)
+                _syncContext.Post(s => action(), null);
+            else
+                action();
         }
 
         private async Task<HubConnectionDesc> StartAsync()

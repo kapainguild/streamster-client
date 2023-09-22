@@ -19,6 +19,8 @@ namespace Streamster.ClientCore.Cross
 
         void GetObsVersions(out string obs, out string obsCam);
 
+        string GetObsStreamUrl(out string service);
+
         void CopyToClipboard(string str);
 
         void PreventSleepMode(bool bEnable);

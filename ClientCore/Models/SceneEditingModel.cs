@@ -151,6 +151,14 @@ namespace Streamster.ClientCore.Models
 
                 if (CoreData.Settings.SelectedScene == null)
                     _streamingSourcesModel.SelectScene(id);
+
+                bool setToCurrent = CoreData.Settings.SelectedScene == null ||
+                                    !CoreData.Root.Scenes.TryGetValue(CoreData.Settings.SelectedScene, out var scene) ||
+                                    scene?.Owner == null ||
+                                    !CoreData.Root.Devices.TryGetValue(scene.Owner, out var device) ||
+                                    device.State != DeviceState.Online;
+                if (setToCurrent)
+                    _streamingSourcesModel.SelectScene(id);
             }
         }
 

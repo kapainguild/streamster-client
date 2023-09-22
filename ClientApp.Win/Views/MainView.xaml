@@ -264,13 +264,34 @@
                                             <Border x:Name="MainArea" support:ResponsivePanel.ResponsiveType="MainArea" Background="#202020">
                                                 <Grid>
                                                     <DockPanel x:Name="mainAreaRoot">
-                                                        <ContentControl DockPanel.Dock="Top" Focusable="False" ContentTemplate="{StaticResource MainViewControls}" Content="{Binding StreamSettings}"/>
-                                                        <TextBlock x:Name="promo" DockPanel.Dock="Top" HorizontalAlignment="Center" 
-                                                                   Margin="0,0,0,0" FontWeight="Normal" FontSize="12">
-                                                            <Hyperlink NavigateUri="{Binding StreamSettings.PromoUrl.Value}" support:HyperlinkExtensions.IsExternal="true" Style="{StaticResource hlStyle}">
-                                                               <Run Text="{Binding StreamSettings.Promo.Value}"/> 
-                                                            </Hyperlink>
-                                                        </TextBlock>
+                                                        <ContentControl DockPanel.Dock="Top" Focusable="False" ContentTemplate="{StaticResource MainViewControls}" Content="{Binding StreamSettings}"
+                                                                        Panel.ZIndex="10"/>
+                                                        <Grid x:Name="promoPanel" DockPanel.Dock="Top"  Margin="-190, -5, 0, 0" HorizontalAlignment="Center" >
+                                                            <Border x:Name="badBitrate" ToolTip="{Binding CoreData.Settings.BitrateWarning}"
+                                                                    ToolTipService.InitialShowDelay="100"
+                                                                    Margin="0,-5,0,0"
+                                                                    Background="#151515"
+                                                                    CornerRadius="0,0,4,4">
+                                                                <Border.Resources>
+                                                                    <ResourceDictionary>
+                                                                        <Style TargetType="{x:Type ToolTip}" BasedOn="{StaticResource HiglightedTooltip}"/>
+                                                                    </ResourceDictionary>
+                                                                </Border.Resources>
+                                                                <TextBlock Margin="7,2"  Foreground="#B39355" HorizontalAlignment="Center" 
+                                                                           Text="Bitrate doesn't match the resolution/FPS"/>
+                                                            </Border>
+                                                            <Border x:Name="promo" 
+                                                                    Margin="0,-5,0,0"
+                                                                    Background="#151515"
+                                                                    CornerRadius="0,0,4,4">
+                                                                <TextBlock Margin="7,2" FontWeight="Normal" 
+                                                                           HorizontalAlignment="Center">
+                                                                    <Hyperlink NavigateUri="{Binding StreamSettings.PromoUrl.Value}" support:HyperlinkExtensions.IsExternal="true" Style="{StaticResource hlStyle}">
+                                                                       <Run Text="{Binding StreamSettings.Promo.Value}"/> 
+                                                                    </Hyperlink>
+                                                                </TextBlock>
+                                                            </Border>
+                                                        </Grid>
                                                         <ContentControl Focusable="False" ContentTemplate="{StaticResource MainViewTargets}" Content="{Binding Targets}"/>
                                                     </DockPanel>
 
@@ -351,7 +372,7 @@
                 <Setter TargetName="MainArea" Property="Visibility" Value="Collapsed"/>
             </DataTrigger>
 
-            <DataTrigger Binding="{Binding Platforms.ChatsEnabled}" Value="False">
+            <DataTrigger Binding="{Binding Platforms.ChatsEnabled.Value}" Value="False">
                 <Setter TargetName="ChatToggle" Property="Visibility" Value="Collapsed"/>
             </DataTrigger>
             
@@ -374,11 +395,15 @@
             </DataTrigger>
 
             <DataTrigger Binding="{Binding (support:ResponsiveHost.Calculation).Values.HidePromo, ElementName=responsiveHost}" Value="True">
-                <Setter TargetName="promo" Property="Visibility" Value="Collapsed"/>
+                <Setter TargetName="promoPanel" Property="Visibility" Value="Collapsed"/>
             </DataTrigger>
 
             <DataTrigger Binding="{Binding StreamSettings.Promo.Value}" Value="{x:Null}">
                 <Setter TargetName="promo" Property="Visibility" Value="Collapsed"/>
+            </DataTrigger>
+
+            <DataTrigger Binding="{Binding CoreData.Settings.BitrateWarning}" Value="{x:Null}">
+                <Setter TargetName="badBitrate" Property="Visibility" Value="Collapsed"/>
             </DataTrigger>
 
             <DataTrigger Binding="{Binding (support:ResponsiveHost.Calculation).Values.IndicatorsHorizontal, ElementName=responsiveHost}" Value="True">

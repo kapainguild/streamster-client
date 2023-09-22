@@ -1,4 +1,5 @@
-﻿using Streamster.ClientCore.Cross;
+﻿using Serilog;
+using Streamster.ClientCore.Cross;
 using Streamster.ClientCore.Services;
 using Streamster.ClientData;
 using Streamster.ClientData.Model;
@@ -28,7 +29,11 @@ namespace Streamster.ClientCore.Models
 
             ApplicationData = appResources.AppData;
 
-            CopyUrl = () => appEnvironment.CopyToClipboard(Url.Value);
+            CopyUrl = () =>
+            {
+                Log.Information("External preview Url copied");
+                appEnvironment.CopyToClipboard(Url.Value);
+            };
         }
 
         public void Start()
@@ -45,7 +50,7 @@ namespace Streamster.ClientCore.Models
             var myOutgets = _coreData.Root.Outgests.Values.
                 FirstOrDefault(s => s.Data != null && s.Data.RequireType == RequireOutgestType.WebRtc && s.Data.DeviceId == id);
             if (myOutgets != null)
-                Url.Value = ClientConstants.GetWebRtcWebPage(_connectionService.ConnectionServer, HttpUtility.UrlEncode(myOutgets.Data.Output));
+                Url.Value = ClientConstants.GetWebRtcWebPage(_connectionService.ConnectionServer, myOutgets.Data.Output);
             else
                 Url.Value = null;
         }

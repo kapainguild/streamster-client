@@ -51,6 +51,10 @@ namespace Streamster.ClientData.Model
     public interface IIndicatorCloudOut : IIndicatorBase
     {
         int Bitrate { get; set; }
+
+        int Fps { get; set; }
+
+        int ResY { get; set; }
     }
 
     public interface IIndicatorCloudIn : IIndicatorBase

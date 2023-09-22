@@ -31,6 +31,8 @@ namespace Streamster.ClientData.Model
         AutoLoginState AutoLoginState { get; set; }
 
         bool Temporary { get; set; }
+
+        string BitrateWarning { get; set; }
     }
 
     public enum ChannelState
