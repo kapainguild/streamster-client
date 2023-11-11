@@ -87,7 +87,7 @@ namespace Streamster.ClientCore.Models
                 //    int q = 0;
                 //}
                 _streamerLogger.Write(severity, pattern, message, exception);
-            }, (s, st) => new OutputContext());
+            }, (s, st, id) => new OutputContext());
 
             _hardwareEncoderCheck = new HardwareEncoderCheck();
             _hardwareEncoderCheck.Start();

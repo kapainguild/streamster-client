@@ -292,7 +292,7 @@
                                         </StackPanel>
                                         <StackPanel x:Name="autoLogin" Visibility="Collapsed">
                                             <StackPanel Margin="0,-8,0,0">
-                                                <TextBlock Text="You can login to the service and then we will get configuration automatically. Please not that we are not storing any password on our side." 
+                                                    <TextBlock support:HyperlinkExtensions.FormattedText="{Binding ChannelModel.LoginDisclaimer}" 
                                                            TextWrapping="WrapWithOverflow"
                                                            Foreground="#aaaaaa"/>
 

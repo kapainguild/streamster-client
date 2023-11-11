@@ -133,12 +133,15 @@ namespace Streamster.ClientApp.Win.Services
 
         internal static string GetObsStreamUrl(out string service)
         {
+            service = null;
             try
             {
-                var file = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "obs-studio\\basic\\profiles\\Untitled\\service.json");
-                if (File.Exists(file))
+                var basePath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "obs-studio\\basic\\profiles\\");
+                string[] files = Directory.GetFiles(basePath, "service.json", SearchOption.AllDirectories);
+                
+                if (files != null && files.Length > 0)
                 {
-                    var content = File.ReadAllText(file);
+                    var content = File.ReadAllText(files[0]);
                     var settings = Newtonsoft.Json.JsonConvert.DeserializeObject<ObsSettings>(content, new JsonSerializerSettings { MissingMemberHandling = MissingMemberHandling.Ignore });
 
                     service = settings?.settings?.service;
@@ -149,7 +152,6 @@ namespace Streamster.ClientApp.Win.Services
             {
                 Log.Error(e, "Error in GetObsStreamUrl");
             }
-            service = null;
             return null;
         }
 

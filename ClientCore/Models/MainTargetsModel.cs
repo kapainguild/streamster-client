@@ -159,7 +159,7 @@ namespace Streamster.ClientCore.Models
                 channelModel.StartError.Value = $"Restreaming not possible: {status.TextState}";
                 ClearStartError(channelModel);
             }
-            else if (status.State == ChannelModelState.Idle)
+            else if (status.State == ChannelModelState.Idle || status.State == ChannelModelState.BitrateWarning)
             {
                 if (channelModel.Source.TargetMode == TargetMode.AutoLogin)
                     channelModel.Source.AutoLoginState = AutoLoginState.Unknown; // enforce update state
@@ -537,6 +537,8 @@ namespace Streamster.ClientCore.Models
                 var platformInfo = coreData.Root.Platforms.PlatformInfos.FirstOrDefault(s => s.TargetId == targetId);
                 if (platformInfo != null)
                     SupportsAutoLogin = ((platformInfo.Flags & PlatformInfoFlags.GetKey) > 0) && ClientConstants.ChatsEnabled;
+
+                LoginDisclaimer = target.LoginDisclaimer ?? "You can login to the service and then we will get configuration automatically. Please note that we are not storing any password on our side.";
             }
             else
             {
@@ -610,6 +612,7 @@ namespace Streamster.ClientCore.Models
 
         public Property<bool> AutoLoginMode { get; } = new Property<bool>();
 
+        public string LoginDisclaimer { get; }
 
         public Property<ChannelModelStatus> Status { get; } = new Property<ChannelModelStatus>();
 

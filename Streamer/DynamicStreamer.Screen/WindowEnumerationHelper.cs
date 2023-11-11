@@ -23,12 +23,15 @@
 //  ---------------------------------------------------------------------------------
 
 using System;
+using System.Linq;
 using System.Runtime.InteropServices;
 
 namespace DynamicStreamer.Screen
 {
     static class WindowEnumerationHelper
     {
+        static string[] BlackListedWindowTitles = new[] { "Streamster", "NVIDIA GeForce Overlay" };
+
         enum GetAncestorFlags
         {
             // Retrieves the parent window. This does not include the owner, as it does with the GetParent function.
@@ -147,40 +150,31 @@ namespace DynamicStreamer.Screen
         [DllImport("dwmapi.dll")]
         static extern int DwmGetWindowAttribute(IntPtr hwnd, DWMWINDOWATTRIBUTE dwAttribute, out bool pvAttribute, int cbAttribute);
 
-        public static bool IsWindowValidForCapture(IntPtr hwnd)
+        public static bool IsWindowValidForCapture(System.Diagnostics.Process p, IntPtr hwnd)
         {
-            if (hwnd.ToInt32() == 0)
-            {
+            if (BlackListedWindowTitles.Any(s => s == p.MainWindowTitle))
                 return false;
-            }
+
+            if (hwnd.ToInt32() == 0)
+                return false;
 
             if (hwnd == GetShellWindow())
-            {
                 return false;
-            }
 
             if (!IsWindowVisible(hwnd))
-            {
                 return false;
-            }
 
             if (GetAncestor(hwnd, GetAncestorFlags.GetRoot) != hwnd)
-            {
                 return false;
-            }
 
             var style = (WindowStyles)(uint)GetWindowLongPtr(hwnd, (int)GWL.GWL_STYLE).ToUInt32();
             if (style.HasFlag(WindowStyles.WS_DISABLED))
-            {
                 return false;
-            }
 
             var cloaked = false;
             var hrTemp = DwmGetWindowAttribute(hwnd, DWMWINDOWATTRIBUTE.Cloaked, out cloaked, Marshal.SizeOf<bool>());
             if (hrTemp == 0 && cloaked)
-            {
                 return false;
-            }
 
             return true;
         }

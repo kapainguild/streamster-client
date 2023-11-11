@@ -107,6 +107,8 @@ namespace DynamicStreamer
             Frame_RescaleTimebase(Handle, ref from, ref to, ref Properties);
         }
 
+        public void SetFlag(int flag) { }
+
         public long GetPts() => Properties.Pts;
 
         

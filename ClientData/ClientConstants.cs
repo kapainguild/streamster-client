@@ -90,6 +90,7 @@ namespace Streamster.ClientData
         public static string BusinessRoleClaim = "bro";
 
         public static string BusinessRoleValue_Owner = "o";
+        public static string BusinessRoleValue_SuperOwner = "s";
 
         public static int VpnVersion = 1;
 

@@ -432,6 +432,8 @@
             </DataTrigger>
 
             <DataTrigger Binding="{Binding Status.Value.State}" Value="BitrateWarning">
+                <Setter TargetName="start" Property="Visibility" Value="Visible"/>
+                <Setter TargetName="stop" Property="Visibility" Value="Collapsed"/>
                 <Setter TargetName="stateBorder" Property="BorderBrush" Value="Orange"/>
             </DataTrigger>
 

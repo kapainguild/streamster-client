@@ -12,7 +12,10 @@ namespace DynamicStreamer.Contexts
 {
     public enum BlendingType { Smart, Linear, Lanczos, BilinearLowRes, Bicubic, Area}
 
-    public record VideoBlenderSetup(int Width, int Height, int Fps, int DelayFromRuntimeFrames, int PushPipelineDelayFrames, long MaxDelay, long ComebackDelay, int OutputPixelFormat, BlendingType BlendingType, DirectXContext Dx, VideoBlenderSetupWeakOptions WeakOptions) : IDisposable
+    public record VideoBlenderSetup(int Width, int Height, int Fps, int DelayFromRuntimeFrames, int PushPipelineDelayFrames, long MaxDelay, 
+                                    long ComebackDelay, int OutputPixelFormat, BlendingType BlendingType, 
+                                    DirectXContext Dx, VideoBlenderSetupWeakOptions WeakOptions,
+                                    int StartupOffsetMs) : IDisposable
     {
         public void Dispose()
         {
@@ -141,7 +144,7 @@ namespace DynamicStreamer.Contexts
             _name = new NodeName("VE", null, "BL", 1);
             _fps = setup.Fps;
             _framePool = framePool;
-            _streamer = streamer;
+            _streamer = streamer; 
             _overloadController = overloadController;
             _pushPipeline = pushPipeline;
             _delayFromRuntime = ToTime(setup.DelayFromRuntimeFrames); // 3 frames in client
@@ -161,8 +164,8 @@ namespace DynamicStreamer.Contexts
                     _directXPipeline = LoadPipline(setup.BlendingType, setup.Dx);
 
             }
-
-            _currentFpsTicks = ToTicks(Core.GetCurrentTime() - 600_000); // -60ms
+            if (setup.StartupOffsetMs != 0)
+                _currentFpsTicks = ToTicks(Core.GetCurrentTime() + setup.StartupOffsetMs * 10_000); // -60ms or +30 in server
         }
 
         private DirectXPipeline<BlendingConstantBuffer> LoadPipline(BlendingType blendingType, DirectXContext dx)
@@ -206,6 +209,11 @@ namespace DynamicStreamer.Contexts
 
             if (data != null)
             {
+                if (_currentFpsTicks == 0)
+                {
+                    Core.LogInfo($"Initializing blender's Time with {data.Payload.Properties.Pts} (now={Core.GetCurrentTime()})");
+                    _currentFpsTicks = ToTicks(data.Payload.Properties.Pts);
+                }
                 var sourceId = data.SourceId - _sourceIdOffset;
 
                 if (sourceId >= 0 && sourceId < _inputRuntimes.Count)
@@ -296,6 +304,14 @@ namespace DynamicStreamer.Contexts
 
         public ErrorCodes Read(Frame resultPayload, out PayloadTrace resultTrace)
         {
+            resultTrace = null;
+
+            if (_currentFpsTicks == 0) // in server mode it does not yet initialized
+            {
+                Core.LogInfo("Blender not ready");
+                return ErrorCodes.TryAgainLater;
+            }
+
             long now = Core.GetCurrentTime();
             _lastReadTime = now;
             long currentFpsTime = ToTime(_currentFpsTicks);
@@ -354,12 +370,12 @@ namespace DynamicStreamer.Contexts
                 {
                     if (_overloadController == null)
                         _currentFpsTicks += 1;
-                    else 
+                    else
                         _overloadController.Increment(ref _currentFpsTicks, 1);
                     return ErrorCodes.Ok;
                 }
             }
-            resultTrace = null;
+
             return ErrorCodes.TryAgainLater;
         }
 

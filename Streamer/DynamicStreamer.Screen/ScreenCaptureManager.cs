@@ -1,4 +1,5 @@
 ﻿using DynamicStreamer.Extension;
+using Serilog;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -59,7 +60,7 @@ namespace DynamicStreamer.Screen
         public IEnumerable<ScreenCaptureItem> GetPrograms()
         {
             return Process.GetProcesses()
-                .Where(p => !string.IsNullOrWhiteSpace(p.MainWindowTitle) && WindowEnumerationHelper.IsWindowValidForCapture(p.MainWindowHandle))
+                .Where(p => !string.IsNullOrWhiteSpace(p.MainWindowTitle) && WindowEnumerationHelper.IsWindowValidForCapture(p, p.MainWindowHandle))
                 .Select(p => new { p, size = WindowEnumerationHelper.GetWindowSize(p.MainWindowHandle) })
                 .Select(p =>  new ScreenCaptureItem(p.p.MainWindowTitle, p.p.MainWindowHandle, true, p.size.w, p.size.h));
         }
@@ -79,17 +80,24 @@ namespace DynamicStreamer.Screen
 
         public GraphicsCaptureItemWrapper CreateGraphicsCaptureItem(IntPtr handle, bool isProgram)
         {
-            if (isProgram)
+            try
             {
-                var item = CaptureHelper.CreateItemForWindow(handle);
-                if (item != null)
-                    return new GraphicsCaptureItemWrapper(item, "Window");
+                if (isProgram)
+                {
+                    var item = CaptureHelper.CreateItemForWindow(handle);
+                    if (item != null)
+                        return new GraphicsCaptureItemWrapper(item, "Window");
+                }
+                else
+                {
+                    var item = CaptureHelper.CreateItemForMonitor(handle);
+                    if (item != null)
+                        return new GraphicsCaptureItemWrapper(item, "Display");
+                }
             }
-            else
+            catch(Exception ex)
             {
-                var item = CaptureHelper.CreateItemForMonitor(handle);
-                if (item != null)
-                    return new GraphicsCaptureItemWrapper(item, "Display");
+                Log.Error(ex, "Failed to create capture");
             }
             return null;
         }

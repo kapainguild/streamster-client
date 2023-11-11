@@ -27,7 +27,7 @@ namespace Streamster.ClientApp.Win
             WebSiteName = "Streamster.io home page",
             WebSiteUrl = "https://streamster.io",
             MyAccountUrl = "https://app.streamster.io/login",
-            KnowledgeBaseUrl = "https://help.streamster.io/support/home",
+            KnowledgeBaseUrl = "https://docs.streamster.io",
             RegisterUrl = "https://app.streamster.io/register",
             TermsOfServiceUrl = "https://streamster.io/terms-conditions",
             CreateTicketUrl = "https://help.streamster.io/support/tickets/new",

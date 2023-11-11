@@ -93,7 +93,7 @@ namespace DynamicStreamer.Queues
                     }
                 }
                 else
-                    Core.LogWarning($"OutputQueue dismissed too early packet SourceId = {payload.SourceId}, {pts} < {_lastReleasedPts}", "Dismissed too early packet");
+                    Core.LogWarning($"OutputQueue dismissed too early packet SourceId = {payload.SourceId}/Flags={payload.Payload.Properties.Flags}, {pts} < {_lastReleasedPts}", "Dismissed too early packet");
             }
         }
 
@@ -106,8 +106,8 @@ namespace DynamicStreamer.Queues
                 var delta = last - first;
 
                 int audio = _sortingQueueCountsPerId.Count > 1 ? _sortingQueueCountsPerId[1] : -1;
-                // 2 seconds
-                if (delta > 20_000_000 || _sortingQueueCountsPerId[0] > 120 || audio > 120)
+                // 3,5 seconds
+                if (delta > 35_000_000 || _sortingQueueCountsPerId[0] > 200 || audio > 200)
                 {
                     
                     Core.LogWarning($"GAP! Pushing packet to Output. QDuration {delta / 10_000}ms, VideoQ = {_sortingQueueCountsPerId[0]}, AudioQ={audio}", "GAP! Pushing packet to Output.");

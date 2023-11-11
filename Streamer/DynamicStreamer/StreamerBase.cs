@@ -1,4 +1,5 @@
-﻿using DynamicStreamer.Helpers;
+﻿using DynamicStreamer.Contexts;
+using DynamicStreamer.Helpers;
 using DynamicStreamer.Nodes;
 using System;
 using System.Collections.Generic;
@@ -28,6 +29,8 @@ namespace DynamicStreamer
         void ReinitDirectX();
 
         int GetDxFailureCounter();
+
+        void WebRtcBitrateReport(IOutputContext outputContect, string id, TimeSpan runTime, int bitrate);
     }
 
 
@@ -83,6 +86,8 @@ namespace DynamicStreamer
             lock (_pendingDisposal)
                 _pendingDisposal.Add(dispose);
         }
+
+        public virtual void WebRtcBitrateReport(IOutputContext outputContect, string id, TimeSpan runTime, int bitrate) { }
 
         private bool GetPendingDisposal(out Action[] disposal)
         {

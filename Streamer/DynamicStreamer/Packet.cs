@@ -129,6 +129,12 @@ namespace DynamicStreamer
             Packet_RescaleTimebase(Handle, ref from, ref to, ref Properties);
         }
 
+        public void SetFlag(int flag) 
+        { 
+            // ! flag does not go to unmanaged properties
+            Properties.Flags |= flag;
+        }
+
         public void SetPts(long pts)
         {
             Packet_SetPts(Handle, pts);

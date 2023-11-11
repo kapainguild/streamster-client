@@ -5,6 +5,7 @@ using Harmonic.Networking.Rtmp;
 using Harmonic.Networking.Rtmp.Data;
 using Harmonic.Networking.Rtmp.Messages;
 using Harmonic.Networking.Rtmp.Messages.Commands;
+using Harmonic.Networking.Rtmp.Messages.UserControlMessages;
 using Harmonic.Networking.Rtmp.Serialization;
 using Harmonic.Networking.Utils;
 using Serilog;
@@ -929,6 +930,10 @@ namespace DynamicStreamer.Rtmp
                    case DeleteStreamCommandMessage deleteStream:
                         _netStreams.Remove((uint)deleteStream.StreamID); 
                         _extension.HandleDeleteStream(this, deleteStream);
+                        break;
+
+                   case PingRequestMessage pingRequest:
+                        SendMessage(new PingResponseMessage() { Timestamp = pingRequest.Timestamp });
                         break;
                 }
             }

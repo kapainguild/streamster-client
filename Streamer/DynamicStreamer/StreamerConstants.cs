@@ -43,6 +43,7 @@ namespace DynamicStreamer
             if (codec_id == CODEC_ID_RAWVIDEO) return "raw";
             if (codec_id == CODEC_ID_PCM_S16LE) return "raw_s16";
             if (codec_id == CODEC_ID_PCM_F32LE) return "raw_f32";
+            if (codec_id == CODEC_ID_H264) return "h264";
 
             return $"codec  ??? ({codec_id})";
         }

@@ -16,6 +16,9 @@ namespace DynamicStreamer
         public static int PIX_FMT_INTERNAL_DIRECTX = -1;
         public static int NoStream { get; } = -1;
 
+        public static int FLAG_IFRAME = 1;
+        public static int FLAG_TRANSCODE = 0x100;
+
         public const string DllName = "DynamicStreamerCore.dll";
 
         private static LogCallbackFunction s_onLogCallbackFunction;
@@ -41,9 +44,9 @@ namespace DynamicStreamer
         public static StreamerConstants Const { get; private set; }
         public static StreamerConstants2 Const2 { get; private set; }
 
-        public static Func<OutputSetup, IStreamerBase, IOutputContext> CreateOutputContext { get; private set; }
+        public static Func<OutputSetup, IStreamerBase, string, IOutputContext> CreateOutputContext { get; private set; }
 
-        public static void Init(Action<LogType, string, string, Exception> onLog, Func<OutputSetup, IStreamerBase, IOutputContext> createOutputContext)
+        public static void Init(Action<LogType, string, string, Exception> onLog, Func<OutputSetup, IStreamerBase, string, IOutputContext> createOutputContext)
         {
             QueryPerformanceFrequency(out s_performanceFrequency);
 

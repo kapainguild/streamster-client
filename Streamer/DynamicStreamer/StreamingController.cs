@@ -38,6 +38,9 @@ namespace DynamicStreamer
         void CopyContentFrom(IPayload from);
 
         void RescaleTimebase(ref AVRational from, ref AVRational to);
+
+        // does not work reliably as it does not change properties of underlying unmanager packet
+        void SetFlag(int flag);
     }
 
     public class FromPool<T> : IDisposable where T : class, IPayload, new()

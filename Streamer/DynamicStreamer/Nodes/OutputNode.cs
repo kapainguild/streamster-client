@@ -235,7 +235,7 @@ namespace DynamicStreamer.Nodes
             });
         }
 
-        public bool PrepareVersion(UpdateVersionContext update, OutputSetup setup, IBitrateController bitrateController)
+        public bool PrepareVersion(UpdateVersionContext update, OutputSetup setup, IBitrateController bitrateController, string id)
         {
             if (bitrateController != null && _bitrateController == null)
                 bitrateController.InitOutput(_reader);
@@ -274,7 +274,7 @@ namespace DynamicStreamer.Nodes
                             Version = last == null ? version - 1 : version, // we assume that this output is just added - so accept previous version from the output queue
                             MaxVersion = version,
                             ContextSetup = setup,
-                            Context = new RefCounted<IOutputContext>(Core.CreateOutputContext(setup, Streamer)),
+                            Context = new RefCounted<IOutputContext>(Core.CreateOutputContext(setup, Streamer, id)),
                             WaitForIFrame = 125 // in case fps=60 -> gop = 120. we add 5.
                         };
 

@@ -124,7 +124,7 @@ namespace DynamicStreamer
                                                                     Options = trunkConfig.OutputSetup.Options,
                                                                     TimeoutMs = trunkConfig.OutputSetup.TimeoutMs,
                                                                     OutputStreamProps = outputStreams.ToArray()
-                                                                }, trunkConfig.RequireBitrateControl ? _bitrateController : null))
+                                                                }, trunkConfig.RequireBitrateControl ? _bitrateController : null, trunk.Id))
                     changed = true;
             }
 
@@ -915,13 +915,15 @@ namespace DynamicStreamer
                                                         3, // 3 frames
                                                         20_000_000, // 2 sec
                                                         3_000_000, //300 ms -> should more than 3 frames and less 2 sec
-                                                        blenderOutputPixelFormat, config.BlendingType, _dx, new VideoBlenderSetupWeakOptions
-                {
-                    PixelFormatGroup = pixelFormatGroup,
-                    Inputs = inputs.ToArray(),
-                    NoSignalData = config.NoSignal,
-                    FilterChain = config.FilterChain
-                }));
+                                                        blenderOutputPixelFormat, config.BlendingType, _dx, 
+                                                        new VideoBlenderSetupWeakOptions
+                                                        {
+                                                            PixelFormatGroup = pixelFormatGroup,
+                                                            Inputs = inputs.ToArray(),
+                                                            NoSignalData = config.NoSignal,
+                                                            FilterChain = config.FilterChain
+                                                        },
+                                                        -60));
 
             if (_dx != null )
             {

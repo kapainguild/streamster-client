@@ -19,6 +19,8 @@ namespace Streamster.ClientData.Model
         TargetPromotion Promotion { get; set; }
 
         TargetLimits Limits { get; set; }
+
+        string LoginDisclaimer { get; set; }
     }
 
     public class TargetPromotion

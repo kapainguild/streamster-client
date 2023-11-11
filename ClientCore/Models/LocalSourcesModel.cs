@@ -183,6 +183,8 @@ namespace Streamster.ClientCore.Models
                     item = _screenCaptureManager.CreateGraphicsCaptureItem(handle, isWindow);
                     _captureCache[handle] = item;
                 }
+                if (item == null)
+                    return null;
                 if (item.Wrapped.Size.Height == 0 || item.Wrapped.Size.Width == 0)
                 {
                     Log.Warning($"{source.CaptureId}- {source.Name} has empty size");
