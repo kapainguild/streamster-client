@@ -121,6 +121,7 @@ namespace Streamster.ClientCore.Models
             InputIssueDesc.NoFrames => "No data comes from the source",
             InputIssueDesc.TooManyFrames => "Source works incorrectly",
             InputIssueDesc.InUse => "Device failed, may be in use by another app",
+            InputIssueDesc.OverlayIsDeleted => "Configured overlay was deleted", 
             _ => "Unknown error"
         };
 
@@ -162,10 +163,10 @@ namespace Streamster.ClientCore.Models
             }
         }
 
-        internal void AddSourceToScene(SceneItemSource source, bool fullScreen = false, SceneRect desiredRect = null)
+        internal void AddSourceToScene(SceneItemSource source, bool fullScreen = false, SceneRect desiredRect = null, int zIndex = -1)
         {
             var state = SceneState;
-            var zorder = state.Scene.Items.Count > 0 ? state.Scene.Items.Values.Max(s => s.ZOrder) + 1 : 0;
+            var zorder = zIndex < 0 ? (state.Scene.Items.Count > 0 ? state.Scene.Items.Values.Max(s => s.ZOrder) + 1 : 0) : zIndex;
 
             var deltaX = 0.02 * state.Scene.Items.Count;
             var deltaY = 0.015 * state.Scene.Items.Count;
@@ -320,6 +321,10 @@ namespace Streamster.ClientCore.Models
                 return new LovensePage(this, item.Model);
             else if (source.Image != null)
                 return new ImagePage(this, item.Model);
+            else if (source.Overlay != null)
+                return new OverlayPage(this, item.Model);
+            else if (source.WowCams != null)
+                return new WowCamsPage(this, item.Model);
             return null;
         }
 
@@ -413,7 +418,9 @@ namespace Streamster.ClientCore.Models
                 { CaptureWindow: not null } => source.CaptureWindow.Source.Name,
                 { Web: not null } => WebBrowserPage.GetName(source.Web),
                 { Image: not null } => ImagePage.GetName(source.Image, CoreData),
-                { Lovense: not null } => "Lovense"
+                { Overlay: not null } => OverlayPage.GetName(source.Overlay, CoreData),
+                { Lovense: not null } => "Lovense",
+                { WowCams: not null } => $"Tip2Peep ({source.WowCams.DeviceName?.Name})"
             };
         }
 
@@ -427,7 +434,9 @@ namespace Streamster.ClientCore.Models
                 { CaptureWindow: not null } => SceneItemModelType.WindowCapture,
                 { Web: not null } => SceneItemModelType.WebPage,
                 { Image: not null } => SceneItemModelType.Image,
-                { Lovense: not null } => SceneItemModelType.Lovense
+                { Lovense: not null } => SceneItemModelType.Lovense,
+                { Overlay: not null } => SceneItemModelType.Overlay,
+                { WowCams: not null } => SceneItemModelType.WowCams,
             };
         }
     }
@@ -498,7 +507,7 @@ namespace Streamster.ClientCore.Models
         }
     }
 
-    public enum SceneItemModelType { Device, Image, WebPage, ScreenCapture, WindowCapture, Lovense}
+    public enum SceneItemModelType { Device, Image, WebPage, ScreenCapture, WindowCapture, Lovense, Overlay, WowCams}
 
     public class ActionCommand
     {

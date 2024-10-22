@@ -26,7 +26,7 @@ namespace Streamster.ClientData
 
         public static string GetWebRtcUrl(string urlId, string recordId, int port) => $"wss://{urlId}{IngestSuffix}:{port}/{recordId}";
 
-#elif DEBUG
+#elif DEBUG_
         public static string[] LoadBalancerServers = new[] { "localhost" };
 
         public static string IngestSuffix = "???IngestSuffix???";
@@ -67,6 +67,7 @@ namespace Streamster.ClientData
         public static string IosClientId = "ios";
         public static string AndroidClientId = "and";
         public static string ExternalClientId = "ext"; // obs
+        public static string NoneClientId = "none";
 
         public static string ConnectionServerApi = "csrv";
 

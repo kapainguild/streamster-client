@@ -74,7 +74,7 @@ namespace Streamster.ClientApp.Win.Support
         {
             string text = e.NewValue as string;
             var textBlock = d as TextBlock;
-            if (textBlock != null)
+            if (textBlock != null && text != null)
             {
                 textBlock.Inlines.Clear();
                 var str = text.Split('|');

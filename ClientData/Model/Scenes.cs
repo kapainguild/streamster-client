@@ -94,6 +94,10 @@ namespace Streamster.ClientData.Model
 
         public SceneItemSourceCapture CaptureWindow { get; set; }
 
+        public SceneItemSourceOverlay Overlay { get; set; }
+
+        public SceneItemSourceWowCams WowCams { get; set; }
+
         public override bool Equals(object obj)
         {
             return obj is SceneItemSource source &&
@@ -102,7 +106,9 @@ namespace Streamster.ClientData.Model
                    EqualityComparer<SceneItemSourceLovense>.Default.Equals(Lovense, source.Lovense) &&
                    EqualityComparer<SceneItemSourceImage>.Default.Equals(Image, source.Image) &&
                    EqualityComparer<SceneItemSourceCapture>.Default.Equals(CaptureDisplay, source.CaptureDisplay) &&
-                   EqualityComparer<SceneItemSourceCapture>.Default.Equals(CaptureWindow, source.CaptureWindow);
+                   EqualityComparer<SceneItemSourceCapture>.Default.Equals(CaptureWindow, source.CaptureWindow) &&
+                   EqualityComparer<SceneItemSourceOverlay>.Default.Equals(Overlay, source.Overlay) &&
+                   EqualityComparer<SceneItemSourceWowCams>.Default.Equals(WowCams, source.WowCams);
         }
 
         public override int GetHashCode()
@@ -114,12 +120,13 @@ namespace Streamster.ClientData.Model
             hashCode = hashCode * -1521134295 + EqualityComparer<SceneItemSourceImage>.Default.GetHashCode(Image);
             hashCode = hashCode * -1521134295 + EqualityComparer<SceneItemSourceCapture>.Default.GetHashCode(CaptureDisplay);
             hashCode = hashCode * -1521134295 + EqualityComparer<SceneItemSourceCapture>.Default.GetHashCode(CaptureWindow);
+            hashCode = hashCode * -1521134295 + EqualityComparer<SceneItemSourceOverlay>.Default.GetHashCode(Overlay);
             return hashCode;
         }
 
         public override string ToString()
         {
-            var items = new object[] { Device, Web, Lovense, Image, CaptureDisplay, CaptureWindow };
+            var items = new object[] { Device, Web, Lovense, Image, CaptureDisplay, CaptureWindow, Overlay };
             return string.Join("|", items.Where(s => s != null));
         }
     }
@@ -132,6 +139,33 @@ namespace Streamster.ClientData.Model
         {
             return obj is SceneItemSourceDevice device &&
                    EqualityComparer<DeviceName>.Default.Equals(DeviceName, device.DeviceName);
+        }
+
+        public override int GetHashCode()
+        {
+            return -1881315784 + EqualityComparer<DeviceName>.Default.GetHashCode(DeviceName);
+        }
+
+        public override string ToString() => $"Device {DeviceName?.Name}";
+    }
+
+    public class SceneItemSourceWowCams
+    {
+        public DeviceName DeviceName { get; set; }
+
+        public bool Active { get; set; }
+
+        public int Tips { get; set; }
+
+        public int DurationSec { get; set; }
+
+        public override bool Equals(object obj)
+        {
+            return obj is SceneItemSourceWowCams device &&
+                   EqualityComparer<DeviceName>.Default.Equals(DeviceName, device.DeviceName) &&
+                   Tips == device.Tips &&
+                   DurationSec == device.DurationSec &&
+                   Active == device.Active;
         }
 
         public override int GetHashCode()
@@ -168,6 +202,24 @@ namespace Streamster.ClientData.Model
         }
 
         public override string ToString() => $"Web {Url} ({Width}x{Height})";
+    }
+
+    public class SceneItemSourceOverlay
+    {
+        public string Id { get; set; }
+
+        public override bool Equals(object obj)
+        {
+            return obj is SceneItemSourceOverlay overlay &&
+                   Id == overlay.Id;
+        }
+
+        public override int GetHashCode()
+        {
+            return -419350640 + EqualityComparer<string>.Default.GetHashCode(Id);
+        }
+
+        public override string ToString() => $"Overlay (id:{Id})";
     }
 
     public class SceneItemSourceLovense
@@ -313,5 +365,7 @@ namespace Streamster.ClientData.Model
         NoFrames,
         TooManyFrames,
         InUse,
+
+        OverlayIsDeleted
     }
 }

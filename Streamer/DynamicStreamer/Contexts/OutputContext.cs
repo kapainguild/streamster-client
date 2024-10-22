@@ -19,6 +19,8 @@ namespace DynamicStreamer.Contexts
 
         public WebSocketTransferData[] WebSocketTransferData { get; set; }
 
+        public bool InputStreamIsActive { get; set; }
+
 
         public bool WebRtcEquals(object obj)
         {

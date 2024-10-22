@@ -14,6 +14,8 @@
         <ResourceDictionary Source="EditingView.Capture.xaml"/>
         <ResourceDictionary Source="EditingView.Lovense.xaml"/>
         <ResourceDictionary Source="EditingView.Image.xaml"/>
+        <ResourceDictionary Source="EditingView.Overlay.xaml"/>
+        <ResourceDictionary Source="EditingView.WowCams.xaml"/>
     </ResourceDictionary.MergedDictionaries>
 
    
@@ -114,6 +116,9 @@
             <DataTrigger Binding="{Binding Type}" Value="Lovense">
                 <Setter TargetName="icon" Property="Kind" Value="AlphaLCircleOutline"/>
             </DataTrigger>
+            <DataTrigger Binding="{Binding Type}" Value="WowCams">
+                <Setter TargetName="icon" Property="Kind" Value="Eye"/>
+            </DataTrigger>
 
         </DataTemplate.Triggers>
     </DataTemplate>
@@ -162,7 +167,7 @@
 
                     <StackPanel Margin="5,30" x:Name="expandMessage"  Visibility="Collapsed">
                         <materialDesign:PackIcon HorizontalAlignment="Center" Kind="Warning" Foreground="#FFAA55" Width="24"/>
-                        <TextBlock Margin="0,3,0,0"  FontWeight="Normal" Text="Resize/expand application to get full editing experience" VerticalAlignment="Center" HorizontalAlignment="Center" TextWrapping="WrapWithOverflow" TextTrimming="CharacterEllipsis"
+                        <TextBlock Margin="0,3,0,0"  FontWeight="Normal" Text="Resize/expand application and/or hide chats in order to get full editing experience" VerticalAlignment="Center" HorizontalAlignment="Center" TextWrapping="WrapWithOverflow" TextTrimming="CharacterEllipsis"
                                TextAlignment="Center" Foreground="#FFAA55"/>
                     </StackPanel>
 

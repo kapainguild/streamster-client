@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace Streamster.ClientData
@@ -9,7 +10,7 @@ namespace Streamster.ClientData
     {
         Task JsonPatch(ProtocolJsonPatchPayload payload);
 
-        Task ReceiveChatMessages(ReceiveChatMessagesData data);
+        Task ReceiveChatMessages(ReceiveChatMessagesData data, CancellationToken cancellationToken);
     }
 
     public class ProtocolJsonPatchPayload
@@ -40,6 +41,22 @@ namespace Streamster.ClientData
         public DateTime Time { get; set; }
 
         public string AuthorId { get; set; }
+
+        public int Tip { get; set; }
+
+        public int Type { get; set; } //ChatMessageToReceiveType
+
+        public bool Private { get; set; }
+
+        public string ToAuthorId { get; set; } // for private messages from model to user
+
+        public bool Internal { get; set; } // internal messages from streamster to show user something, it should not possible to send private messages to them
+    }
+
+    public enum ChatMessageToReceiveType
+    {
+        Message = 0,
+        Tip = 1,
     }
 
     public class ChatMessageAuthor

@@ -165,7 +165,7 @@ namespace Streamster.ClientCore.Models
 
                     if (mic == null)
                         Mic.Name.SilentValue = "[Microphone not available]";
-                    else if (mic.Source.DeviceName?.DeviceId == null)
+                    else if (mic.Source?.DeviceName?.DeviceId == null) 
                         Mic.Name.SilentValue = "[Microphone is not selected]";
                     else if (_sceneState.Device.AudioInputs.TryGetValue(mic.Source.DeviceName.DeviceId, out var input))
                         Mic.Name.SilentValue = input.Name;

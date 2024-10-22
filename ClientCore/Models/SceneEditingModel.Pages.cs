@@ -14,9 +14,15 @@ namespace Streamster.ClientCore.Models
 
         public Action CaptureWindow { get; }
 
+        public Action Overlays { get; }
+
         public Action Lovense { get; }
 
+        public Action WowCams { get; }
+
         public bool LovenseVisible { get; }  
+
+        public bool WowCamsVisible { get; }
 
         public AddLayerPage(SceneEditingModel model)
         {
@@ -26,8 +32,13 @@ namespace Streamster.ClientCore.Models
             CaptureWindow = () => CapturePageWindow.GoToCreate(model);
             Image = () => model.GoToPage(new ImagePage(model, null));
 
+            Overlays = () => model.GoToPage(new OverlayPage(model, null));
+
             Lovense = () => LovensePage.GoToCreate(model);
             LovenseVisible = LovensePage.IsLovenseVisible();
+
+            WowCams = () => model.GoToPage(new WowCamsPage(model, null));
+            WowCamsVisible = model.CoreData.Settings.TargetPreference == ClientData.Model.TargetPreference.Adult;
         }
 
         public void UpdateContent(EditingUpdateType updateType)
@@ -37,7 +48,7 @@ namespace Streamster.ClientCore.Models
 
     public enum EditingSubPage { Settings, Effects, Zoom }
 
-    public class EditLayerPage : IEditingPage
+    public class EditLayerPage : IEditingPage, IDisposable
     {
         private IEditingPage _sourceEditor;
 
@@ -81,6 +92,12 @@ namespace Streamster.ClientCore.Models
         {
             _sourceEditor.UpdateContent(updateType);
             Effects.UpdateContent(updateType);
+        }
+
+        public void Dispose()
+        {
+            if (_sourceEditor is IDisposable d)
+                d.Dispose();
         }
     }
 

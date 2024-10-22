@@ -28,9 +28,6 @@ namespace DynamicStreamer.Nodes
 
         protected override void ProcessData(Data<Frame> data, ContextVersion<VideoBlenderContext, VideoBlenderSetup, Frame> currentVersion)
         {
-            if (currentVersion == null)
-                return;
-
             if (data != null)
             {
                 _statisticKeeper.Data.InFrames++; //unsafe, but ok
@@ -54,6 +51,9 @@ namespace DynamicStreamer.Nodes
             }
             else
             {
+                if (currentVersion == null)
+                    return;
+
                 currentVersion.Context.Instance.Write(null, currentVersion.ContextSetup, null);
             }
 

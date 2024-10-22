@@ -116,6 +116,8 @@ namespace Streamster.ClientCore.Models
             _coreData.Subscriptions.SubscribeForProperties<ISettings>(s => s.PreferNalHdr, RefreshStreamer);
             _coreData.Subscriptions.SubscribeForProperties<ISettings>(s => s.DisableQsvNv12Optimization, RefreshStreamer);
             _coreData.Subscriptions.SubscribeForProperties<ISettings>(s => s.RecordingFormat, RefreshStreamer);
+            _coreData.Subscriptions.SubscribeForProperties<ISettings>(s => s.Overlays, RefreshStreamer);
+            _coreData.Subscriptions.SubscribeForProperties<ISettings>(s => s.AdditionalCameraActive, RefreshStreamer);
 
             _coreData.Subscriptions.SubscribeForProperties<IDeviceSettings>(s => s.RendererType, RefreshStreamer);
             _coreData.Subscriptions.SubscribeForProperties<IDeviceSettings>(s => s.BlenderType, RefreshStreamer);
@@ -400,6 +402,10 @@ namespace Streamster.ClientCore.Models
                 return RebuildInputSource_Capture(id, source.CaptureDisplay, false, rebuildContext);
             else if (source.CaptureWindow != null)
                 return RebuildInputSource_Capture(id, source.CaptureWindow, true, rebuildContext);
+            else if (source.Overlay != null)
+                return RebuildInputSource_Overlay(id, source.Overlay, rebuildContext);
+            else if (source.WowCams != null)
+                return RebuildInputSource_WowCams(id, source.WowCams, item, rebuildContext);
             else
                 return GetFailedInputSource(id, rebuildContext, InputIssueDesc.UnknownTypOfSource, "Video source is unknown");
         }
@@ -409,6 +415,25 @@ namespace Streamster.ClientCore.Models
             Log.Error($"Bad input source in model: {log}");
             rebuildContext.AddVideo(id, reason);
             return new VideoInputConfigSingleFrame(new FixedFrameData(nameof(StaticResources.BadSource), StaticResources.BadSource, SingleFrameType.Png));
+        }
+
+        private VideoInputConfigBase RebuildInputSource_WowCams(string id, SceneItemSourceWowCams wowCams, ISceneItem item, StreamerRebuildContext rebuildContext)
+        {
+            var localDevice = _localSources.GetLocalVideoDevice(wowCams.DeviceName);
+            if (localDevice != null)
+            {
+                if (wowCams.Active || _coreData.Settings.AdditionalCameraActive)
+                {
+                    var options = DShowOptionsSelector.GetVideoOptions(localDevice, _coreData.Settings.Fps, _coreData.Settings.Resolution, item);
+                    return new VideoInputConfigFull(new InputSetup(
+                        Type: "dshow",
+                        Input: $"video={DShowOptionsSelector.GetDeviceName(localDevice)}",
+                        Options: options));
+                }
+                else
+                    return new VideoInputConfigNull();
+            }
+            else return GetFailedInputSource(id, rebuildContext, InputIssueDesc.VideoRemoved, $"Video device '{wowCams?.DeviceName}' not found");
         }
 
         private VideoInputConfigBase RebuildInputSource_Device(string id, SceneItemSourceDevice device, ISceneItem item, StreamerRebuildContext rebuildContext)
@@ -457,6 +482,16 @@ namespace Streamster.ClientCore.Models
         private VideoInputConfigBase RebuildInputSource_Web(string id, SceneItemSourceWeb web, StreamerRebuildContext rebuildContext)
         {
             return new VideoInputConfigFull(new InputSetup(Type: WebBrowserContext.Name, Input: web.Url, ObjectInput: GetWebBrowserObjectInput(web.Width, web.Height)));
+        }
+
+        private VideoInputConfigBase RebuildInputSource_Overlay(string id, SceneItemSourceOverlay overlay, StreamerRebuildContext rebuildContext)
+        {
+            var desc = _coreData.Root.Settings.Overlays?.FirstOrDefault(s => s.Id == overlay.Id);
+
+            if (desc != null)
+                return new VideoInputConfigFull(new InputSetup(Type: WebBrowserContext.Name, Input: desc.Url, ObjectInput: GetWebBrowserObjectInput(1920, 1080)));
+            else
+                return GetFailedInputSource(id, rebuildContext, InputIssueDesc.OverlayIsDeleted, $"Overlay {overlay.Id} is removed");
         }
 
 

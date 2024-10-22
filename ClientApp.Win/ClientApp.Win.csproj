@@ -67,9 +67,12 @@
 
   <ItemGroup>
     <PackageReference Include="Autofac" Version="6.3.0" />
+    <PackageReference Include="CefSharp.Wpf.NETCore" Version="89.0.170" />
+    <PackageReference Include="Emoji.Wpf" Version="0.3.4" />
     <PackageReference Include="MahApps.Metro" Version="2.4.9" />
     <PackageReference Include="MaterialDesignColors" Version="2.0.5" />
     <PackageReference Include="MaterialDesignThemes" Version="4.4.0" />
+    <PackageReference Include="Microsoft.Web.WebView2" Version="1.0.2210.55" />
     <PackageReference Include="Microsoft.Xaml.Behaviors.Wpf" Version="1.1.39" />
     <PackageReference Include="OxyPlot.Wpf" Version="2.0.0" />
     <PackageReference Include="Serilog" Version="2.10.0" />
@@ -84,6 +87,9 @@
   </ItemGroup>
 
   <ItemGroup>
+    <Page Update="Views\EditingView.Overlay.xaml">
+      <XamlRuntime>$(DefaultXamlRuntime)</XamlRuntime>
+    </Page>
     <Page Update="Views\EditingView.Image.xaml">
       <XamlRuntime>$(DefaultXamlRuntime)</XamlRuntime>
       <SubType>Designer</SubType>

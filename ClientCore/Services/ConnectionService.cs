@@ -148,6 +148,8 @@ namespace Streamster.ClientCore.Services
                 TokenResponse tokenResponse = null;
                 if (credential != null)
                 {
+                    if (server.StartsWith("de10"))
+                        throw new InvalidOperationException();
                     UserName = credential.UserName;
                     tokenResponse = await client.RequestPasswordTokenAsync(new PasswordTokenRequest
                     {

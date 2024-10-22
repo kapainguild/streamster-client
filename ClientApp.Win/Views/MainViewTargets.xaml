@@ -14,9 +14,9 @@
     </ResourceDictionary.MergedDictionaries>
 
     <DataTemplate DataType="{x:Type data:TargetTag}">
-        <Border Margin="3" Background="DarkBlue" BorderBrush="White" BorderThickness="2" CornerRadius="4" HorizontalAlignment="Left"
+        <Border Margin="3" Background="#cc3300" BorderBrush="White" BorderThickness="1" CornerRadius="4" HorizontalAlignment="Left"
                 ToolTip="{Binding Description}">
-            <TextBlock Margin="4,1" Text="{Binding Name}" FontSize="10"/>
+            <TextBlock Margin="5,2" Text="{Binding Name}" FontSize="10"/>
         </Border>
     </DataTemplate>
 

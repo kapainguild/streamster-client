@@ -67,7 +67,7 @@ namespace Streamster.ClientCore.Models
             if (ideal != null)
                 return GetVideoOptions(ideal, fps);
 
-            var max = caps.Select(c => new { cap = c, score = GetScore(c, fps, optimalResolution) }).Aggregate((i1, i2) => i1.score > i2.score ? i1 : i2).cap;
+            var max = caps.Select(c => new { cap = c, score = GetScore(c, fps, optimalResolution, device) }).Aggregate((i1, i2) => i1.score > i2.score ? i1 : i2).cap;
 
             return GetVideoOptions(max, fps);
         }
@@ -111,7 +111,7 @@ namespace Streamster.ClientCore.Models
                 return "";
         }
 
-        private static int GetScore(LocalVideoSourceCapability c, int fps, Resolution resolution)
+        private static int GetScore(LocalVideoSourceCapability c, int fps, Resolution resolution, LocalVideoSource device)
         {
             int score = 0;
 
@@ -138,9 +138,14 @@ namespace Streamster.ClientCore.Models
                 case LocalVideoSourceCapabilityFormat.MJpeg:
                     score -= 2;
                     break;
-                case LocalVideoSourceCapabilityFormat.I420: 
-                case LocalVideoSourceCapabilityFormat.NV12: 
-                    score -= 3; 
+                case LocalVideoSourceCapabilityFormat.I420:
+                    if (device.Name == "OBS Virtual Camera") // for OBS Raw mode => crashes, NV12 requeres more CPU, GPU
+                        score += 1;
+                    else
+                        score -= 3;
+                    break;
+                case LocalVideoSourceCapabilityFormat.NV12:
+                    score -= 3;
                     break;
                 case LocalVideoSourceCapabilityFormat.Empty:
                     score -= 100;

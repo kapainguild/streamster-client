@@ -46,6 +46,10 @@ namespace Streamster.ClientData.Model
         bool PreviewSources { get; set; }
 
         bool PreviewAudioSources { get; set; }
+
+        bool HidePreview { get; set; }
+
+        bool Sleeping { get; set; }
     }
 
     public enum PluginFlags
@@ -55,9 +59,9 @@ namespace Streamster.ClientData.Model
 
     public enum RequireOutgestType
     {
-        Rtmp,
-        Tcp,
-        WebRtc
+        Rtmp = 0,
+        Tcp = 1,
+        WebRtc = 2,
     }
 
     public enum DeviceState

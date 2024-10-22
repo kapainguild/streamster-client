@@ -1,4 +1,5 @@
 ﻿using DynamicStreamer.Screen;
+using Microsoft.Web.WebView2.Core;
 using Serilog;
 using Streamster.ClientApp.Win.Services;
 using Streamster.ClientCore.Cross;
@@ -97,6 +98,19 @@ namespace Streamster.ClientApp.Win
             return ObsHelper.GetObsStreamUrl(out service);
         }
 
+        public bool IsWebView2Available()
+        {
+            try
+            {
+                Log.Information("WebView2 versions: " + CoreWebView2Environment.GetAvailableBrowserVersionString());
+                return true;
+            }
+            catch (Exception e)
+            {
+                Log.Information($"WebView2 is not available, reason: {e.Message}");
+                return false;
+            }
+        }
         public void OpenUrl(string url)
         {
             try

@@ -22,6 +22,8 @@ namespace Streamster.ClientData.Model
         string RendererAdapter { get; set; }
 
         BlenderType BlenderType { get; set; }
+
+        double ChatsFontSize { get; set; }
     }
 
 

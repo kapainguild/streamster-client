@@ -18,10 +18,11 @@ namespace Streamster.ClientData.Model
 
     public enum IngestType
     {
-        External,
-        TcpForDevice,
-        RtmpForDevice,
-        WebRtc,
+        External = 0,
+        TcpForDevice = 1,
+        RtmpForDevice = 2,
+        WebRtc = 3,
+        PlatformWebSocket = 4
     }
 
     public class IngestData

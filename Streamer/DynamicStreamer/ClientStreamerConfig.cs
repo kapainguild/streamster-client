@@ -95,7 +95,8 @@ namespace DynamicStreamer
 
     public record VideoInputConfigBase();
     public record VideoInputConfigFull(InputSetup Setup) : VideoInputConfigBase;
-    public record VideoInputConfigSingleFrame(FixedFrameData Data) : VideoInputConfigBase; 
+    public record VideoInputConfigSingleFrame(FixedFrameData Data) : VideoInputConfigBase;
+    public record VideoInputConfigNull() : VideoInputConfigBase;
 
     public record VideoInputTrunkConfig(string Id, VideoInputConfigBase Detail, VideoFilterChainDescriptor FilterChain, PositionRect PositionRect, PositionRect PtzRect, bool Visible, int ZOrder);
 
@@ -180,7 +181,8 @@ namespace DynamicStreamer
 
         public void Dispose()
         {
-            Detail.Dispose();
+            Detail?.Dispose();
+            Detail = null;
         }
     }
 

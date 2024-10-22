@@ -96,6 +96,32 @@
                         </HeaderedContentControl>
                     </Button>
 
+                    <Grid>
+                        <Button Command="{Binding Overlays, Converter={StaticResource CommandConverter}}" Height="Auto"
+                                Style="{StaticResource AddItemButtonStyle}">
+                            <HeaderedContentControl Style="{StaticResource AddItemStyle}" Header="Overlays">
+                                <materialDesign:PackIcon Kind="LayersTriple"  Width="36" Height="36"/>
+                            </HeaderedContentControl>
+                        </Button>
+
+                        <Border Margin="12,4" CornerRadius="4" Background="Red" VerticalAlignment="Top" HorizontalAlignment="Right">
+                            <TextBlock Margin="4,1" Text="New" FontWeight="Normal" FontSize="12"/>
+                        </Border>
+                    </Grid>
+                </StackPanel>
+                <StackPanel Orientation="Horizontal" HorizontalAlignment="Left">
+                    <Grid x:Name="wowCams">
+                        <Button Command="{Binding WowCams, Converter={StaticResource CommandConverter}}" Height="Auto"
+                                Style="{StaticResource AddItemButtonStyle}">
+                            <HeaderedContentControl Style="{StaticResource AddItemStyle}" Header="Tip2Peep">
+                                <materialDesign:PackIcon Kind="Eye"  Width="36" Height="36"/>
+                            </HeaderedContentControl>
+                        </Button>
+                        <Border Margin="12,4" CornerRadius="4" Background="Red" VerticalAlignment="Top" HorizontalAlignment="Right">
+                            <TextBlock Margin="4,1" Text="New" FontWeight="Normal" FontSize="12"/>
+                        </Border>
+                    </Grid>
+
                     <Button x:Name="lovense" Command="{Binding Lovense, Converter={StaticResource CommandConverter}}" Height="Auto"
                                 Style="{StaticResource AddItemButtonStyle}">
                         <HeaderedContentControl Style="{StaticResource AddItemStyle}" Header="Lovense">
@@ -108,6 +134,9 @@
         <DataTemplate.Triggers>
             <DataTrigger Binding="{Binding LovenseVisible}" Value="false">
                 <Setter  TargetName="lovense" Property="Visibility" Value="Collapsed"/>
+            </DataTrigger>
+            <DataTrigger Binding="{Binding WowCamsVisible}" Value="false">
+                <Setter  TargetName="wowCams" Property="Visibility" Value="Collapsed"/>
             </DataTrigger>
         </DataTemplate.Triggers>
     </DataTemplate>

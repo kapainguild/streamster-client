@@ -6,6 +6,8 @@
     <ResourceDictionary.MergedDictionaries>
         <ResourceDictionary Source="Common.xaml"/>
         <ResourceDictionary Source="Transcoding.xaml"/>
+        <ResourceDictionary Source="Chats/UserPasswordAuthenticationView.xaml"/>
+        <ResourceDictionary Source="Chats/WebBrowserAuthenticationView.xaml"/>
     </ResourceDictionary.MergedDictionaries>
 
     <Style x:Key="ChannelButtons" TargetType="{x:Type Button}" BasedOn="{StaticResource MaterialDesignIconButton}">
@@ -185,9 +187,21 @@
 
                         <Border x:Name="login" Background="#AA0000" Visibility="Collapsed">
                             <DockPanel>
-                                <Button Margin="5,-10,8,4" DockPanel.Dock="Right" 
+                                <Grid Margin="5,-10,8,4" DockPanel.Dock="Right" >
+                                    <Button x:Name="loginButtonCommand" 
                                         Height="26"
-                                        Content="Login" Command="{Binding Authenticate, Converter={StaticResource CommandConverter}}"/>
+                                        Content="Login" Command="{Binding AuthenticateModel.Login, Converter={StaticResource CommandConverter}}">
+                                    </Button>
+                                    <Button Visibility="Collapsed"
+                                            x:Name="loginButtonPopup" 
+                                            Height="26"
+                                            Content="Login" 
+                                            Command="{Binding AuthenticateModel.Login, Converter={StaticResource OpenDialogCommandConverter}}">   
+                                        <Button.CommandParameter>
+                                            <ContentControl Content="{Binding AuthenticateModel}"/>
+                                        </Button.CommandParameter>
+                                    </Button>
+                                </Grid>
                                 <TextBlock Margin="10,3,6,3" Text="Not authenticated"/>
                             </DockPanel>
                         </Border>
@@ -220,6 +234,10 @@
         </Grid>
 
         <DataTemplate.Triggers>
+            <DataTrigger Binding="{Binding AuthenticateModel.ShowPopupDialog}" Value="True">
+                <Setter TargetName="loginButtonCommand" Property="Visibility" Value="Collapsed"/>
+                <Setter TargetName="loginButtonPopup" Property="Visibility" Value="Visible"/>
+            </DataTrigger>
 
             <Trigger SourceName="iconButton" Property="IsMouseOver" Value="True">
                 <Trigger.EnterActions>

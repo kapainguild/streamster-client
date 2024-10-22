@@ -499,6 +499,7 @@ namespace DynamicStreamer
                         {
                             PixelFormat = outputPixelFormat,
                             Behavior = CreateMergerBehavior(videoInputConfigFull.Setup),
+                            CanBeTransparent = videoInputConfigFull.Setup.Type == WebBrowserContext.Name || videoInputConfigFull.Setup.Type == PluginContext.PluginName,
                             FilterChain = filterChain
                         };
                     }
@@ -519,6 +520,9 @@ namespace DynamicStreamer
                             FilterChain = trunkConfig.FilterChain
                         };
                     }
+                }
+                else if (trunkConfig.Detail is VideoInputConfigNull)
+                {
                 }
 
                 if (blenderDesc != null)
@@ -886,7 +890,7 @@ namespace DynamicStreamer
             int encoderRequiredPixFmt = encoderCtx?.Config.EncoderProps.pix_fmt ?? Core.Const.PIX_FMT_YUV420P;
 
             var ordered = videoSources.OrderBy(s => s.ZOrder).ToList();
-            bool addBackround = ordered.Count > 0 ? !(ordered[0].Rect.IsFullScreen() && ordered[0].Visible) : true;
+            bool addBackround = ordered.Count > 0 ? !(ordered[0].Rect.IsFullScreen() && ordered[0].Visible && !ordered[0].CanBeTransparent) : true;
             var blenderOutputPixelFormat = _dx != null ? -1 : (addBackround ? pixelFormatGroup.MainFormats[0] : ordered[0].PixelFormat);
 
             VideoEncoderTrunk.BackgroundFrame.Update(config.Background, new FixedFrameConfig(w, h, pixelFormatGroup.MainFormats[0], _dx), this);

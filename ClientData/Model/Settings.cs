@@ -44,6 +44,19 @@ namespace Streamster.ClientData.Model
         string BitrateWarning { get;set; }
 
         IChannel ChannelBeingCreated { get; set; }
+
+        OverlayDesc[] Overlays { get; set; }   
+
+        bool AdditionalCameraActive { get; set; }
+    }
+
+    public class OverlayDesc
+    {
+        public string Id { get; set; } // some Id in external system/overlays App
+
+        public string Name { get; set; }
+
+        public string Url { get; set; }
     }
 
     public record BitrateRules(BitrateRange[] BitrateLimits);

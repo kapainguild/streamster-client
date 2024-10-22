@@ -624,18 +624,28 @@ namespace DynamicStreamer.Rtmp
 
             switch (header.ChunkBasicHeader.RtmpChunkHeaderType)
             {
+                case ChunkHeaderType.Type0:
+                    header.MessageHeader.TimestampDelta = 0;
+                    break;
                 case ChunkHeaderType.Type1:
+                    header.MessageHeader.TimestampDelta = header.MessageHeader.Timestamp; // in scope of vMix support
                     header.MessageHeader.Timestamp += prevHeader.Timestamp;
                     header.MessageHeader.MessageStreamId = prevHeader.MessageStreamId;
                     break;
                 case ChunkHeaderType.Type2:
+                    header.MessageHeader.TimestampDelta = header.MessageHeader.Timestamp; // in scope of vMix support
                     header.MessageHeader.Timestamp += prevHeader.Timestamp;
                     header.MessageHeader.MessageLength = prevHeader.MessageLength;
                     header.MessageHeader.MessageType = prevHeader.MessageType;
                     header.MessageHeader.MessageStreamId = prevHeader.MessageStreamId;
                     break;
                 case ChunkHeaderType.Type3:
-                    header.MessageHeader.Timestamp = prevHeader.Timestamp;
+                    if (!_incompleteMessageState.ContainsKey(header.ChunkBasicHeader.ChunkStreamId)) //if begining of new packet and (size is the same as prev), take delta from prevoius packets
+                        header.MessageHeader.Timestamp = prevHeader.Timestamp + prevHeader.TimestampDelta;  // in scope of vMix support
+                    else
+                        header.MessageHeader.Timestamp = prevHeader.Timestamp;
+
+                    header.MessageHeader.TimestampDelta = prevHeader.TimestampDelta;
                     header.MessageHeader.MessageLength = prevHeader.MessageLength;
                     header.MessageHeader.MessageType = prevHeader.MessageType;
                     header.MessageHeader.MessageStreamId = prevHeader.MessageStreamId;
@@ -699,7 +709,7 @@ namespace DynamicStreamer.Rtmp
                     break;
             }
 
-            if (buffer.Length - consumed <= bytesNeed)
+            if (buffer.Length - consumed < bytesNeed)
             {
                 return (false, consumed);
             }

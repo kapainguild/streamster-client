@@ -1,0 +1,146 @@
+﻿<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                    xmlns:models="clr-namespace:Streamster.ClientCore.Models;assembly=Streamster.ClientCore" 
+                    xmlns:materialDesign="http://materialdesigninxaml.net/winfx/xaml/themes"
+                    xmlns:support="clr-namespace:Streamster.ClientApp.Win.Support">
+    <ResourceDictionary.MergedDictionaries>
+        <ResourceDictionary Source="Common.xaml"/>
+        <ResourceDictionary Source="EditingView.Styles.xaml"/>
+    </ResourceDictionary.MergedDictionaries>
+
+    <Style TargetType="{x:Type ListBoxItem}" x:Key="NumericContainerStyle" BasedOn="{StaticResource {x:Type ListBoxItem}}">
+        <Setter Property="Background" Value="#282828"/>
+        <Setter Property="Margin" Value="0, 0, 3, 0"/>
+        <Setter Property="Width" Value="36"/>
+        <Setter Property="Height" Value="26"/>
+        <Setter Property="HorizontalContentAlignment" Value="Center"/>
+        <Setter Property="FontWeight" Value="Normal"/>
+        <Setter Property="FontSize" Value="11"/>
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="{x:Type ListBoxItem}">
+                    <Border Background="{TemplateBinding Background}" CornerRadius="4">
+                        <ContentPresenter HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}"
+                                          VerticalAlignment="{TemplateBinding VerticalContentAlignment}"/>
+                    </Border>
+                </ControlTemplate>
+            </Setter.Value>
+            
+        </Setter>
+        <Style.Triggers>
+            <Trigger Property="IsSelected" Value="True">
+                <Setter Property="Background" Value="{DynamicResource PrimaryHueMidBrush}"/>
+            </Trigger>
+        </Style.Triggers>
+        
+    </Style>
+
+    <DataTemplate x:Key="InBoxDeviceItemModel" DataType="{x:Type models:DeviceItemModel}">
+        <DockPanel>
+            <TextBlock DockPanel.Dock="Right" Margin="8,0,0,0" x:Name="badge" Foreground="Red" HorizontalAlignment="Right"/>
+            <TextBlock x:Name="name" Text="{Binding Model.Name}" TextTrimming="CharacterEllipsis"/>
+        </DockPanel>
+        <DataTemplate.Triggers>
+
+            <DataTrigger Binding="{Binding Model.State}" Value="Failed">
+                <Setter TargetName="badge" Property="Text" Value="Failing"/>
+                <Setter TargetName="name" Property="Foreground" Value="#AAAAAA"/>
+            </DataTrigger>
+
+            <DataTrigger Binding="{Binding Model.State}" Value="NotStarted">
+                <Setter TargetName="badge" Property="Text" Value="Not started"/>
+                <Setter TargetName="name" Property="Foreground" Value="#AAAAAA"/>
+            </DataTrigger>
+
+            <DataTrigger Binding="{Binding Model.State}" Value="Locked">
+                <Setter TargetName="badge" Property="Text" Value="Locked"/>
+                <Setter TargetName="name" Property="Foreground" Value="#AAAAAA"/>
+            </DataTrigger>
+
+            <DataTrigger Binding="{Binding Model.State}" Value="Removed">
+                <Setter TargetName="badge" Property="Text" Value="Removed"/>
+                <Setter TargetName="name" Property="Foreground" Value="#AAAAAA"/>
+            </DataTrigger>
+
+            <DataTrigger Binding="{Binding State}" Value="InUse">
+                <Setter TargetName="badge" Property="Text" Value="In use"/>
+                <Setter TargetName="name" Property="Foreground" Value="#AAAAAA"/>
+            </DataTrigger>
+            
+        </DataTemplate.Triggers>
+    </DataTemplate>
+
+    <DataTemplate DataType="{x:Type models:WowCamsPage}">
+        <ScrollViewer Margin="0,10,0,0" HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto">
+
+            <Grid >
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="14"/>
+                    <ColumnDefinition Width="*"/>
+                </Grid.ColumnDefinitions>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="10"/>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="8"/>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                </Grid.RowDefinitions>
+                
+                <TextBlock Foreground="#BBBBBB" Grid.Row="0" Grid.Column="0" Text="Camera" VerticalAlignment="Center"/>
+                <Grid Grid.Row="0" Grid.Column="2" HorizontalAlignment="Left" >
+                <ComboBox 
+                          MaxWidth="290"
+                          materialDesign:HintAssist.Hint="Select camera to display"
+                          ItemTemplate="{StaticResource InBoxDeviceItemModel}"
+                          SelectedItem="{Binding SelectedCamera.Value}" ItemsSource="{Binding Cameras}" HorizontalAlignment="Stretch" />
+                    <Border Height="1" Width="290"/>
+                </Grid>
+
+                <TextBlock Foreground="#BBBBBB" Grid.Row="2" Grid.Column="0" Text="Tips" VerticalAlignment="Top"
+                           Margin="0,4,0,0"/>
+
+                <StackPanel Orientation="Horizontal" Grid.Row="2" Grid.Column="2">
+                    <TextBox Width="87" >
+                        <TextBox.Text>
+                            <Binding Path="Tips.Value" UpdateSourceTrigger="PropertyChanged">
+                                <Binding.ValidationRules>
+                                    <support:MustBeANumberValidationRule ValidatesOnTargetUpdated="True"/>
+                                </Binding.ValidationRules>
+                            </Binding>
+                        </TextBox.Text>
+                    </TextBox>
+
+                    <TextBlock Foreground="#BBBBBB" Margin="40,4,0,0" Text="Duration" VerticalAlignment="Top"/>
+
+                    <ComboBox Margin="10,0,0,0" SelectedItem="{Binding DurationSec.Value}" 
+                              ItemsSource="{Binding DurationValues}" Width="100" DisplayMemberPath="DisplayName" />
+
+                </StackPanel>
+
+                 <StackPanel Grid.Row="5" Grid.ColumnSpan="3" Margin="0,4" Orientation="Horizontal">
+                    <materialDesign:PackIcon Kind="QuestionMarkCircleOutline" Margin="0,11,0,0" Foreground="#2090F0"></materialDesign:PackIcon>
+                    <TextBlock 
+                               HorizontalAlignment="Left" Margin="5,10,0,0">
+                            <Hyperlink NavigateUri="{Binding LearnUrl}" support:HyperlinkExtensions.IsExternal="true" 
+                                       Style="{StaticResource hlStyle}">
+                                <Run Text="Learn what it is, how to configure and use it."/> 
+                            </Hyperlink>
+                    </TextBlock>
+                </StackPanel>
+
+                <DockPanel Grid.Row="6" Grid.ColumnSpan="3" Margin="0,0,0,0" >
+                    <materialDesign:PackIcon Kind="WarningOutline" Margin="0,6,0,0" Foreground="#FFAA00"
+                                             DockPanel.Dock="Left"/>
+                    <TextBlock HorizontalAlignment="Left" Margin="5,5,0,0" Foreground="#FFAA00"
+                               Text="You are editing the Tip2Peep layer, which is currently visible to viewers if your stream is live. Close the layer settings to activate your main webcam." 
+                               FontWeight="Normal" TextWrapping="Wrap"/>
+                </DockPanel>
+
+            </Grid>
+            
+        </ScrollViewer>
+    </DataTemplate>
+</ResourceDictionary>

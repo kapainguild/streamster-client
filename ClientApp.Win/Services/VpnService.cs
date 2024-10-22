@@ -224,7 +224,7 @@ namespace Streamster.ClientApp.Win.Services
 
             try
             {
-                var timeout = Task.Delay(10000, cancellationToken);
+                var timeout = Task.Delay(30000, cancellationToken);
 
                 var res = await Task.WhenAny(timeout, tcs.Task);
                 if (res == timeout)

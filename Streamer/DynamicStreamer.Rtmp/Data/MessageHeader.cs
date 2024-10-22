@@ -22,9 +22,11 @@ namespace Harmonic.Networking.Rtmp.Data
             Timestamp = this.Timestamp,
             MessageLength = this.MessageLength,
             MessageType = (int)this.MessageType,
-            MessageStreamId = this.MessageStreamId
+            MessageStreamId = this.MessageStreamId,
         };
 
+
+        public uint TimestampDelta { get; set; }
         public uint Timestamp { get; set; }
         public uint MessageLength { get; set; }
         public MessageType MessageType { get; set; } = 0;

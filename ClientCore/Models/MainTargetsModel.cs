@@ -380,9 +380,9 @@ namespace Streamster.ClientCore.Models
                     if (root.Settings.TargetFilter != filter)
                     {
                         Filters.ToList().ForEach(s => s.IsSelected.SilentValue = (filter & (int)s.Flags) == 0);
-                        UpdateFilter();
                     }
                 }
+                UpdateFilter();
             }
 
             var id = IdGenerator.New();
@@ -452,7 +452,7 @@ namespace Streamster.ClientCore.Models
                 }
             }
 
-            var obs = _appEnvironment.GetObsStreamUrl(out var service); 
+            var obs = _appEnvironment.GetObsStreamUrl(out var service);
             if (!string.IsNullOrWhiteSpace(obs))
             {
                 var target = root.Targets.Values.Where(s => s.DefaultRtmpUrl != null).
@@ -551,7 +551,7 @@ namespace Streamster.ClientCore.Models
             Stop = () => Source.IsOn = false;
             GoToHelp = () => environment.OpenUrl(string.Format(parent.AppData.TargetHintTemplate, source.TargetId ?? "Custom"));
             GoToWebUrl = () => environment.OpenUrl(WebUrl.Value);
-            Authenticate = () => parent.PlatformsModel.Authenticate(targetId);
+            AuthenticateModel = parent.PlatformsModel.GetAuthenticateModel(targetId);
 
             ShowSettings = () => parent.Popup.Value = new TargetConfig
             {
@@ -630,7 +630,7 @@ namespace Streamster.ClientCore.Models
 
         public Action ShowSettings { get; }
 
-        public Action Authenticate { get; }
+        public BaseAuthenticateModel AuthenticateModel { get; }
     }
 
     public class ChannelModelStatus

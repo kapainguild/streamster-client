@@ -24,5 +24,7 @@ namespace Streamster.ClientCore.Cross
         void CopyToClipboard(string str);
 
         void PreventSleepMode(bool bEnable);
+
+        bool IsWebView2Available();
     }
 }

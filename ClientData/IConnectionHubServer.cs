@@ -25,6 +25,16 @@ namespace Streamster.ClientData
         public string ChatId { get; set; }
 
         public string Msg { get; set; }
+
+        public string AuthorId { get; set; } // if author id is specified it is private message
+    }
+
+
+    public class ProtocolAuthenticateData
+    {
+        public string User { get; set; }
+
+        public string Password { get; set; }
     }
 
 }

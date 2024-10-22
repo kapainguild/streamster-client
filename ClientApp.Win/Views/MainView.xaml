@@ -220,11 +220,20 @@
                                                             <materialDesign:PackIcon Kind="InformationOutline" Height="32" Width="32" />
                                                         </ToggleButton>
 
-                                                        <ToggleButton Margin="0,5,0,0" x:Name="ChatToggle" Style="{StaticResource MaterialDesignIconForegroundButton}" ToolTip="Chats"
-                                                                      ToolTipService.Placement="Left"
-                                                                      IsChecked="{Binding Platforms.IsChatsOpened.Value}">
-                                                            <materialDesign:PackIcon x:Name="ChatToggleIcon" Kind="MessageText" Height="32" Width="32" />
+                                                        <Grid Margin="0,5,0,0"  x:Name="ChatToggle" >
+                                                            
+                                                            <ToggleButton Style="{StaticResource MaterialDesignIconForegroundButton}" ToolTip="Chats"
+                                                                    ToolTipService.Placement="Left"
+                                                                          ToolTipService.InitialShowDelay="0"
+                                                                          
+                                                                    IsChecked="{Binding Platforms.IsChatsOpened.Value}">
+                                                            
+                                                                <materialDesign:PackIcon x:Name="ChatToggleIcon" Kind="MessageText" Height="32" Width="32" />
                                                         </ToggleButton>
+                                                            <Border Margin="-2,-2" CornerRadius="4" Background="Red" VerticalAlignment="Top" HorizontalAlignment="Right">
+                                                                <TextBlock Margin="4,1" Text="New" FontWeight="Normal" FontSize="12"/>
+                                                            </Border>
+                                                        </Grid>
 
                                                         <materialDesign:PopupBox x:Name="SourceSelection" 
                                                                                  PlacementMode="BottomAndAlignRightEdges"

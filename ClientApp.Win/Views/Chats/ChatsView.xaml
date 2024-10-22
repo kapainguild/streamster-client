@@ -2,20 +2,33 @@
                     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
                     xmlns:chats="clr-namespace:Streamster.ClientCore.Models.Chats;assembly=Streamster.ClientCore" 
                     xmlns:materialDesign="http://materialdesigninxaml.net/winfx/xaml/themes"
-                    xmlns:support="clr-namespace:Streamster.ClientApp.Win.Support">
+                    xmlns:support="clr-namespace:Streamster.ClientApp.Win.Support"
+                    xmlns:emoji="clr-namespace:Emoji.Wpf;assembly=Emoji.Wpf">
     <ResourceDictionary.MergedDictionaries>
         <ResourceDictionary Source="../Common.xaml"/>
+        <ResourceDictionary Source="../Transcoding.xaml"/>
+        <ResourceDictionary Source="UserPasswordAuthenticationView.xaml"/>
+        <ResourceDictionary Source="WebBrowserAuthenticationView.xaml"/>
     </ResourceDictionary.MergedDictionaries>
 
+    <ControlTemplate x:Key="ContentOnlyTemplate" TargetType="{x:Type Button}">
+        <ContentPresenter />
+    </ControlTemplate>
+
     <DataTemplate DataType="{x:Type chats:ClientChatMessage}" x:Key="ChatMessage">
-        <Border x:Name="root" Margin="2,2,30,1" CornerRadius="10,10,10,10" BorderBrush="#808080" Background="#152530" HorizontalAlignment="Left">
-            <DockPanel>
-                <TextBlock x:Name="author" Margin="8,5,8,0" DockPanel.Dock="Top" Text="{Binding Author}" FontWeight="Normal" TextWrapping="Wrap"
+
+        <Button Template="{StaticResource ContentOnlyTemplate}" Command="{Binding SelectUser, Converter={StaticResource CommandConverter}}"
+                Style="{StaticResource EmptyButton}">
+            <Border x:Name="root" Margin="2,2,30,1" CornerRadius="10,10,10,10" BorderBrush="#808080" Background="#152530" HorizontalAlignment="Left">
+                <DockPanel>
+                    <TextBlock x:Name="author" Margin="8,5,8,0" DockPanel.Dock="Top" Text="{Binding Author}" FontWeight="Normal" TextWrapping="Wrap"
                            Visibility="Collapsed"
-                           FontSize="9" Foreground="#b0b000"/>
-                <TextBlock Margin="8,5" Text="{Binding Message}" Foreground="#dddddd" FontWeight="Normal" TextWrapping="Wrap"/>
-            </DockPanel>
-        </Border>
+                           FontSize="{Binding Platforms.FontSizeAuthor.Value}" Foreground="#d0d000"/>
+                    <emoji:TextBlock Margin="8,5" Text="{Binding Message}" Foreground="#dddddd" FontWeight="Normal" TextWrapping="Wrap"
+                                     FontSize="{Binding Platforms.FontSize.Value}" />
+                </DockPanel>
+            </Border>
+        </Button>
         <DataTemplate.Triggers>
             <MultiDataTrigger>
                 <MultiDataTrigger.Conditions>
@@ -35,9 +48,8 @@
                 </MultiDataTrigger.Conditions>
                 <Setter TargetName="root" Property="Margin" Value="2,5,30,1"/>
                 <Setter TargetName="root" Property="CornerRadius" Value="1,10,10,10"/>
-                <Setter TargetName="author" Property="Visibility" Value="Visible"/>
             </MultiDataTrigger>
-
+            
             <MultiDataTrigger>
                 <MultiDataTrigger.Conditions>
                     <Condition Binding="{Binding Self}" Value="True"/>
@@ -48,6 +60,38 @@
                 <Setter TargetName="root" Property="Background" Value="#153025"/>
             </MultiDataTrigger>
 
+            <DataTrigger Binding="{Binding ShowAuthor}" Value="True">
+                <Setter TargetName="author" Property="Visibility" Value="Visible"/>
+            </DataTrigger>
+
+            <MultiDataTrigger>
+                <MultiDataTrigger.Conditions>
+                    <Condition Binding="{Binding Type}" Value="Tip"/>
+                    <Condition Binding="{Binding Private}" Value="False"/>
+                </MultiDataTrigger.Conditions>
+                <Setter TargetName="root" Property="Background" Value="#953025"/>
+                <Setter TargetName="author" Property="Foreground" Value="#FFFF99"/>
+            </MultiDataTrigger>
+
+            <MultiDataTrigger>
+                <MultiDataTrigger.Conditions>
+                    <Condition Binding="{Binding Type}" Value="Tip"/>
+                    <Condition Binding="{Binding Private}" Value="True"/>
+                </MultiDataTrigger.Conditions>
+                <Setter TargetName="root" Property="Background" Value="#450005"/>
+                <Setter TargetName="author" Property="Foreground" Value="#FFFF99"/>
+                <Setter TargetName="root" Property="BorderThickness" Value="1"/>
+            </MultiDataTrigger>
+
+
+            <MultiDataTrigger>
+                <MultiDataTrigger.Conditions>
+                    <Condition Binding="{Binding Type}" Value="Message"/>
+                    <Condition Binding="{Binding Private}" Value="True"/>
+                </MultiDataTrigger.Conditions>
+                <Setter TargetName="root" Property="Background" Value="Black"/>
+                <Setter TargetName="root" Property="BorderThickness" Value="1"/>
+            </MultiDataTrigger>
         </DataTemplate.Triggers>
     </DataTemplate>
     
@@ -61,56 +105,124 @@
                                   Style="{StaticResource MaterialDesignIconForegroundButton}" 
                                                                       Width="30" Height="30"
                                 Command="{Binding Close, Converter={StaticResource CommandConverter}}"
-                                                                      ToolTip="Close chats">
+                                                                      ToolTip="Close chat / disconnect from site">
                             <materialDesign:PackIcon Kind="Close" Height="20" Width="20" />
                         </Button>
+
+                        <materialDesign:PopupBox 
+                                    DockPanel.Dock="Right"
+                                    PlacementMode="BottomAndAlignCentres"
+                                    StaysOpen="False">
+                            <StackPanel>
+                                <Button Content="Logout" Command="{Binding AuthenticateModel.Logout, Converter={StaticResource CommandConverter}}"/>
+                            </StackPanel>
+                        </materialDesign:PopupBox>
+
                         <TextBlock VerticalAlignment="Center" Text="{Binding Title}" TextTrimming="CharacterEllipsis"/>
                     </DockPanel>
                 </Border>
-                <Border>
+                <Border x:Name="main" Background="#141414">
                     <Grid>
                         <DockPanel x:Name="connected" Margin="20" >
                             <DockPanel DockPanel.Dock="Bottom">
-                                <Button DockPanel.Dock="Right" Height="28" Margin="5,0,0,0" Content="Send" Command="{Binding SendMessage, Converter={StaticResource CommandConverter}}"/>
-                                <TextBox Text="{Binding Message.Value, UpdateSourceTrigger=PropertyChanged}" 
-                                         materialDesign:HintAssist.Hint="Say something...">
+                                <Button DockPanel.Dock="Right" Height="30" Margin="5,0,0,0" Content="Send" 
+                                        Padding="8,5"
+                                        Command="{Binding SendMessage, Converter={StaticResource CommandConverter}}"/>
+                                <Border x:Name="sendMessageTo" 
+                                        Margin="0,-4,6,-4"
+                                        BorderThickness="1,1,1,1"
+                                        BorderBrush="#606060"
+                                        DockPanel.Dock="Left" Height="38" CornerRadius="11,0,0,11" Background="Black" HorizontalAlignment="Left">
+                                    <DockPanel>
+                                        <Button DockPanel.Dock="Right" Style="{StaticResource MaterialDesignIconForegroundButton}" 
+                                                Command="{Binding ResetSendMessageTo, Converter={StaticResource CommandConverter}}"
+                                                Margin="3,0,0,0"
+                                                Width="34" Height="34">
+                                            <materialDesign:PackIcon Kind="Close" Width="18" Height="18"/>
+                                        </Button>
+                                        <TextBlock DockPanel.Dock="Top" Text="private to" FontWeight="Normal" 
+                                                   Margin="10,4,0,0"
+                                                   FontSize="10" Foreground="#d0d000"/>     
+                                        <TextBlock Text="{Binding SendMessageTo.Value}" MaxWidth="100" TextTrimming="CharacterEllipsis"
+                                                   Margin="10,0,0,0"/>
+                                    </DockPanel>
+                                </Border>
+                                <TextBox x:Name="message" Text="{Binding Message.Value, UpdateSourceTrigger=PropertyChanged}" 
+                                         materialDesign:HintAssist.Hint="Say in private...">
                                     <TextBox.InputBindings>
                                         <KeyBinding Key="Enter" Command="{Binding SendMessage, Converter={StaticResource CommandConverter}}"/>
                                     </TextBox.InputBindings>
                                 </TextBox>
                             </DockPanel>
-                            <ItemsControl ItemsSource="{Binding Messages}" ItemTemplate="{StaticResource ChatMessage}"
-                                          Margin="0,0,-15,5">
-                                <ItemsControl.ItemsPanel>
-                                    <ItemsPanelTemplate>
-                                        <VirtualizingStackPanel IsVirtualizing="True" VirtualizationMode="Recycling" />
-                                    </ItemsPanelTemplate>
-                                </ItemsControl.ItemsPanel>
-                                <ItemsControl.Template>
-                                    <ControlTemplate TargetType="ItemsControl">
-                                        <ScrollViewer CanContentScroll="True" Focusable="False" support:AutoScrollBehavior.AutoScroll="True">
-                                            <ItemsPresenter />
-                                        </ScrollViewer>
-                                    </ControlTemplate>
-                                </ItemsControl.Template>
-                            </ItemsControl>
+                            <Grid Margin="0,0,-15,5">
+                                <Border x:Name="allMessages" Visibility="Collapsed">
+                                    <ItemsControl ItemsSource="{Binding Messages}" ItemTemplate="{StaticResource ChatMessage}" 
+                                              support:AutoScrollToBottomBehavior.AutoScrollToBottomStatus="{Binding MessagesScroll.Value}">
+                                        <ItemsControl.ItemsPanel>
+                                            <ItemsPanelTemplate>
+                                                <VirtualizingStackPanel IsVirtualizing="True" VirtualizationMode="Recycling" />
+                                            </ItemsPanelTemplate>
+                                        </ItemsControl.ItemsPanel>
+                                        <ItemsControl.Template>
+                                            <ControlTemplate TargetType="ItemsControl">
+                                                <ScrollViewer CanContentScroll="True" Focusable="False" >
+                                                    <ItemsPresenter />
+                                                </ScrollViewer>
+                                            </ControlTemplate>
+                                        </ItemsControl.Template>
+                                    </ItemsControl>
+                                </Border>
+                                <Border x:Name="filteredMessages">
+                                    <ItemsControl ItemsSource="{Binding FilteredMessages}" ItemTemplate="{StaticResource ChatMessage}"
+                                              support:AutoScrollToBottomBehavior.AutoScrollToBottomStatus="{Binding FilteredMessagesScroll.Value}">
+                                        <ItemsControl.ItemsPanel>
+                                            <ItemsPanelTemplate>
+                                                <VirtualizingStackPanel IsVirtualizing="True" VirtualizationMode="Recycling" />
+                                            </ItemsPanelTemplate>
+                                        </ItemsControl.ItemsPanel>
+                                        <ItemsControl.Template>
+                                            <ControlTemplate TargetType="ItemsControl">
+                                                <Border>
+                                                    <ScrollViewer CanContentScroll="True" Focusable="False">
+                                                        <ItemsPresenter />
+                                                    </ScrollViewer>
+                                                </Border>
+                                            </ControlTemplate>
+                                        </ItemsControl.Template>
+                                    </ItemsControl>
+                                </Border>
+                            </Grid>
                         </DockPanel>
 
-                        <TextBlock Margin="20" x:Name="initializing" Visibility="Collapsed" Text="Initializing..." />
-                        <TextBlock Margin="20" x:Name="connecting" Visibility="Collapsed" Text="Connecting..." />
+                        <TextBlock Margin="20" x:Name="noissue" Visibility="Collapsed" Text="{Binding StateDetails.Value}" />
 
-                        <Border x:Name="notAuthenticated" Background="#900020" Visibility="Collapsed" VerticalAlignment="Top">
-                            <StackPanel Margin="20,10" >
-                                <TextBlock Text="Not authenticated"/>
-                                <Button Margin="0,8,0,0" HorizontalAlignment="Left" Content="Login" Command="{Binding Authenticate, Converter={StaticResource CommandConverter}}"/>
-                            </StackPanel>
-                        </Border>
+                        <Border x:Name="issue" Background="#701020" Visibility="Collapsed" VerticalAlignment="Top">
+                            <WrapPanel Margin="13,5,0,5" >
+                                <materialDesign:PackIcon Margin="0,2,7,2" VerticalAlignment="Center" 
+                                                         Width="20" Height="20" 
+                                                         Foreground="#FFaa66"
+                                                         
+                                                         Kind="WarningOutline"/>
+                                <TextBlock x:Name="issueTitle" Margin="0,2,10,2" Text="{Binding StateDetails.Value}" TextWrapping="Wrap" VerticalAlignment="Center"/>
+                                <StackPanel Orientation="Horizontal">
+                                    <Grid Margin="0,2,10,2" x:Name="relogin" VerticalAlignment="Center">
+                                        <Button x:Name="loginButtonCommand" HorizontalAlignment="Left" 
+                                                Content="Login" 
+                                                Command="{Binding AuthenticateModel.Login, Converter={StaticResource CommandConverter}}"/>
+                                        <Button Visibility="Collapsed"
+                                                x:Name="loginButtonPopup" HorizontalAlignment="Left" 
+                                                Content="Login" 
+                                                Command="{Binding AuthenticateModel.Login, Converter={StaticResource OpenDialogCommandConverter}}">
+                                            <Button.CommandParameter>
+                                                <ContentControl Content="{Binding AuthenticateModel}"/>
+                                            </Button.CommandParameter>
+                                        </Button>
+                                    </Grid>
+                                    <Button Margin="0,2,10,2" x:Name="reconnect" Content="Reconnect" VerticalAlignment="Center"
+                                            Command="{Binding Reconnect, Converter={StaticResource CommandConverter}}"/>
 
-                        <Border x:Name="conectionFailed" Background="#900020" Visibility="Collapsed" VerticalAlignment="Top">
-                            <TextBlock Margin="20,10" Text="Connection issues..."/>
-                        </Border>
-                        <Border x:Name="connectionNotInitialized" Background="#900020" Visibility="Collapsed" VerticalAlignment="Top">
-                            <TextBlock Margin="20,10" Text="Target site is not configured for stream or chats" TextWrapping="Wrap"/>
+                                </StackPanel>
+                            </WrapPanel>
                         </Border>
                     </Grid>
                 </Border>
@@ -120,12 +232,26 @@
         </Border>
 
         <DataTemplate.Triggers>
+
+            <DataTrigger Binding="{Binding AuthenticateModel.ShowPopupDialog}" Value="True">
+                <Setter TargetName="loginButtonCommand" Property="Visibility" Value="Collapsed"/>
+                <Setter TargetName="loginButtonPopup" Property="Visibility" Value="Visible"/>
+            </DataTrigger>
+
+            <DataTrigger Binding="{Binding SendMessageTo.Value}" Value="{x:Null}">
+                <Setter TargetName="sendMessageTo" Property="Visibility" Value="Collapsed"/>
+                <Setter TargetName="allMessages" Property="Visibility" Value="Visible"/>
+                <Setter TargetName="filteredMessages" Property="Visibility" Value="Collapsed"/>
+                <Setter TargetName="main" Property="Background" Value="#101010"/>
+                <Setter TargetName="message" Property="materialDesign:HintAssist.Hint" Value="Say something..."/>
+            </DataTrigger>
+
             <DataTrigger Binding="{Binding State.Value}" Value="Initializing">
-                <Setter TargetName="initializing" Property="Visibility" Value="Visible"/>
+                <Setter TargetName="noissue" Property="Visibility" Value="Visible"/>
             </DataTrigger>
 
             <DataTrigger Binding="{Binding State.Value}" Value="Connecting">
-                <Setter TargetName="connecting" Property="Visibility" Value="Visible"/>
+                <Setter TargetName="noissue" Property="Visibility" Value="Visible"/>
             </DataTrigger>
             
             <DataTrigger Binding="{Binding State.Value}" Value="Connected">
@@ -133,15 +259,17 @@
             </DataTrigger>
 
             <DataTrigger Binding="{Binding State.Value}" Value="NotAuthenticated">
-                <Setter TargetName="notAuthenticated" Property="Visibility" Value="Visible"/>
+                <Setter TargetName="issue" Property="Visibility" Value="Visible"/>
+                <Setter TargetName="reconnect" Property="Visibility" Value="Collapsed"/>
+                <Setter TargetName="relogin" Property="HorizontalAlignment" Value="Left"/>
             </DataTrigger>
             
             <DataTrigger Binding="{Binding State.Value}" Value="ConnectionFailed">
-                <Setter TargetName="conectionFailed" Property="Visibility" Value="Visible"/>
+                <Setter TargetName="issue" Property="Visibility" Value="Visible"/>
             </DataTrigger>
 
             <DataTrigger Binding="{Binding State.Value}" Value="ConnectionNotInitialized">
-                <Setter TargetName="connectionNotInitialized" Property="Visibility" Value="Visible"/>
+                <Setter TargetName="issue" Property="Visibility" Value="Visible"/>
             </DataTrigger>
         </DataTemplate.Triggers>
     </DataTemplate>
@@ -163,6 +291,21 @@
                                                                       ToolTip="Close chats">
                         <materialDesign:PackIcon Kind="ArrowCollapseRight" Height="20" Width="20" />
                     </ToggleButton>
+                    <materialDesign:PopupBox DockPanel.Dock="Right" Style="{StaticResource TranscodingPopupBox}"
+                                     PlacementMode="BottomAndAlignRightEdges"
+                                     ToolTipService.Placement="Right"
+                                     PopupMode="Click"
+                                     ToolTip="Chats settings">
+                        <materialDesign:PopupBox.ToggleContent>
+                            <materialDesign:PackIcon Width="19" Height="19" Kind="Cog" Foreground="White"/>
+                        </materialDesign:PopupBox.ToggleContent>
+                        <Border Background="Black" BorderBrush="#1883D7" BorderThickness="1">
+                            <StackPanel Margin="25, 20">
+                                <TextBlock HorizontalAlignment="Left" Text="Message font size"/>
+                                <Slider Margin="0,8,0,0" Minimum="10" Maximum="30" Value="{Binding FontSize.Value}" Width="120"/>
+                            </StackPanel>
+                        </Border>
+                    </materialDesign:PopupBox>
                     <ItemsControl ItemsSource="{Binding ChatsToAdd}" Margin="0,6,0,0">
                         <ItemsControl.ItemTemplate>
                             <DataTemplate DataType="{x:Type chats:ChatToAdd}">

@@ -252,8 +252,8 @@
                                         <CheckBox Content="Manual" Style="{StaticResource MaterialDesignFilterChipCheckBox}"
                                                   IsChecked="{Binding ChannelModel.AutoLoginMode.Value, Converter={StaticResource InverseBooleanConverter}}"/>
                                             <materialDesign:Badged
-                                                            Badge="  Beta  "
-                                                            BadgeBackground="#109020"
+                                                            Badge="  New  "
+                                                            BadgeBackground="Red"
                                                             BadgePlacementMode="TopRight"
                                                             BadgeForeground="White"
                                                             CornerRadius="4">                    
@@ -297,14 +297,33 @@
                                                            Foreground="#aaaaaa"/>
 
                                                 <StackPanel Margin="0,10,0,0" Orientation="Horizontal">
-                                                    <Button Content="Login" HorizontalAlignment="Left" Command="{Binding ChannelModel.Authenticate, Converter={StaticResource CommandConverter}}"/>
+                                                        <Grid HorizontalAlignment="Left">
+                                                            <Button x:Name="loginButtonCommand" 
+                                                                    Content="Login" Command="{Binding ChannelModel.AuthenticateModel.Login, Converter={StaticResource CommandConverter}}">
+                                                            </Button>
+                                                            <Button Visibility="Collapsed"
+                                                                    x:Name="loginButtonPopup" 
+                                                                    Content="Login" 
+                                                                    Command="{Binding ChannelModel.AuthenticateModel.Login, Converter={StaticResource OpenDialogCommandConverter}}">       
+                                                                <Button.CommandParameter>
+                                                                    <ContentControl Content="{Binding ChannelModel.AuthenticateModel}"/>
+                                                                </Button.CommandParameter>
+                                                            </Button>
+                                                        </Grid>
 
                                                     <StackPanel Margin="30,0,0,0" Orientation="Horizontal" VerticalAlignment="Center" >
                                                         <materialDesign:PackIcon x:Name="autoLoginIcon" Kind="ProgressAlert" Width="16" Foreground="#CCCCCC"/>
                                                         <TextBlock x:Name="autoLoginText" Margin="4,0,0,0" Text="{Binding ChannelModel.Status.Value.AutoLoginStateText}" 
                                                                    Foreground="#CCCCCC"/>
                                                     </StackPanel>
-                                                </StackPanel>
+                                                        <Button x:Name="logoutButtonCommand" 
+                                                                Visibility="Collapsed"
+                                                                Margin="60,0,0,0"
+                                                                Content="Logout" 
+                                                                Command="{Binding ChannelModel.AuthenticateModel.Logout, Converter={StaticResource CommandConverter}}"
+                                                                Style="{StaticResource MaterialDesignOutlinedButton}">
+                                                        </Button>
+                                                    </StackPanel>
                                             </StackPanel>
                                         </StackPanel>
                                     </Grid>
@@ -380,6 +399,11 @@
         </materialDesign:DialogHost>
         <DataTemplate.Triggers>
 
+            <DataTrigger Binding="{Binding ChannelModel.AuthenticateModel.ShowPopupDialog}" Value="True">
+                <Setter TargetName="loginButtonCommand" Property="Visibility" Value="Collapsed"/>
+                <Setter TargetName="loginButtonPopup" Property="Visibility" Value="Visible"/>
+            </DataTrigger>
+
             <DataTrigger Binding="{Binding ChannelModel.Status.Value.AutoLoginState}" Value="NotAuthenticated">
                 <Setter TargetName="autoLoginIcon" Property="Foreground" Value="Red"/>
                 <Setter TargetName="autoLoginText" Property="Foreground" Value="Red"/>
@@ -396,6 +420,12 @@
                 <Setter TargetName="autoLoginIcon" Property="Foreground" Value="Green"/>
                 <Setter TargetName="autoLoginText" Property="Foreground" Value="Green"/>
                 <Setter TargetName="autoLoginIcon" Property="Kind" Value="CheckboxMarkedCircle"/>
+                <Setter TargetName="logoutButtonCommand" Property="Visibility" Value="Visible"/>
+            </DataTrigger>
+
+            <DataTrigger Binding="{Binding ChannelModel.Status.Value.AutoLoginStateText}" Value="{x:Null}">
+                <Setter TargetName="autoLoginIcon" Property="Visibility" Value="Collapsed"/>
+                <Setter TargetName="autoLoginText" Property="Visibility" Value="Collapsed"/>
             </DataTrigger>
 
             <DataTrigger Binding="{Binding ChannelModel.AutoLoginMode.Value}" Value="True">

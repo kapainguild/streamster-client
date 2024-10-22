@@ -67,6 +67,14 @@ namespace Streamster.ClientData
                 Log.Error(e, $"Unawaited '{name}' failed");
             }
         }
+
+        public static async Task<T> WithAfterStart<T>(Func<CancellationToken, Task<T>> operation, TimeSpan timeout)
+        {
+            var cts = new CancellationTokenSource();
+            var task = operation(cts.Token);
+            cts.CancelAfter(timeout);
+            return await task;
+        }
     }
 
     public  class TaskEntry

@@ -46,17 +46,17 @@ namespace Streamster.ClientData.Model
 
     public enum TargetMode
     {
-        ManualKey,
-        AutoLogin
+        ManualKey = 0,
+        AutoLogin = 1
     }
 
     public enum AutoLoginState
     {
-        Unknown,
-        InProgress,
-        Authenticated,
-        NotAuthenticated,
-        KeyObtained,
-        KeyNotFound
+        Unknown = 0,
+        InProgress = 1,
+        Authenticated = 2,
+        NotAuthenticated = 3,
+        KeyObtained = 4,
+        KeyNotFound = 5
     }
 }

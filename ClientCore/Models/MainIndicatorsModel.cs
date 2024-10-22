@@ -78,12 +78,17 @@ namespace Streamster.ClientCore.Models
             var dev = Devices.FirstOrDefault(s => s.DeviceId == id);
             if (dev != null)
             {
-                if (o.State != DeviceState.Online)
+                if (o.State == DeviceState.Inactive)
+                    Devices.Remove(dev);
+                else if (o.State == DeviceState.Offline)
                     dev.Offline.Value = DeviceIndicatorsState.Offline;
-                else if (o.Type == ClientConstants.WebClientId)
-                    dev.Offline.Value = DeviceIndicatorsState.Online;
-                else
-                    dev.Offline.Value = DeviceIndicatorsState.Indicators;
+                else if (o.State == DeviceState.Online)
+                {
+                    if (o.Type == ClientConstants.WebClientId)
+                        dev.Offline.Value = DeviceIndicatorsState.Online;
+                    else
+                        dev.Offline.Value = DeviceIndicatorsState.Indicators;
+                }
             }
 
             UpdateDeviceNames();

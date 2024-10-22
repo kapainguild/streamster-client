@@ -47,6 +47,8 @@ namespace DynamicStreamer.Contexts
         public RefCountedFrame FixedFrame { get; set; }
         public VideoBlenderInputBehavior Behavior { get; set; }
 
+        public bool CanBeTransparent { get; set; } // e.g web or overlays or plugin
+
         public VideoFilterChainDescriptor FilterChain { get; set; }
 
         public void Dispose()
